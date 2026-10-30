@@ -157,10 +157,10 @@ struct PrimaryButtonStyle: ButtonStyle {
     var color: Color = Theme.accent
 
     func makeBody(configuration: Configuration) -> some View {
-        Body(configuration: configuration, color: color)
+        Styled(configuration: configuration, color: color)
     }
 
-    private struct Body: View {
+    private struct Styled: View {
         let configuration: ButtonStyleConfiguration
         let color: Color
         @Environment(\.isEnabled) private var isEnabled
@@ -183,10 +183,10 @@ struct SecondaryButtonStyle: ButtonStyle {
     var color: Color = Theme.accent
 
     func makeBody(configuration: Configuration) -> some View {
-        Body(configuration: configuration, color: color)
+        Styled(configuration: configuration, color: color)
     }
 
-    private struct Body: View {
+    private struct Styled: View {
         let configuration: ButtonStyleConfiguration
         let color: Color
         @Environment(\.isEnabled) private var isEnabled

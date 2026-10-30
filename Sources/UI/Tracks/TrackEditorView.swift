@@ -79,6 +79,7 @@ struct TrackEditorView: View {
                         Annotation("I\(item.offset + 1)", coordinate: item.element.mid.cl, anchor: .bottom) {
                             GateBadge(text: "I\(item.offset + 1)", color: Theme.yellow)
                         }
+                        .annotationTitles(.hidden)
                     }
                     if let s = t.start {
                         MapPolyline(coordinates: [s.a.cl, s.b.cl])
@@ -88,6 +89,7 @@ struct TrackEditorView: View {
                         Annotation("Via", coordinate: s.mid.cl, anchor: .bottom) {
                             GateBadge(text: "VIA", color: .white, icon: "flag.checkered")
                         }
+                        .annotationTitles(.hidden)
                     }
                     if let pending {
                         Annotation("", coordinate: pending.cl) {
@@ -103,7 +105,6 @@ struct TrackEditorView: View {
                     MapScaleView()
                     MapUserLocationButton()
                 }
-                .annotationTitles(.hidden)
                 .onTapGesture { point in
                     if let c = proxy.convert(point, from: .local) { tap(Coord(c)) }
                 }
