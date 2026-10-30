@@ -36,5 +36,6 @@ struct RootView: View {
                 .tabItem { Label("Dispositivo", systemImage: "antenna.radiowaves.left.and.right") }
                 .tag(AppTab.device)
         }
+        .task { model.runShowcase() }
     }
 }

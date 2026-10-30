@@ -1,42 +1,104 @@
-# TrackLap
+<p align="center">
+  <img src="docs/readme/banner-it.jpg" alt="TrackLap: cronometro da pista per iPhone, con ESP32 e GPS" width="100%">
+</p>
 
-**Italiano** · [English](README.en.md)
+<p align="center">
+  <b>Italiano</b> · <a href="README.en.md">English</a>
+</p>
 
-Cronometro da pista per iPhone: tempi sul giro, intermedi e delta live calcolati dal GPS,
-con un ESP32 e un GPS collegati via Bluetooth (va bene qualsiasi ESP32 con Bluetooth: ESP32, S3,
-C3, C5, C6, H2), il GPS dell'iPhone o un'auto simulata.
+<p align="center">
+  <img alt="iPhone, iOS 17 o successivo" src="https://img.shields.io/badge/iPhone-iOS%2017%2B-22D3EE?style=flat-square&logo=apple&logoColor=white">
+  <img alt="ESP32 con Bluetooth LE" src="https://img.shields.io/badge/ESP32-Bluetooth%20LE-22D3EE?style=flat-square&logo=espressif&logoColor=white">
+  <img alt="GPS a 10 Hz" src="https://img.shields.io/badge/GPS-10%20Hz-22D3EE?style=flat-square">
+  <img alt="6 lingue" src="https://img.shields.io/badge/lingue-6-22D3EE?style=flat-square">
+</p>
 
-## Cosa fa
+**TrackLap** è un cronometro da pista per iPhone. Tempi sul giro, intermedi e delta in diretta
+calcolati dal GPS: con un ESP32 e un GPS a 10 Hz collegati via Bluetooth, con il GPS dell'iPhone,
+o con un'auto simulata per provare tutto subito. Il passaggio sulla linea viene interpolato tra due
+fix, così a 10 Hz i tempi sono precisi a pochi centesimi.
 
-- **Live**: tempo del giro in corso, delta sul best (barra verde/rossa), tempo previsto,
-  settori colorati (viola = best, verde = meglio del giro prima, giallo = più lento),
-  ultimo giro, best, velocità e mini mappa con la posizione. Avviso a fine giro con vibrazione
-  e annuncio vocale di tempo e distacco. Il delta può confrontare con il record della pista
-  delle sessioni precedenti, così funziona già dal primo giro.
-  Schermo sempre acceso durante la sessione; in orizzontale per il supporto sul cruscotto.
-- **Piste**: ricerca mentre scrivi in tutto il mondo (Photon su OpenStreetMap, meno di un secondo),
-  "piste vicino a me" o vicino a una città, catalogo di oltre 60 circuiti famosi con posizione verificata,
-  "crea qui" sul posto. Il tracciato si scarica da Overpass o, se è lento, dall'API di OpenStreetMap. Editor sulla mappa satellitare: tocchi la pista e la linea del via si mette
-  di traverso al tracciato da sola; fino a 4 intermedi; "segna qui" mette la linea dove sei.
-- **Sessioni**: ogni giro viene salvato subito. Best, giro ideale (somma dei settori migliori),
-  media, velocità massima, grafico dei tempi, esportazione GPX e CSV.
-- **Analisi** (idee prese da RaceChrono): confronto di un giro con un altro della sessione o con il
-  best di una sessione precedente sulla stessa pista; cursore unico per mappa, grafici di velocità
-  e delta e barra di scorrimento; mappa colorata per velocità con la velocità minima di ogni curva
-  o per dove si guadagna e si perde; confronto per settori; cerchio delle accelerazioni (g laterali
-  e longitudinali calcolate dal GPS).
-- **Dispositivo**: sorgente GPS (ESP32, iPhone, Demo), ricerca e collegamento BLE con
-  ricollegamento automatico, invio della pista all'ESP32, chip e pin del GPS (si cambiano
-  dall'app), impostazioni del cronometro.
+<table>
+  <tr>
+    <td width="34%"><img src="docs/readme/it-live.webp" alt="Schermata Live durante un giro"></td>
+    <td>
+      <h3>Live</h3>
+      <p>Il tempo del giro in corso, il <b>delta sul giro migliore</b> con la barra verde o rossa, il
+      tempo previsto e i settori colorati: viola il migliore, verde meglio del giro prima, giallo più
+      lento. Sotto l'ultimo giro, il best, la velocità e il circuito in vista satellite.</p>
+      <p>A fine giro vibrazione e <b>annuncio vocale</b> di tempo e distacco. Il delta può confrontare
+      con il record della pista delle sessioni precedenti, così funziona già dal primo giro. Schermo
+      sempre acceso, anche in orizzontale per il supporto sul cruscotto.</p>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/it-editor.webp" alt="Editor della pista sulla mappa satellitare"></td>
+    <td>
+      <h3>Piste</h3>
+      <p><b>Ricerca mentre scrivi</b> in tutto il mondo su OpenStreetMap, le piste vicino a te o a una
+      città, un catalogo di <b>oltre 60 circuiti famosi</b> e "crea qui" sul posto.</p>
+      <p>Il tracciato si scarica da solo. Nell'editor sulla mappa satellitare tocchi la pista e la linea
+      del via si mette di traverso da sola; aggiungi fino a 4 intermedi, oppure "segna qui" mette la
+      linea dove sei.</p>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/it-session.webp" alt="Riepilogo di una sessione"></td>
+    <td>
+      <h3>Sessioni</h3>
+      <p>Ogni giro viene salvato appena finisce. Per ogni sessione il best, il <b>giro ideale</b> (la
+      somma dei settori migliori), la media, la velocità massima e il grafico dei tempi.</p>
+      <p>Esportazione in <b>GPX e CSV</b>, con velocità e g di ogni punto, per fogli di calcolo e
+      programmi di analisi.</p>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/it-analysis.webp" alt="Analisi del giro con mappa e confronto"></td>
+    <td>
+      <h3>Analisi</h3>
+      <p>Confronta un giro con un altro della sessione o con il best di una sessione precedente sulla
+      stessa pista. Un solo cursore muove le due auto sulla mappa e sui grafici di velocità e delta.</p>
+      <p>Mappa colorata per velocità con la <b>velocità minima di ogni curva</b>, oppure per dove
+      guadagni e perdi; confronto per settori e <b>cerchio delle accelerazioni</b> con i g laterali e
+      longitudinali calcolati dal GPS.</p>
+    </td>
+  </tr>
+</table>
 
-- **Lingue**: italiano, inglese, spagnolo, francese, tedesco e portoghese (segue la lingua dell'iPhone,
-  si cambia in Impostazioni → TrackLap). Unità km/h o mph.
+In italiano, inglese, spagnolo, francese, tedesco e portoghese, con la lingua dell'iPhone; km/h o mph.
 
-Il cronometraggio interpola il passaggio sulla linea tra due fix GPS: a 10 Hz l'errore è di
-pochi centesimi. Il delta confronta il tempo trascorso con quello del giro migliore alla stessa
-distanza percorsa.
+## L'hardware
 
-## Compilare e installare
+<p align="center">
+  <img src="docs/readme/how-it-works-it.svg" alt="GPS collegato all'ESP32, che parla con l'iPhone via Bluetooth LE" width="100%">
+</p>
+
+Basta **qualsiasi ESP32 con Bluetooth** (ESP32-WROOM-32, S3, C3, C5, C6, H2) e un GPS, per esempio
+il Beitian BN-220: l'ESP32 imposta il GPS a 10 Hz, cronometra giri e intermedi da solo e manda tutto
+all'app. Il firmware si installa dal browser su **[esp32.tbsgaming.win](https://esp32.tbsgaming.win)**;
+i [collegamenti](#firmware-esp32) sono qui sotto, con uno schema per ogni scheda.
+
+Sulla **Waveshare ESP32-C6-LCD-1.47** lo schermo fa da cruscotto:
+
+<p align="center">
+  <img src="docs/readme/dashboard.svg" alt="Il cruscotto sullo schermo della Waveshare ESP32-C6-LCD-1.47" width="100%">
+</p>
+
+A ogni intermedio il delta sul giro migliore, viola se lì sei il più veloce di sempre, verde se sei
+davanti al giro precedente, rosso se sei dietro. Al traguardo il tempo del giro: viola se è il
+migliore, verde se è più veloce della media della sessione, rosso se è più lento.
+
+## Installare
+
+- **iPhone**: aggiungi a [Feather](https://github.com/khcrysalis/Feather) la sorgente
+  `https://raw.githubusercontent.com/TheBlackSide243/feather-repo/main/apps.json` e installa
+  TrackLap, oppure scarica `TrackLap-<versione>-unsigned.ipa` dalle
+  [release](https://github.com/TheBlackSide243/TrackLap/releases) e installalo con Sideloadly o
+  AltStore. Per provarlo senza hardware scegli **Demo** in Dispositivo.
+- **ESP32**: apri [esp32.tbsgaming.win](https://esp32.tbsgaming.win) da Chrome, Edge o Brave sul
+  computer, collega la scheda via USB e premi Installa. Poi nell'app: Dispositivo → ESP32.
+
+## Compilare
 
 Non serve un Mac: a ogni push su `main` GitHub Actions (`.github/workflows/ipa.yml`) genera il
 progetto con XcodeGen, compila senza firma e pubblica l'artefatto `tracklap-ipa` con

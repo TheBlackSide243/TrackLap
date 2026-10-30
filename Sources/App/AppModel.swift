@@ -78,6 +78,8 @@ final class AppModel {
     private(set) var deltaReference: DeltaReference = .session
     private(set) var voiceOn = true
 
+    /// Set once the screenshot mode has opened its screen (see Showcase).
+    @ObservationIgnored var showcaseStarted = false
     @ObservationIgnored private let voice = LapVoice()
     @ObservationIgnored private var session: Session? = nil
     @ObservationIgnored private var recentT: [Double] = []

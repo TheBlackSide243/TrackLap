@@ -38,11 +38,24 @@ final class DemoDriver {
         isRunning = false
     }
 
+    /// `seconds` of driving at 10 Hz worked out at once, with GPS times from `t0`: the screenshot
+    /// mode fills its sessions with it.
+    func simulate(track: Track, seconds: Double, from t0: Double) -> [Sample] {
+        stop()
+        build(track)
+        newLapNoise()
+        return stride(from: t0 + 0.1, through: t0 + seconds, by: 0.1).map { advance(dt: 0.1, at: $0) }
+    }
+
     private func tick() {
-        let now = Date()
-        let nowT = now.timeIntervalSince1970
+        let nowT = Date().timeIntervalSince1970
         let dt = min(0.3, max(0.01, nowT - t))
         t = nowT
+        onSample?(advance(dt: dt, at: nowT))
+    }
+
+    /// Moves the car on by `dt` seconds and returns its fix at `time`.
+    private func advance(dt: Double, at time: Double) -> Sample {
         let i = index(at: s)
         let section = min(lapNoise.count - 1, Int(s / total * Double(lapNoise.count)))
         let target = vmax[i] * pace * lapNoise[section]
@@ -55,7 +68,8 @@ final class DemoDriver {
         let (pos, dir) = point(at: s)
         let jitter = Vec(Double.random(in: -0.3...0.3), Double.random(in: -0.3...0.3))
         let heading = (atan2(dir.x, dir.y) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
-        onSample?(Sample(t: nowT, coord: frame.coord(pos + jitter), speed: v, heading: heading, wall: now))
+        return Sample(t: time, coord: frame.coord(pos + jitter), speed: v, heading: heading,
+                      wall: Date(timeIntervalSince1970: time))
     }
 
     private func newLapNoise() {

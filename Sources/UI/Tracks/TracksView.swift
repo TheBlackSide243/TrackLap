@@ -41,6 +41,9 @@ struct TracksView: View {
             .background(Theme.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: UUID.self) { TrackEditorView(trackID: $0) }
+            .onAppear {
+                if Showcase.screen == .editor, path.isEmpty, let id = model.selectedTrackID { path = [id] }
+            }
             .sheet(isPresented: $showSearch) {
                 TrackSearchView { id in
                     showSearch = false
