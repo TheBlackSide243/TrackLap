@@ -1,0 +1,67 @@
+# Unsigned .ipa for Sideloadly/AltStore/Feather, built on a GitHub macOS runner. The .app gets an
+# ad-hoc signature only; the sideloading tool re-signs it with your Apple ID.
+name: iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # The newest Xcode on the runner: a release candidate counts, a beta does not.
+      - name: Newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          XC=$(ls -d /Applications/Xcode_[0-9]*.app 2>/dev/null | grep -vi 'beta' | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Tools
+        run: brew install xcodegen librsvg
+
+      - name: App icon
+        run: rsvg-convert -w 1024 -h 1024 -b '#0F0F11' icon.svg -o Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+
+      - name: Xcode project
+        run: xcodegen generate
+
+      - name: Archive without signing
+        run: |
+          set -o pipefail
+          xcodebuild -project TrackLap.xcodeproj -scheme TrackLap -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$PWD/build/TrackLap.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE" || true
+          test -d build/TrackLap.xcarchive/Products/Applications/TrackLap.app || { grep -E "error" build.log | head -60; exit 1; }
+
+      - name: Package the .ipa
+        run: |
+          set -eu
+          rm -rf Payload && mkdir Payload
+          cp -R build/TrackLap.xcarchive/Products/Applications/TrackLap.app Payload/
+          codesign -f -s - Payload/TrackLap.app
+          VER="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Payload/TrackLap.app/Info.plist)"
+          zip -qry "TrackLap-$VER-unsigned.ipa" Payload
+          ls -la ./*.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tracklap-ipa
+          path: TrackLap-*-unsigned.ipa
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
