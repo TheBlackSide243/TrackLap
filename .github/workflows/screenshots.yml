@@ -33,7 +33,8 @@ jobs:
       - name: Xcode project
         run: xcodegen generate
 
-      # The largest iPhone on the newest runtime: the 6.9" size the App Store asks for.
+      # A Pro Max (one screen, the 6.9" size the App Store asks for) on the newest runtime that has
+      # one; newer models with two displays make `simctl io screenshot` ask which one.
       - name: Simulator
         run: |
           xcrun simctl list devices available -j > devices.json
@@ -46,7 +47,7 @@ jobs:
               ver = tuple(int(x) for x in re.findall(r"\d+", rt.split("iOS")[-1]))
               for d in devs:
                   if d["name"].startswith("iPhone"):
-                      key = (ver, "Pro Max" in d["name"], d["name"])
+                      key = ("Pro Max" in d["name"], ver, d["name"])
                       if best is None or key > best[0]:
                           best = (key, d["udid"], d["name"])
           print(best[1], best[2])
@@ -54,7 +55,7 @@ jobs:
           )
           echo "Simulator: $NAME ($UDID)"
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          xcrun simctl boot "$UDID"
+          xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
 
       - name: Build and install
