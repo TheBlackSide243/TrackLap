@@ -27,6 +27,9 @@ struct DeviceView: View {
                     SectionLabel(L("Cronometro"))
                     SettingsPanel()
 
+                    SectionLabel(L("Tu e gli amici"))
+                    FriendsPanel()
+
                     SectionLabel(L("Informazioni"))
                     AboutPanel()
                 }
@@ -358,6 +361,32 @@ private struct SettingsPanel: View {
                     }
                 }
                 .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+/// Your name and vehicle for the laps you share, the live group and the leaderboards.
+private struct FriendsPanel: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let p = model.profile
+        Panel {
+            VStack(alignment: .leading, spacing: 14) {
+                ProfileFields()
+                Toggle(isOn: Binding(get: { p.publishLaps }, set: { p.setPublish($0) })) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pubblica i miei best").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                        Text("Il giro migliore di ogni sessione va nella classifica online della sua pista. Mai i giri della Demo.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.sub)
+                    }
+                }
+                .tint(Theme.accent)
+                Text("I gruppi live e le classifiche passano dal server di TrackLap: riceve il nome, l'auto, i tempi e, solo mentre sei in un gruppo, la posizione in pista.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.sub)
             }
         }
     }

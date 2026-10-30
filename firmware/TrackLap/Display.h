@@ -22,15 +22,19 @@ struct DashState {
 
 /// The dashboard on the board's screen, for boards that have one (built with TRACKLAP_LCD147 for the
 /// Waveshare ESP32-C6-LCD-1.47): the lap time, the delta at each sector line, the lap time at the
-/// finish. Elsewhere these do nothing.
+/// finish, the place in the app's live group. Elsewhere these do nothing.
 namespace Display {
 #ifdef TRACKLAP_LCD147
 void begin();
 void show(const DashState& s);
 void event(const LapEvent& e);
+/// The place in the live group (position 0 = not in one) and the gap in ms to the driver just ahead,
+/// negative when first (the margin over the second), kNoDelta for none.
+void group(uint8_t position, uint8_t count, int32_t gap);
 #else
 inline void begin() {}
 inline void show(const DashState&) {}
 inline void event(const LapEvent&) {}
+inline void group(uint8_t, uint8_t, int32_t) {}
 #endif
 }  // namespace Display

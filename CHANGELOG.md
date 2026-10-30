@@ -2,6 +2,61 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.6.0 (2026-10-30)
+
+Multiplayer: friends' laps to chase, live groups and online leaderboards. / Multiplayer: i giri
+degli amici da sfidare, i gruppi live e le classifiche online.
+
+### English
+
+**New**
+- **Challenges**: share a lap from a session as a `.tracklap` file (WhatsApp, Messages, AirDrop…).
+  Opened with TrackLap, it lands in Sessions → Friends' laps, on your track with the same start line
+  or with the friend's track added to yours. Chase it in Live: the delta is against their lap, on the
+  ESP32 dashboard too, the lap banner and the voice give the gap to them. In the analysis it is one
+  more lap to compare with, corner by corner.
+- **Live group**: create a group and friends join with a five-character code or by scanning its QR
+  code with the Camera. Live shows the standings of everyone on your track (best, last lap, gap to
+  the leader), their dots on the map, and the real gap to the cars just ahead and behind on the
+  track, from the GPS times of both cars at the same point. The voice reads your place at the end of
+  each lap and the ESP32 shows it. Each phone still times its own laps: the network only shares them.
+- **Online leaderboards** for every track, ESP32 and iPhone apart, from Live, from a track's menu in
+  Tracks, or by publishing your best laps automatically (Device → You and your friends). Demo laps
+  never go in.
+- Device → You and your friends: your name and vehicle for all of this.
+- The TrackLap server in `server/`: a Cloudflare Worker with Durable Objects, with its tests.
+
+**Firmware 0.6.0**
+- CONTROL `0x03` sets a friend's lap to chase: the deltas at every line and at the finish are against
+  it. CONTROL `0x04` is the place in the live group: shown at the top of the Waveshare dashboard and,
+  when it changes, for 4 seconds at the bottom with the gap.
+- Several commands in a row from the app all get through.
+
+### Italiano
+
+**Novità**
+- **Sfide**: un giro di una sessione si condivide come file `.tracklap` (WhatsApp, Messaggi,
+  AirDrop…). Aperto con TrackLap finisce in Sessioni → Giri degli amici, sulla tua pista con la
+  stessa linea del via o con la pista dell'amico aggiunta alle tue. Lo sfidi in Live: il delta è sul
+  suo giro, anche sul cruscotto dell'ESP32, e il banner di fine giro e la voce dicono il distacco da
+  lui. Nell'analisi è un giro in più da confrontare, curva per curva.
+- **Gruppo live**: crei un gruppo e gli amici entrano con un codice di cinque caratteri o
+  inquadrando il QR con la Fotocamera. In Live c'è la classifica di chi è sulla tua pista (best,
+  ultimo giro, distacco dal primo), i loro puntini sulla mappa e il distacco vero dalle auto davanti e
+  dietro, dall'orario GPS dei due passaggi nello stesso punto. A fine giro la voce dice la posizione
+  e l'ESP32 la mostra. Ogni telefono cronometra sempre da sé: la rete serve solo a condividere.
+- **Classifiche online** per ogni pista, ESP32 e iPhone separati, da Live, dal menu di una pista in
+  Piste, oppure pubblicando in automatico i tuoi best (Dispositivo → Tu e gli amici). I giri della
+  Demo non entrano mai.
+- Dispositivo → Tu e gli amici: il tuo nome e la tua auto per tutto questo.
+- Il server di TrackLap in `server/`: un Cloudflare Worker con Durable Objects, con i suoi test.
+
+**Firmware 0.6.0**
+- CONTROL `0x03` imposta il giro di un amico da sfidare: i delta a ogni linea e al traguardo sono su
+  quel giro. CONTROL `0x04` è la posizione nel gruppo live: in alto sul cruscotto della Waveshare e,
+  quando cambia, per 4 secondi in basso con il distacco.
+- Più comandi di fila dall'app arrivano tutti.
+
 ## 0.5.0 (2026-10-30)
 
 A welcome on the first launch, and a GitHub page with real screenshots. / Un'introduzione al primo

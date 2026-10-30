@@ -15,6 +15,32 @@
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>TrackLap</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>TrackLap lap</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.local.tracklap.lap</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.local.tracklap</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tracklap</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -33,6 +59,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Per ricevere posizione e tempi dal cronometro ESP32 TrackLap.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -54,6 +82,31 @@
 	</dict>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleLightContent</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.local.tracklap.lap</string>
+			<key>UTTypeDescription</key>
+			<string>TrackLap lap</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tracklap</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-tracklap</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

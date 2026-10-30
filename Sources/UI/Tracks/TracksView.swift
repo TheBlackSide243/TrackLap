@@ -6,6 +6,7 @@ struct TracksView: View {
     @State private var showSearch = false
     @State private var busy = false
     @State private var error: String?
+    @State private var leaderboard: Track?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -31,6 +32,9 @@ struct TracksView: View {
                         }
                         .contextMenu {
                             Button { path.append(track.id) } label: { Label("Modifica", systemImage: "pencil") }
+                            if track.isReady {
+                                Button { leaderboard = track } label: { Label("Classifica online", systemImage: "trophy.fill") }
+                            }
                             Button(role: .destructive) { model.deleteTrack(track.id) } label: { Label("Elimina", systemImage: "trash") }
                         }
                     }
@@ -50,6 +54,7 @@ struct TracksView: View {
                     path.append(id)
                 }
             }
+            .sheet(item: $leaderboard) { LeaderboardView(track: $0) }
             .overlay { if busy { ProgressOverlay(text: L("Cerco la pista qui intorno…")) } }
             .alert("Qualcosa non va", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                 Button("OK", role: .cancel) {}

@@ -150,6 +150,12 @@ uint32_t eventUntil = 0, lapUntil = 0, lastDraw = 0;
 char lapText[12] = "";
 uint16_t lapColor = 0;
 uint16_t shownLap = 0;
+// The place in the live group, in the status bar; a new one also takes the bottom line for 4 s,
+// once the lap or sector shown there is done.
+uint8_t groupPos = 0, groupCount = 0;
+int32_t groupGap = kNoDelta;
+bool groupPending = false;
+char topGroup[8] = "-";
 
 void clearMain() { gfx->fillRect(0, kMainY, W, kBottomY - kMainY, kBg); }
 void clearBottom() { gfx->fillRect(0, kBottomY, W, H - kBottomY, kBg); }
@@ -182,6 +188,10 @@ void topBar(const DashState& s, uint32_t now) {
   snprintf(right, sizeof right, "%2u SAT %2uHz", s.sats, s.rate);
   if (strcmp(left, topLeft)) text(10, 5, 2, kText, kPanel, strcpy(topLeft, left));
   if (strcmp(right, topRight)) text(W - 24 - 11 * 12, 5, 2, kSub, kPanel, strcpy(topRight, right));
+  char place[sizeof topGroup];
+  if (groupPos) snprintf(place, sizeof place, "P%u/%-2u", groupPos, groupCount);
+  else strcpy(place, "      ");
+  if (strcmp(place, topGroup)) text(100, 5, 2, kYellow, kPanel, strcpy(topGroup, place));
   if (topLink != s.connected) {
     topLink = s.connected;
     gfx->fillCircle(W - 12, kTop / 2, 5, s.connected ? kGood : kSub);
@@ -209,7 +219,29 @@ void info(const DashState& s) {
   text(172, kBottomY + 24, 3, kText, kBg, last);
 }
 
+// "P2" and the gap to the driver ahead in red; when first, "P1" and the margin over the second in green.
+void showGroup(uint32_t now) {
+  clearBottom();
+  small.reset();
+  bottomEvent = true;
+  eventUntil = now + 4000;
+  char buf[12];
+  snprintf(buf, sizeof buf, "P%u", groupPos);
+  text(12, kBottomY + 14, 3, kYellow, kBg, buf);
+  if (groupGap == kNoDelta) return;
+  formatDelta(buf, sizeof buf, groupGap);
+  small.show(buf, groupPos == 1 ? kGood : kBad);
+}
+
 }  // namespace
+
+void Display::group(uint8_t position, uint8_t count, int32_t gap) {
+  if (position == groupPos && count == groupCount && gap == groupGap) return;
+  groupPending = position != 0 && (position != groupPos || gap != groupGap);
+  groupPos = position;
+  groupCount = count;
+  groupGap = gap;
+}
 
 void Display::begin() {
   pinMode(kBacklight, OUTPUT);
@@ -252,7 +284,12 @@ void Display::show(const DashState& s) {
     snprintf(buf, sizeof buf, "%lu", (unsigned long)(s.speed * 36 / 1000));
     big.show(buf, kText);
   }
-  if (now >= eventUntil) info(s);
+  if (now >= eventUntil && groupPending && groupPos) {
+    groupPending = false;
+    showGroup(now);
+  } else if (now >= eventUntil) {
+    info(s);
+  }
 }
 
 // A sector line: its delta against the best lap for 4 s, or the sector time while there is no best

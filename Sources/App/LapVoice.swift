@@ -1,6 +1,7 @@
 import AVFoundation
 
-/// Reads the lap time and the gap out loud at the end of each lap, turning the music down meanwhile.
+/// Reads the lap time and the gap out loud at the end of each lap, with the friend's lap you chase and
+/// your place in the live group, turning the music down meanwhile.
 final class LapVoice: NSObject, AVSpeechSynthesizerDelegate {
     private let synth = AVSpeechSynthesizer()
 
@@ -9,7 +10,7 @@ final class LapVoice: NSObject, AVSpeechSynthesizerDelegate {
         synth.delegate = self
     }
 
-    func announce(_ e: LapEvent) {
+    func announce(_ e: LapEvent, place: (position: Int, count: Int, gap: Double, rival: String)? = nil) {
         let voice = Self.voice
         let numbers = NumberFormatter()
         numbers.locale = Locale(identifier: voice?.language ?? "en")
@@ -26,10 +27,21 @@ final class LapVoice: NSObject, AVSpeechSynthesizerDelegate {
         let minutes = Int(e.time) / 60
         let seconds = numbers.string(from: NSNumber(value: e.time - Double(minutes * 60))) ?? ""
         parts.append(minutes > 0 ? "\(minutes) \(seconds)" : seconds)
-        if let gap = e.gap {
+        func amount(_ gap: Double) -> String {
             numbers.maximumFractionDigits = abs(gap) < 1 ? 2 : 1
-            let value = numbers.string(from: NSNumber(value: abs(gap))) ?? ""
+            return numbers.string(from: NSNumber(value: abs(gap))) ?? ""
+        }
+        if let gap = e.gap {
+            let value = amount(gap)
             parts.append(gap < 0 ? L("meno \(value)") : L("più \(value)"))
+        }
+        if let rival = e.rival, let gap = e.rivalGap {
+            let value = amount(gap)
+            parts.append(gap < 0 ? L("\(rival): meno \(value)") : L("\(rival): più \(value)"))
+        }
+        if let place {
+            parts.append(place.position == 1 ? L("primo nel gruppo")
+                         : L("posizione \(place.position), a \(amount(place.gap)) da \(place.rival)"))
         }
 
         let session = AVAudioSession.sharedInstance()

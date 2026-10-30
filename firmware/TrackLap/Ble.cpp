@@ -17,29 +17,42 @@ NimBLECharacteristic* trackChr = nullptr;
 NimBLECharacteristic* controlChr = nullptr;
 NimBLECharacteristic* infoChr = nullptr;
 
-struct Inbox {
+// The writes waiting for the main loop, oldest first: only the newest TRACK counts, while the last
+// few CONTROL commands all do (the app sends the friend's lap and the group place one after the other).
+struct Packet {
   uint8_t data[200];
   size_t len = 0;
-  bool full = false;
+};
+struct Inbox {
+  static const uint8_t kSize = 4;
+  Packet slots[kSize];
+  uint8_t head = 0, count = 0, capacity = kSize;
 };
 Inbox trackBox, controlBox;
 portMUX_TYPE lock = portMUX_INITIALIZER_UNLOCKED;
 
 void put(Inbox& box, const NimBLEAttValue& v) {
   portENTER_CRITICAL(&lock);
-  box.len = v.size() < sizeof box.data ? v.size() : sizeof box.data;
-  memcpy(box.data, v.data(), box.len);
-  box.full = true;
+  if (box.count == box.capacity) {  // full: the oldest goes
+    box.head = (box.head + 1) % Inbox::kSize;
+    box.count--;
+  }
+  Packet& p = box.slots[(box.head + box.count) % Inbox::kSize];
+  p.len = v.size() < sizeof p.data ? v.size() : sizeof p.data;
+  memcpy(p.data, v.data(), p.len);
+  box.count++;
   portEXIT_CRITICAL(&lock);
 }
 
 bool take(Inbox& box, uint8_t* buf, size_t& len) {
   bool got = false;
   portENTER_CRITICAL(&lock);
-  if (box.full) {
-    memcpy(buf, box.data, box.len);
-    len = box.len;
-    box.full = false;
+  if (box.count) {
+    const Packet& p = box.slots[box.head];
+    memcpy(buf, p.data, p.len);
+    len = p.len;
+    box.head = (box.head + 1) % Inbox::kSize;
+    box.count--;
     got = true;
   }
   portEXIT_CRITICAL(&lock);
@@ -71,6 +84,7 @@ class ServerCallbacks : public NimBLEServerCallbacks {
 }  // namespace
 
 void Ble::begin(const char* name) {
+  trackBox.capacity = 1;
   NimBLEDevice::init(name);
   server = NimBLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());

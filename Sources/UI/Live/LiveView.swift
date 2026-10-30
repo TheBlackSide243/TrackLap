@@ -10,10 +10,18 @@ struct LiveView: View {
         ZStack(alignment: .top) {
             Theme.bg.ignoresSafeArea()
             GeometryReader { geo in
-                ScrollView {
-                    if geo.size.width > geo.size.height { wide } else { tall }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        if geo.size.width > geo.size.height { wide } else { tall }
+                    }
+                    .scrollIndicators(.hidden)
+                    .task {
+                        // Screenshot mode: down to the live group.
+                        guard Showcase.screen == .group else { return }
+                        try? await Task.sleep(for: .seconds(3))
+                        proxy.scrollTo("multiplayer", anchor: .bottom)
+                    }
                 }
-                .scrollIndicators(.hidden)
             }
             if let banner {
                 LapBanner(event: banner)
@@ -38,6 +46,7 @@ struct LiveView: View {
                 LiveStatsRow()
                 MiniMapCard().frame(height: 210)
                 SessionButton()
+                MultiplayerCard().id("multiplayer")
             } else {
                 NoTrackCard()
             }
@@ -60,6 +69,7 @@ struct LiveView: View {
                         LiveStatsRow()
                         MiniMapCard().frame(height: 150)
                         SessionButton()
+                        MultiplayerCard()
                     }
                 }
             } else {
@@ -97,6 +107,9 @@ private struct LiveHeader: View {
             HStack(spacing: 8) {
                 GPSPill()
                 StatusPill(icon: model.source.icon, text: model.source.short, color: Theme.accent)
+                if let p = model.group.place {
+                    StatusPill(icon: "person.3.fill", text: "P\(p.position)/\(p.count)", color: Theme.yellow)
+                }
                 Spacer(minLength: 0)
             }
         }
@@ -202,16 +215,52 @@ private struct DeltaCard: View {
                         .animation(.snappy(duration: 0.2), value: d)
                 }
                 DeltaBar(delta: d, scale: model.deltaScale)
+                ChallengeMenu()
             }
         }
     }
 
     private func caption(_ d: Double?) -> String {
         let engine = model.engine
+        if let name = engine.ghostName, let ghost = engine.ghost {
+            return L("sul giro di \(name) (\(Fmt.lap(ghost.time)))")
+        }
         if engine.comparesWithRecord {
             return L("sul record della pista (\(Fmt.lap(engine.referenceLap?.time)))")
         }
         return d == nil ? L("Completa un giro per il confronto") : L("sul tuo giro migliore")
+    }
+}
+
+/// The friend's lap to chase, picked from the laps friends sent for this track.
+private struct ChallengeMenu: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let laps = model.friends.laps(on: model.selectedTrackID)
+        if !laps.isEmpty {
+            Menu {
+                Button { model.setChallenge(nil) } label: {
+                    if model.challenge == nil { Label("Nessuna sfida", systemImage: "checkmark") } else { Text("Nessuna sfida") }
+                }
+                ForEach(laps) { f in
+                    Button { model.setChallenge(f) } label: {
+                        if model.challenge?.id == f.id { Label(f.title, systemImage: "checkmark") } else { Text(f.title) }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "flag.2.crossed.fill")
+                    Text(model.challenge.map { L("Sfida: \($0.driver)") } ?? L("Sfida un amico"))
+                    Image(systemName: "chevron.up.chevron.down").font(.caption2.weight(.bold))
+                }
+                .font(.caption.weight(.bold))
+                .foregroundStyle(model.challenge == nil ? Theme.sub : Theme.yellow)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background((model.challenge == nil ? Theme.input : Theme.yellow.opacity(0.14)), in: Capsule())
+            }
+        }
     }
 }
 
@@ -302,7 +351,7 @@ private struct MiniMapCard: View {
         if let track = model.selectedTrack {
             Panel(padding: 8) {
                 ZStack(alignment: .topLeading) {
-                    TrackSatelliteMap(track: track, position: model.engine.position)
+                    TrackSatelliteMap(track: track, position: model.engine.position, friends: friends)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     HStack(spacing: 6) {
                         Badge(text: L("Giri: \(model.engine.laps.count)"))
@@ -313,13 +362,30 @@ private struct MiniMapCard: View {
             }
         }
     }
+
+    /// The cars of the live group on this track, as their latest position put them.
+    private var friends: [FriendDot] {
+        model.group.members.compactMap { m in
+            guard m.online, let p = m.position, Date().timeIntervalSince(p.received) < 10,
+                  model.group.mine.track?.isSame(as: m.track) ?? false else { return nil }
+            return FriendDot(id: m.id, coord: p.coord, color: GroupColors.color(m.color), initial: String(m.name.prefix(1)).uppercased())
+        }
+    }
+}
+
+private struct FriendDot: Identifiable {
+    let id: String
+    let coord: Coord
+    let color: Color
+    let initial: String
 }
 
 /// The circuit on satellite imagery, framed on the whole track and not draggable: the outline, the
-/// start line in white, the sector lines in yellow and the car.
+/// start line in white, the sector lines in yellow, the car and the cars of the group.
 private struct TrackSatelliteMap: View {
     let track: Track
     let position: Coord?
+    var friends: [FriendDot] = []
 
     var body: some View {
         Map(initialPosition: .region(TrackGeometry.region(for: track.allPoints, minMeters: 300)), interactionModes: []) {
@@ -334,6 +400,17 @@ private struct TrackSatelliteMap: View {
             if let s = track.start {
                 MapPolyline(coordinates: [s.a.cl, s.b.cl])
                     .stroke(.white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            }
+            ForEach(friends) { f in
+                Annotation("", coordinate: f.coord.cl) {
+                    Text(verbatim: f.initial)
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Color.black)
+                        .frame(width: 17, height: 17)
+                        .background(f.color, in: Circle())
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
+                }
+                .annotationTitles(.hidden)
             }
             if let position {
                 Annotation("", coordinate: position.cl) {
@@ -433,11 +510,20 @@ private struct LapBanner: View {
                     .foregroundStyle(Theme.text)
             }
             Spacer()
-            if let gap = event.gap {
-                Text(Fmt.delta(gap))
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(gap <= 0 ? Theme.good : Theme.bad)
+            VStack(alignment: .trailing, spacing: 2) {
+                if let gap = event.gap {
+                    Text(Fmt.delta(gap))
+                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(gap <= 0 ? Theme.good : Theme.bad)
+                }
+                if let rival = event.rival, let gap = event.rivalGap {
+                    Text(L("vs \(rival) \(Fmt.delta(gap))"))
+                        .font(.caption.weight(.heavy))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .foregroundStyle(gap <= 0 ? Theme.good : Theme.bad)
+                }
             }
         }
         .padding(14)

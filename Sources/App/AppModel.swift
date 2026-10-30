@@ -40,6 +40,13 @@ enum SourceKind: String, CaseIterable, Identifiable {
     }
 }
 
+extension SourceKind {
+    /// The kind behind the source a session was saved with: its title, in the language of the time.
+    init(sessionSource s: String) {
+        self = s.contains("ESP32") ? .device : s == SourceKind.demo.title ? .demo : .phone
+    }
+}
+
 enum AppTab: Hashable { case live, tracks, sessions, device }
 
 /// What the live delta compares with.
@@ -65,6 +72,9 @@ final class AppModel {
     let ble = BLEManager()
     let phone = PhoneGPS()
     let demo = DemoDriver()
+    let profile: DriverProfile
+    let friends = FriendLapStore()
+    let group: GroupSession
 
     private(set) var source: SourceKind = .demo
     private(set) var selectedTrackID: UUID? = nil
@@ -77,17 +87,23 @@ final class AppModel {
     private(set) var units: Units = Units.current
     private(set) var deltaReference: DeltaReference = .session
     private(set) var voiceOn = true
+    /// The friend's lap chased on the selected track.
+    private(set) var challenge: FriendLap? = nil
 
     /// Set once the screenshot mode has opened its screen (see Showcase).
     @ObservationIgnored var showcaseStarted = false
     @ObservationIgnored private let voice = LapVoice()
     @ObservationIgnored private var session: Session? = nil
     @ObservationIgnored private var recentT: [Double] = []
+    @ObservationIgnored private var sentPlace: [Int] = []
 
     var selectedTrack: Track? { tracks.track(selectedTrackID) }
     var canStart: Bool { selectedTrack?.isReady == true }
 
     init() {
+        let me = DriverProfile()
+        profile = me
+        group = GroupSession(profile: me)
         let d = UserDefaults.standard
         source = SourceKind(rawValue: d.string(forKey: "source") ?? "") ?? .demo
         if let v = d.object(forKey: "deltaScale") as? Double { deltaScale = v }
@@ -108,9 +124,13 @@ final class AppModel {
         ble.onConnected = { [weak self] in
             guard let self, let t = self.selectedTrack else { return }
             self.ble.send(track: t)
+            self.sendChallengeToDevice()
+            self.sendGroupToDevice(force: true)
         }
         engine.onLap = { [weak self] lap in self?.record(lap) }
+        group.onStandingsChange = { [weak self] in self?.sendGroupToDevice() }
         activate(source)
+        group.resume(on: selectedTrack)
     }
 
     // MARK: - Source
@@ -152,6 +172,7 @@ final class AppModel {
             gpsRate = Double(recentT.count - 1) / (l - f)
         }
         if isRunning { engine.ingest(s) } else { engine.observe(s) }
+        if group.isOn { group.report(s, lap: isRunning ? engine.lapNumber : 0, distance: engine.lapDistance) }
     }
 
     // MARK: - Tracks
@@ -162,6 +183,8 @@ final class AppModel {
         UserDefaults.standard.set(id.uuidString, forKey: "track")
         prepareEngine(selectedTrack)
         if let t = selectedTrack { ble.send(track: t) }
+        sendChallengeToDevice()
+        group.setTrack(selectedTrack)
     }
 
     func save(track t: Track) {
@@ -169,6 +192,8 @@ final class AppModel {
         if t.id == selectedTrackID && !isRunning {
             prepareEngine(t)
             ble.send(track: t)
+            sendChallengeToDevice()
+            group.setTrack(t)
         }
     }
 
@@ -216,14 +241,115 @@ final class AppModel {
         session?.laps.append(lap)
         // Saved after every lap, so nothing is lost if the app is closed mid-session.
         if let s = session { sessions.save(s) }
-        if voiceOn, let e = engine.lastEvent { voice.announce(e) }
+        group.finished(lap)
+        if voiceOn, let e = engine.lastEvent { voice.announce(e, place: group.isOn ? group.place : nil) }
+        // The best lap of each session goes to the leaderboard, which keeps it if it is your best there.
+        if profile.publishLaps, source != .demo, engine.lastEvent?.isBest == true, let track = selectedTrack {
+            let kind = source
+            let me = profile
+            Task { try? await Server.submit(lap, source: kind, track: track, profile: me) }
+        }
     }
 
-    /// Loads the track into the timer together with its record from earlier sessions.
+    /// Loads the track into the timer together with its record from earlier sessions and the friend's
+    /// lap chased there.
     private func prepareEngine(_ track: Track?) {
         engine.load(track: track)
         engine.compareWithRecord = deltaReference == .record
         engine.setRecord(sessions.record(on: track?.id)?.lap)
+        applyChallenge(savedChallenge(for: track))
+    }
+
+    // MARK: - Friends' laps
+
+    /// A .tracklap file opened from Messages, WhatsApp, AirDrop or Files. The lap goes with the
+    /// friends' laps, on your track with the same start line, or else on the friend's track, added to yours.
+    @discardableResult
+    func importLap(from url: URL) throws -> FriendLap {
+        let shared = try SharedLap.read(url)
+        return friends.add(shared, on: matchingTrack(for: shared.track) ?? adding(shared.track))
+    }
+
+    /// The same circuit among your tracks: the same one, or a start line within 40 m.
+    private func matchingTrack(for t: Track) -> Track? {
+        if let same = tracks.track(t.id) { return same }
+        guard let start = t.start else { return nil }
+        return tracks.tracks.first { mine in mine.start.map { Geo.distance($0.mid, start.mid) < 40 } ?? false }
+    }
+
+    private func adding(_ t: Track) -> Track {
+        var copy = t
+        copy.created = Date()
+        tracks.upsert(copy)
+        return copy
+    }
+
+    /// Chase a friend's lap: its track is selected (added back if it was deleted), Live opens, and the
+    /// delta is measured against their lap.
+    func chase(_ f: FriendLap) {
+        var lap = f
+        if tracks.track(f.trackID) == nil, let s = friends.shared(f.id) {
+            let t = matchingTrack(for: s.track) ?? adding(s.track)
+            friends.move(f.id, to: t)
+            lap.trackID = t.id
+            lap.trackName = t.name
+        }
+        if lap.trackID != selectedTrackID { select(track: lap.trackID) }
+        setChallenge(lap)
+        tab = .live
+    }
+
+    /// The friend's lap to chase on the selected track, nil for none.
+    func setChallenge(_ f: FriendLap?) {
+        guard let track = selectedTrack else { return }
+        let lap = f?.trackID == track.id ? f : nil
+        UserDefaults.standard.set(lap?.id.uuidString, forKey: "challenge." + track.id.uuidString)
+        applyChallenge(lap)
+    }
+
+    func deleteFriendLap(_ id: UUID) {
+        friends.delete(id)
+        if challenge?.id == id { setChallenge(nil) }
+    }
+
+    private func applyChallenge(_ f: FriendLap?) {
+        let lap = f.flatMap { friends.lap($0.id) }
+        challenge = lap == nil ? nil : f
+        engine.setGhost(lap, name: f?.driver)
+        sendChallengeToDevice()
+    }
+
+    private func savedChallenge(for track: Track?) -> FriendLap? {
+        guard let track, let s = UserDefaults.standard.string(forKey: "challenge." + track.id.uuidString) else { return nil }
+        return friends.laps.first { $0.id.uuidString == s && $0.trackID == track.id }
+    }
+
+    /// The ESP32 compares at every line with the friend's lap too: its time at each of your sector lines.
+    private func sendChallengeToDevice() {
+        guard let ghost = engine.ghost, let track = selectedTrack else {
+            ble.setRival(time: nil, splits: [])
+            return
+        }
+        ble.setRival(time: ghost.time, splits: track.sectors.map { ghost.time(crossing: $0) ?? 0 })
+    }
+
+    /// Your place in the live group on the ESP32's screen, sent when it changes.
+    private func sendGroupToDevice(force: Bool = false) {
+        let p = group.place
+        let packet = [p?.position ?? 0, p?.count ?? 0, Int(((p?.gap ?? 0) * 1000).rounded())]
+        guard force || packet != sentPlace else { return }
+        sentPlace = packet
+        ble.setGroup(position: p?.position ?? 0, count: p?.count ?? 0, gap: p?.gap)
+    }
+
+    // MARK: - Live group
+
+    /// tracklap://join/<code>, from the QR code of a group or an invitation.
+    func open(_ url: URL) -> Bool {
+        guard url.scheme == "tracklap", url.host == "join" else { return false }
+        group.join(url.lastPathComponent, on: selectedTrack)
+        tab = .live
+        return true
     }
 
     // MARK: - Settings

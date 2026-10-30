@@ -15,7 +15,7 @@
 #include "Gps.h"
 #include "Laps.h"
 
-#define FW_VERSION "0.5.0"
+#define FW_VERSION "0.6.0"
 
 static Preferences prefs;
 static Gps gps;
@@ -72,7 +72,11 @@ static void setTrack(const uint8_t* buf, size_t len) {
   publishInfo();
 }
 
-// CONTROL: 0x01 resets the session; 0x02 rx tx moves the GPS (0xFF 0xFF = the chip's defaults).
+static uint32_t u32(const uint8_t* p) { return p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
+
+// CONTROL: 0x01 resets the session; 0x02 rx tx moves the GPS (0xFF 0xFF = the chip's defaults);
+// 0x03 n lap split... sets a friend's lap to chase (0x03 alone clears it); 0x04 position count gap
+// is the place in the app's live group.
 static void handleControl(const uint8_t* b, size_t len) {
   if (len >= 1 && b[0] == 0x01) {
     laps.reset();
@@ -80,6 +84,21 @@ static void handleControl(const uint8_t* b, size_t len) {
   } else if (len >= 3 && b[0] == 0x02) {
     if (b[1] == 0xFF && b[2] == 0xFF) setPins(GPS_RX_DEFAULT, GPS_TX_DEFAULT);
     else setPins(b[1], b[2]);
+  } else if (len >= 1 && b[0] == 0x03) {
+    // n values in ms: the lap time, then when the lap crossed sector lines 1 .. n-1.
+    Laps::Best rival;
+    uint8_t n = len >= 2 ? b[1] : 0;
+    if (n > Laps::kMaxLines || len < 2 + 4u * n) n = 0;
+    for (uint8_t i = 0; i < n; i++) {
+      uint32_t v = u32(b + 2 + 4 * i);
+      if (i == 0) rival.lap = v;
+      else rival.split[i] = v;
+    }
+    laps.setRival(rival);
+    if (rival.lap) Serial.printf("Chasing a %lu ms lap\n", (unsigned long)rival.lap);
+    else Serial.println("No lap to chase");
+  } else if (len >= 7 && b[0] == 0x04) {
+    Display::group(b[1], b[2], (int32_t)u32(b + 3));
   }
 }
 

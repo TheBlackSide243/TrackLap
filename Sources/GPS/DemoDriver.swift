@@ -21,11 +21,13 @@ final class DemoDriver {
     @ObservationIgnored private var t: Double = 0
     @ObservationIgnored private var lapNoise: [Double] = [1]
 
-    func start(track: Track) {
+    /// `lead` seconds of driving done at once first: the screenshot mode spreads its cars with it.
+    func start(track: Track, lead: Double = 0) {
         stop()
         build(track)
         t = Date().timeIntervalSince1970
         newLapNoise()
+        for _ in 0..<Int(lead * 10) { _ = advance(dt: 0.1, at: t) }
         let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer

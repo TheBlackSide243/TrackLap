@@ -10,7 +10,9 @@ struct SessionDetailView: View {
     @State private var selectedLapID: UUID?
     @State private var referenceID: UUID?
     @State private var others: [SessionLap] = []
+    @State private var friendLaps: [FriendRef] = []
     @State private var othersLoaded = false
+    @State private var sharing: Lap?
     @State private var analysis: Analysis?
     @State private var cursor: Double?
     @State private var mapMode: MapMode = .speed
@@ -27,6 +29,7 @@ struct SessionDetailView: View {
                 }
             }
             .onChange(of: analysis != nil) { _, ready in
+                if ready, Showcase.screen == .share { sharing = session?.best }
                 // Screenshot mode: straight to the analysis, with the cursor a third of the way round.
                 guard ready, Showcase.screen == .analysis, let lap = analysis?.lap else { return }
                 Task {
@@ -43,8 +46,11 @@ struct SessionDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if gpxURL != nil || csvURL != nil {
+                if let session {
                     Menu {
+                        if let best = session.best {
+                            Button { sharing = best } label: { Label("Condividi il giro migliore", systemImage: "person.2.fill") }
+                        }
                         if let gpxURL {
                             ShareLink(item: gpxURL) { Label("Esporta GPX", systemImage: "map") }
                         }
@@ -56,6 +62,9 @@ struct SessionDetailView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $sharing) { lap in
+            if let session { ShareLapSheet(lap: lap, session: session) }
         }
         .onAppear(perform: load)
         .onChange(of: model.engine.laps.count) { _, _ in
@@ -76,6 +85,7 @@ struct SessionDetailView: View {
         }
         if !othersLoaded {
             others = model.sessions.bestLaps(on: s.trackID, excluding: s.id)
+            friendLaps = model.friends.laps(on: s.trackID).compactMap { f in model.friends.lap(f.id).map { FriendRef(info: f, lap: $0) } }
             othersLoaded = true
         }
         analyze()
@@ -91,7 +101,7 @@ struct SessionDetailView: View {
 
     /// What was picked, else the best of this session, else the fastest lap of another session.
     private func reference(for lap: Lap, in s: Session) -> Lap? {
-        let all = s.laps + others.map(\.lap)
+        let all = s.laps + others.map(\.lap) + friendLaps.map(\.lap)
         if let id = referenceID, id != lap.id, let r = all.first(where: { $0.id == id }) { return r }
         if let best = s.best, best.id != lap.id { return best }
         return others.first?.lap
@@ -188,6 +198,9 @@ struct SessionDetailView: View {
                             Button { referenceID = lap.id } label: {
                                 Label("Usa come riferimento", systemImage: "scope")
                             }
+                            Button { sharing = lap } label: {
+                                Label("Condividi questo giro", systemImage: "person.2.fill")
+                            }
                         }
                 }
             }
@@ -228,6 +241,13 @@ struct SessionDetailView: View {
                             }
                         }
                     }
+                    if !friendLaps.isEmpty {
+                        Section(L("Giri degli amici")) {
+                            ForEach(friendLaps) { f in
+                                Button(f.info.title) { referenceID = f.lap.id }
+                            }
+                        }
+                    }
                 } label: {
                     Pill(color: Theme.purple) {
                         HStack(spacing: 6) {
@@ -253,8 +273,17 @@ struct SessionDetailView: View {
 
     private func title(of ref: Lap) -> String {
         if let o = others.first(where: { $0.lap.id == ref.id }) { return otherTitle(o) }
+        if let f = friendLaps.first(where: { $0.lap.id == ref.id }) { return f.info.title }
         return lapTitle(ref)
     }
+}
+
+/// A friend's lap on this track, to compare with.
+private struct FriendRef: Identifiable {
+    let info: FriendLap
+    let lap: Lap
+
+    var id: UUID { info.id }
 }
 
 /// Everything the analysis draws for one lap and its reference.

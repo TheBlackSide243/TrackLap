@@ -66,6 +66,17 @@ enum BLEPacket {
                    heading: Double(u16(18)) / 100)
     }
 
+    /// The fix's UTC time: iTOW counts from the start of the GPS week, GPS time runs 18 s ahead of
+    /// UTC, and which week it is comes from the phone's clock.
+    static func utc(itow: Double, now: Date = Date()) -> Double {
+        let epoch = 315_964_800.0, leap = 18.0, week = 604_800.0
+        let gpsNow = now.timeIntervalSince1970 - epoch + leap
+        var start = (gpsNow / week).rounded(.down) * week
+        let into = gpsNow - start
+        if itow - into > week / 2 { start -= week } else if into - itow > week / 2 { start += week }
+        return epoch + start + itow - leap
+    }
+
     /// version 1, gate count, then each gate as latA, lonA, latB, lonB (i32, 1e-7°); the start line comes first.
     static func track(_ t: Track) -> Data? {
         guard let start = t.start else { return nil }
@@ -207,6 +218,25 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         write(d, to: TrackLapBLE.control)
     }
 
+    /// A friend's lap for the ESP32 to compare with at every line: its time and when it crossed each
+    /// sector line (0 where unknown); nil puts the ESP32's own best lap back.
+    func setRival(time: Double?, splits: [Double]) {
+        var d = Data([0x03])
+        if let time {
+            d.append(UInt8(splits.count + 1))
+            for v in [time] + splits { d.appendLE(UInt32(clamping: Int((v * 1000).rounded()))) }
+        }
+        write(d, to: TrackLapBLE.control)
+    }
+
+    /// Your place in the live group for the ESP32's screen: position 0 for none, the gap in seconds to
+    /// the one ahead (negative when first, the margin over the second).
+    func setGroup(position: Int, count: Int, gap: Double?) {
+        var d = Data([0x04, UInt8(clamping: position), UInt8(clamping: count)])
+        d.appendLE(UInt32(bitPattern: gap.map { Int32(clamping: Int(($0 * 1000).rounded())) } ?? Int32.max))
+        write(d, to: TrackLapBLE.control)
+    }
+
     private func flushTrack() {
         guard let data = pendingTrack, state == .connected, characteristics[TrackLapBLE.track] != nil else { return }
         write(data, to: TrackLapBLE.track)
@@ -340,7 +370,8 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // iTOW restarts every Sunday at midnight GPS time.
         if let last = lastITOW, fix.itow < last - 302_400 { weekOffset += 604_800 }
         lastITOW = fix.itow
-        onSample?(Sample(t: weekOffset + fix.itow, coord: Coord(fix.lat, fix.lon), speed: fix.speed, heading: fix.heading))
+        onSample?(Sample(t: weekOffset + fix.itow, coord: Coord(fix.lat, fix.lon), speed: fix.speed, heading: fix.heading,
+                         utc: BLEPacket.utc(itow: fix.itow)))
     }
 
     /// version, kind (1 = lap), lap number (u16), time ms (u32): the lap as timed by the ESP32 itself.
@@ -349,5 +380,11 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         guard b.count >= 8, b[1] == 1 else { return }
         let ms = UInt32(b[4]) | (UInt32(b[5]) << 8) | (UInt32(b[6]) << 16) | (UInt32(b[7]) << 24)
         deviceLapTime = Double(ms) / 1000
+    }
+}
+
+private extension Data {
+    mutating func appendLE(_ v: UInt32) {
+        Swift.withUnsafeBytes(of: v.littleEndian) { append(contentsOf: $0) }
     }
 }
