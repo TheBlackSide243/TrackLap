@@ -2,9 +2,10 @@ import Foundation
 
 /// Screenshot mode, for the README and the store pages. Launched with `-showcase <screen>`, the app
 /// fills itself with demo sessions on the selected track (the screenshot workflow puts real circuits
-/// in tracks.json first) and opens that screen. Without the argument nothing here runs.
+/// in tracks.json first) and opens that screen; `-introPage <n>` picks the page of the intro.
+/// Without the argument nothing here runs.
 enum Showcase: String {
-    case live, tracks, editor, sessions, session, analysis, device
+    case live, tracks, editor, sessions, session, analysis, device, intro
 
     static let screen: Showcase? = {
         let args = ProcessInfo.processInfo.arguments
@@ -23,6 +24,7 @@ extension AppModel {
             select(track: track.id)
         }
         switch screen {
+        case .intro: tab = .live
         case .live:
             setSource(.demo)
             setDeltaReference(.record)

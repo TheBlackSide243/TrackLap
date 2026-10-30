@@ -39,7 +39,8 @@ struct DeviceView: View {
     }
 }
 
-private struct SourceCard: View {
+/// A GPS source to pick, also used by the intro.
+struct SourceCard: View {
     let kind: SourceKind
     let selected: Bool
     let onSelect: () -> Void
@@ -363,6 +364,8 @@ private struct SettingsPanel: View {
 }
 
 private struct AboutPanel: View {
+    @AppStorage("introSeen") private var introSeen = false
+
     var body: some View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         Panel {
@@ -374,6 +377,11 @@ private struct AboutPanel: View {
                     .font(.caption)
                     .foregroundStyle(Theme.sub)
                     .padding(.top, 4)
+                Button { introSeen = false } label: {
+                    Label("Rivedi l'introduzione", systemImage: "sparkles")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .padding(.top, 6)
             }
         }
     }
