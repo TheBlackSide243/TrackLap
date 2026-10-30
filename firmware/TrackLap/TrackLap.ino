@@ -184,7 +184,7 @@ void loop() {
       if (e.delta != kNoDelta) Serial.printf(", %+ld ms", (long)e.delta);
       Serial.println(e.best ? ", best lap" : "");
     }
-    if (laps.takeNewBest()) prefs.putBytes("best", &laps.best(), sizeof(Laps::Best));
+    if (laps.takeChanged()) prefs.putBytes("best", &laps.best(), sizeof(Laps::Best));
   }
 
   // Nothing from the GPS: an empty fix every second, so the app shows it as missing.

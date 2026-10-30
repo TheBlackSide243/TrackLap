@@ -13,6 +13,13 @@ uint32_t ms(double s) { return (uint32_t)lround(s * 1000); }
 
 int32_t delta(uint32_t now, uint32_t best) { return best ? (int32_t)now - (int32_t)best : kNoDelta; }
 
+// At a line: purple when it beats the fastest time there, otherwise against the previous lap.
+Grade lineGrade(uint32_t now, uint32_t fastest, uint32_t previous) {
+  if (fastest && now < fastest) return Grade::Fastest;
+  if (!previous) return Grade::None;
+  return now < previous ? Grade::Better : Grade::Worse;
+}
+
 }  // namespace
 
 bool Laps::setTrack(const uint8_t* data, size_t len) {
@@ -33,12 +40,15 @@ void Laps::reset() {
   lap_ = 0;
   next_ = 1;
   last_ = 0;
+  sessionSum_ = 0;
+  sessionLaps_ = 0;
+  memset(prevSplit_, 0, sizeof prevSplit_);
 }
 
-bool Laps::takeNewBest() {
-  bool b = newBest_;
-  newBest_ = false;
-  return b;
+bool Laps::takeChanged() {
+  bool c = changed_;
+  changed_ = false;
+  return c;
 }
 
 uint8_t Laps::feed(const Fix& f, LapEvent out[2]) {
@@ -79,25 +89,40 @@ uint8_t Laps::feed(const Fix& f, LapEvent out[2]) {
         int32_t d = delta(lap, best_.lap);
         bool best = !best_.lap || lap < best_.lap;
         if (count_ > 1 && next_ == count_) {
-          out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(count_ - 1), d, false};
+          out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(count_ - 1), d, false,
+                      lineGrade(lap, best_.lap, last_)};
         }
+        // The finish: purple for a best lap, otherwise against the average of the session so far.
+        Grade grade = best ? Grade::Fastest
+                      : !sessionLaps_ ? Grade::None
+                      : lap < sessionSum_ / sessionLaps_ ? Grade::Better
+                                                         : Grade::Worse;
         lap_++;
         last_ = lap;
-        out[n++] = {1, lap_, lap, 0, d, best};
+        sessionSum_ += lap;
+        sessionLaps_++;
+        out[n++] = {1, lap_, lap, 0, d, best, grade};
         if (best) {
           // Sector lines missed on this lap stay 0: no delta there until a full lap beats it.
           best_.lap = lap;
           memcpy(best_.split, split_, sizeof split_);
-          newBest_ = true;
+          changed_ = true;
         }
+        memcpy(prevSplit_, split_, sizeof split_);
       }
       running_ = true;
       lapStart_ = lineTime_ = at;
       next_ = 1;
       memset(split_, 0, sizeof split_);
     } else if (running_ && i == next_) {
-      split_[i] = ms(at - lapStart_);
-      out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(i - 1), delta(split_[i], best_.split[i]), false};
+      uint32_t now = ms(at - lapStart_);
+      split_[i] = now;
+      Grade grade = lineGrade(now, best_.fastest[i], prevSplit_[i]);
+      out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(i - 1), delta(now, best_.split[i]), false, grade};
+      if (!best_.fastest[i] || now < best_.fastest[i]) {
+        best_.fastest[i] = now;
+        changed_ = true;
+      }
       lineTime_ = at;
       next_++;
     }

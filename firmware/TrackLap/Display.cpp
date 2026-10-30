@@ -47,6 +47,15 @@ void formatTime(char* out, size_t n, uint32_t ms, bool hundredths) {
   else snprintf(out, n, hundredths ? "%lu.%02lu" : "%lu.%lu", s, frac);
 }
 
+uint16_t gradeColor(Grade g) {
+  switch (g) {
+    case Grade::Fastest: return kPurple;
+    case Grade::Better: return kGood;
+    case Grade::Worse: return kBad;
+    default: return kText;
+  }
+}
+
 void formatDelta(char* out, size_t n, int32_t ms) {
   long a = labs(ms) > 99990 ? 99990 : labs(ms);
   snprintf(out, n, "%c%ld.%02ld", ms < 0 ? '-' : '+', a / 1000, a % 1000 / 10);
@@ -246,18 +255,21 @@ void Display::show(const DashState& s) {
   if (now >= eventUntil) info(s);
 }
 
-// A sector line: its delta against the best lap for 4 s (green faster, red slower), or the sector
-// time when there is no best lap yet. The finish: the lap time for 5 s, purple when it is the best.
+// A sector line: its delta against the best lap for 4 s, or the sector time while there is no best
+// lap; purple when it is the fastest ever at that line, green ahead of the previous lap, red behind.
+// The finish: the lap time for 5 s with its delta; purple for a best lap, green faster than the
+// session's average, red slower.
 void Display::event(const LapEvent& e) {
   if (!gfx) return;
   uint32_t now = millis();
   clearBottom();
   small.reset();
   bottomEvent = true;
+  uint16_t color = gradeColor(e.grade);
   char buf[12];
   if (e.type == 1) {
     formatTime(lapText, sizeof lapText, e.ms, true);
-    lapColor = e.best ? kPurple : kText;
+    lapColor = color;
     shownLap = e.lap;
     lapUntil = eventUntil = now + 5000;
     if (e.delta == kNoDelta) {
@@ -266,18 +278,14 @@ void Display::event(const LapEvent& e) {
     }
     text(12, kBottomY + 14, 3, e.best ? kPurple : kSub, kBg, e.best ? "BEST" : "LAP");
     formatDelta(buf, sizeof buf, e.delta);
-    small.show(buf, e.best ? kPurple : kBad);
+    small.show(buf, color);
   } else {
     eventUntil = now + 4000;
     snprintf(buf, sizeof buf, "S%u", e.sector + 1);
     text(12, kBottomY + 14, 3, kSub, kBg, buf);
-    if (e.delta == kNoDelta) {
-      formatTime(buf, sizeof buf, e.ms, true);
-      small.show(buf, kText);
-    } else {
-      formatDelta(buf, sizeof buf, e.delta);
-      small.show(buf, e.delta < 0 ? kGood : e.delta > 0 ? kBad : kText);
-    }
+    if (e.delta == kNoDelta) formatTime(buf, sizeof buf, e.ms, true);
+    else formatDelta(buf, sizeof buf, e.delta);
+    small.show(buf, color);
   }
 }
 

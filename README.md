@@ -65,9 +65,11 @@ Bluetooth e non vanno bene.
   con il delta sul giro migliore a ogni linea. Pista e giro migliore restano anche da spento; il giro
   migliore si azzera quando arriva una pista diversa.
 - **Display**: sulla Waveshare ESP32-C6-LCD-1.47 (file `…-esp32c6-lcd147.bin`) lo schermo fa da
-  cruscotto. Durante il giro c'è il tempo a cifre grandi; a ogni intermedio compare per 4 secondi il
-  delta sul giro migliore (verde se sei più veloce, rosso se più lento); al traguardo compare per
-  5 secondi il tempo del giro (viola se è il migliore) con il distacco. Fermo mostra la velocità; in
+  cruscotto. Durante il giro c'è il tempo a cifre grandi. A ogni intermedio compare per 4 secondi il
+  delta sul giro migliore: viola se a quel punto sei il più veloce di sempre, verde se sei davanti al
+  giro precedente, rosso se sei dietro. Al traguardo compare per 5 secondi il tempo del giro con il
+  distacco: viola se è il giro migliore, verde se è più veloce della media della sessione, rosso se è
+  più lento. Fermo mostra la velocità; in
   alto giro, satelliti, frequenza e il pallino verde quando l'app è collegata.
 - **LED**: sulle schede con il LED RGB è rosso senza GPS, giallo in attesa del fix e verde con il fix;
   lampeggia finché l'app non si collega.
@@ -128,7 +130,9 @@ L'ESP32 la salva in flash e la usa per cronometrare da solo.
 **LAP**, 14 byte: `u8 versione = 1`, `u8 tipo` (1 = giro, 2 = intermedio), `u16 numero del giro`
 (quello finito, o quello in corso per un intermedio), `u32 tempo in ms` (del giro, o del solo
 intermedio), `u8 indice dell'intermedio` (da 0), `i32 delta in ms` sul giro migliore alla stessa
-linea (`0x7FFFFFFF` se non c'è ancora), `u8 flag` (bit0 nuovo giro migliore).
+linea (`0x7FFFFFFF` se non c'è ancora), `u8 flag`: bit0 nuovo giro migliore, bit 1-2 il colore
+(0 nessuno, 1 viola = il più veloce di sempre, 2 verde = meglio del giro precedente all'intermedio o
+della media al traguardo, 3 rosso = peggio).
 
 **CONTROL**: `0x01` azzera la sessione dell'ESP32; `0x02 rx tx` sposta il GPS su altri GPIO, li
 salva e riavvia (`0x02 0xFF 0xFF` = pin predefiniti del chip).

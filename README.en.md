@@ -66,9 +66,10 @@ Bluetooth and will not do.
   with the delta against the best lap at every line. The track and the best lap stay when it is
   switched off; the best lap is cleared when a different track arrives.
 - **Display**: on the Waveshare ESP32-C6-LCD-1.47 (file `…-esp32c6-lcd147.bin`) the screen is a
-  dashboard. During the lap it shows the time in big digits; at each sector line the delta against
-  the best lap comes up for 4 seconds (green when faster, red when slower); at the finish the lap time
-  comes up for 5 seconds (purple when it is the best) with the gap. Standing still it shows the speed;
+  dashboard. During the lap it shows the time in big digits. At each sector line the delta against
+  the best lap comes up for 4 seconds: purple when you are the fastest ever at that point, green when
+  ahead of the previous lap, red when behind. At the finish the lap time comes up for 5 seconds with
+  the gap: purple for a best lap, green when faster than the session's average, red when slower. Standing still it shows the speed;
   at the top the lap, satellites, rate and a green dot while the app is connected.
 - **LED**: on boards with an RGB LED it is red without GPS, yellow while waiting for a fix and green
   with a fix; it blinks until the app connects.
@@ -131,7 +132,9 @@ The ESP32 stores it in flash and uses it to time laps by itself.
 **LAP**, 14 bytes: `u8 version = 1`, `u8 type` (1 = lap, 2 = sector), `u16 lap number` (the one
 that ended, or the one in progress for a sector), `u32 time in ms` (of the lap, or of the sector
 alone), `u8 sector index` (from 0), `i32 delta in ms` against the best lap at the same line
-(`0x7FFFFFFF` while there is none), `u8 flags` (bit0 new best lap).
+(`0x7FFFFFFF` while there is none), `u8 flags`: bit0 new best lap, bits 1-2 the colour (0 none,
+1 purple = the fastest ever, 2 green = better than the previous lap at a sector line or the average at
+the finish, 3 red = worse).
 
 **CONTROL**: `0x01` resets the ESP32 session; `0x02 rx tx` moves the GPS to other GPIOs, saves
 them and restarts (`0x02 0xFF 0xFF` = the chip's default pins).

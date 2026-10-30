@@ -114,7 +114,8 @@ void Ble::sendFix(const Fix& f, uint8_t rate) {
   fixChr->notify();
 }
 
-// 14 bytes: version, type, lap number, time ms, sector, delta ms (i32), flags (bit0 best lap).
+// 14 bytes: version, type, lap number, time ms, sector, delta ms (i32), flags (bit0 best lap,
+// bits 1-2 the grade: 0 none, 1 fastest, 2 better, 3 worse).
 void Ble::sendLap(const LapEvent& e) {
   if (!connected()) return;
   uint8_t p[14];
@@ -124,7 +125,7 @@ void Ble::sendLap(const LapEvent& e) {
   put32(p + 4, e.ms);
   p[8] = e.sector;
   put32(p + 9, (uint32_t)e.delta);
-  p[13] = e.best ? 1 : 0;
+  p[13] = (e.best ? 1 : 0) | (uint8_t)e.grade << 1;
   lapChr->setValue(p, sizeof p);
   lapChr->notify();
 }
