@@ -75,36 +75,47 @@ struct IntroView: View {
 
 // MARK: - Pages
 
-/// Big picture on top, title and text below, sliding in when the page comes up.
+/// A picture and a title with its text, sliding in when the page comes up. The title goes first
+/// where the picture is a list to read after it.
 private struct IntroPage<Picture: View>: View {
     let active: Bool
     let title: String
     let text: [String]
+    var titleFirst = false
     @ViewBuilder var picture: Picture
 
     var body: some View {
         VStack(spacing: 26) {
             Spacer(minLength: 0)
-            picture
-            VStack(spacing: 12) {
-                Text(title)
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.text)
-                    .multilineTextAlignment(.center)
-                ForEach(text, id: \.self) { t in
-                    Text(t)
-                        .font(.body)
-                        .foregroundStyle(Theme.sub)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            if titleFirst {
+                words
+                picture
+            } else {
+                picture
+                words
             }
-            .padding(.horizontal, 28)
-            .opacity(active ? 1 : 0)
-            .offset(y: active ? 0 : 16)
-            .animation(.easeOut(duration: 0.5).delay(active ? 0.15 : 0), value: active)
             Spacer(minLength: 0)
         }
+    }
+
+    private var words: some View {
+        VStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.text)
+                .multilineTextAlignment(.center)
+            ForEach(text, id: \.self) { t in
+                Text(t)
+                    .font(.body)
+                    .foregroundStyle(Theme.sub)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 28)
+        .opacity(active ? 1 : 0)
+        .offset(y: active ? 0 : 16)
+        .animation(.easeOut(duration: 0.5).delay(active ? 0.15 : 0), value: active)
     }
 }
 
@@ -150,7 +161,7 @@ private struct FeaturesPage: View {
     ]
 
     var body: some View {
-        IntroPage(active: active, title: L("Tutto quello che serve"), text: []) {
+        IntroPage(active: active, title: L("Tutto quello che serve"), text: [], titleFirst: true) {
             VStack(spacing: 12) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
                     HStack(spacing: 14) {
@@ -177,7 +188,8 @@ private struct SourcePage: View {
     let active: Bool
 
     var body: some View {
-        IntroPage(active: active, title: L("Da dove arriva il GPS?"), text: [L("Puoi cambiarlo quando vuoi in Dispositivo.")]) {
+        IntroPage(active: active, title: L("Da dove arriva il GPS?"), text: [L("Puoi cambiarlo quando vuoi in Dispositivo.")],
+                  titleFirst: true) {
             VStack(spacing: 10) {
                 ForEach(SourceKind.allCases) { k in
                     SourceCard(kind: k, selected: k == model.source) { model.setSource(k) }
