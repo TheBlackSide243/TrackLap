@@ -2,6 +2,34 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.4.0 (2026-10-30)
+
+Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non solo il C6, e il primo firmware.
+
+### English
+
+**New**
+- ESP32 firmware 0.1.0 in `firmware/TrackLap`, for every ESP32 with Bluetooth LE: ESP32, S3, C3,
+  C5, C6 and H2, one ready-made `.bin` per chip built by GitHub Actions.
+- Any GPS: u-blox modules (M7, M8 like the BN-220, M9, M10) are set to 115200 baud and 10 Hz by
+  themselves, any other module is read as NMEA. It can be plugged in after the board is on.
+- The ESP32 times laps and sectors by itself on the track the app sends, and remembers it.
+- Device → ESP32 shows the chip, the GPS module and its pins, warns when no GPS answers, and
+  "Change pins" moves the GPS to other GPIOs for boards that use the default ones.
+- Status LED on boards that have one: red without GPS, yellow waiting for a fix, green with a fix.
+
+### Italiano
+
+**Novità**
+- Firmware ESP32 0.1.0 in `firmware/TrackLap`, per tutti gli ESP32 con Bluetooth LE: ESP32, S3,
+  C3, C5, C6 e H2, con un `.bin` pronto per ogni chip compilato da GitHub Actions.
+- Qualsiasi GPS: i moduli u-blox (M7, M8 come il BN-220, M9, M10) vengono impostati da soli a
+  115200 baud e 10 Hz, gli altri vengono letti in NMEA. Si può collegare anche a scheda accesa.
+- L'ESP32 cronometra giri e intermedi da solo sulla pista inviata dall'app, e se la ricorda.
+- Dispositivo → ESP32 mostra chip, modulo GPS e pin, avvisa se nessun GPS risponde, e "Cambia pin"
+  sposta il GPS su altri GPIO per le schede che usano quelli predefiniti.
+- LED di stato sulle schede che lo hanno: rosso senza GPS, giallo in attesa del fix, verde con il fix.
+
 ## 0.3.0 (2026-10-30)
 
 Lap analysis with ideas from RaceChrono. / Analisi dei giri con idee prese da RaceChrono.

@@ -3,7 +3,8 @@
 [Italiano](README.md) · **English**
 
 Track lap timer for iPhone: lap times, sectors and live delta computed from GPS, with an
-ESP32-C6 + u-blox GPS connected over Bluetooth, the iPhone's own GPS, or a simulated car.
+ESP32 and a GPS connected over Bluetooth (any ESP32 with Bluetooth will do: ESP32, S3, C3, C5, C6,
+H2), the iPhone's own GPS, or a simulated car.
 
 ## What it does
 
@@ -25,7 +26,8 @@ ESP32-C6 + u-blox GPS connected over Bluetooth, the iPhone's own GPS, or a simul
   a slider; map coloured by speed with the minimum speed of each corner, or by where time is
   gained and lost; sector comparison; friction circle (lateral and longitudinal g from GPS).
 - **Device**: GPS source (ESP32, iPhone, Demo), BLE scan and connection with automatic
-  reconnection, sending the track to the ESP32, timer settings.
+  reconnection, sending the track to the ESP32, chip and GPS pins (changeable from the app),
+  timer settings.
 
 - **Languages**: English, Italian, Spanish, French, German and Portuguese (follows the iPhone
   language, change it in Settings → TrackLap). Units km/h or mph.
@@ -51,6 +53,38 @@ Translations: the Italian text is the key in the code (`Text("…")`, `L("…")`
 other languages is in `tools/l10n.mjs`, which regenerates `Resources/<language>.lproj` with
 `node tools/l10n.mjs`.
 
+## ESP32 firmware
+
+The firmware in `firmware/TrackLap` (Arduino, NimBLE) runs on every ESP32 with Bluetooth LE:
+ESP32, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6 and ESP32-H2. The ESP32-S2 and ESP32-P4 have no
+Bluetooth and will not do.
+
+- **GPS**: a u-blox (M7, M8 like the BN-220, M9, M10) is switched by itself to 115200 baud, 10 Hz
+  and UBX NAV-PVT, with the automotive dynamic model; any other GPS is read as NMEA at whatever
+  speed it talks. It can be plugged in after the board is on.
+- **Laps**: with the track sent by the app the ESP32 times laps and sectors by itself (LAP packet)
+  and remembers the track when switched off.
+- **LED**: on boards with an RGB LED it is red without GPS, yellow while waiting for a fix and green
+  with a fix; it blinks until the app connects.
+
+**Wiring**: power the GPS from 3.3 V or 5 V as its module says, common GND, then
+
+| Chip | GPS TX → GPIO | GPS RX ← GPIO |
+|---|---|---|
+| ESP32 | 16 | 17 |
+| ESP32-S3 | 18 | 17 |
+| ESP32-C3, C5, C6, H2 | 4 | 5 |
+
+When the board uses those pins for something else (display, LED), change them from the app
+(Device → ESP32 → Change pins) or from the USB serial monitor at 115200 baud with
+`pins <rx> <tx>`; `pins default` goes back to the defaults, `info` shows the state.
+
+**Install**: on every change in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) builds
+one file per chip, `TrackLap-fw-<version>-<chip>.bin`, in the `tracklap-firmware` artifact. Write it
+from the browser (Chrome, Edge or Brave) with Espressif's ESP Tool,
+https://espressif.github.io/esptool-js/: Connect, pick the board's port, address `0x0`, the file for
+your chip, Program. If the board does not connect, hold BOOT while plugging it in.
+
 ## BLE protocol v1 (for the ESP32 firmware)
 
 Service `7A1C0000-3F4B-4C8E-9D2A-6B1E5F0A9C10`, advertised name `TrackLap-XXXX`.
@@ -62,7 +96,7 @@ All numbers are little-endian.
 | LAP | `7A1C0002-…` | notify | lap timed by the ESP32 (optional) |
 | TRACK | `7A1C0003-…` | write (with response) | start line and sectors |
 | CONTROL | `7A1C0004-…` | write (with response) | commands |
-| INFO | `7A1C0005-…` | read | JSON `{"fw":"0.1.0","gps":"BN-220","hz":10,"name":"TrackLap-1A2B"}` |
+| INFO | `7A1C0005-…` | read, notify | the ESP32's state as JSON |
 
 **FIX**, 20 bytes (fits the minimum MTU):
 
@@ -78,21 +112,28 @@ All numbers are little-endian.
 | 16 | u16 | speed in cm/s |
 | 18 | u16 | heading in hundredths of a degree |
 
+Without GPS the ESP32 sends an empty FIX (not valid, 0 satellites) every second.
+
 **TRACK**: `u8 version = 1`, `u8 number of lines`, then for each line `i32 latA, i32 lonA,
 i32 latB, i32 lonB` (× 1e7). The first line is the start, the others are the sectors.
-The ESP32 stores it in flash and uses it for the times on its display.
+The ESP32 stores it in flash and uses it to time laps by itself.
 
-**LAP**: `u8 version`, `u8 type` (1 = lap, 2 = sector), `u16 lap number`,
-`u32 time in ms`, `u8 sector index`.
+**LAP**, 9 bytes: `u8 version = 1`, `u8 type` (1 = lap, 2 = sector), `u16 lap number` (the one
+that ended, or the one in progress for a sector), `u32 time in ms` (of the lap, or of the sector
+alone), `u8 sector index` (from 0).
 
-**CONTROL**: `0x01` resets the ESP32 session.
+**CONTROL**: `0x01` resets the ESP32 session; `0x02 rx tx` moves the GPS to other GPIOs, saves
+them and restarts (`0x02 0xFF 0xFF` = the chip's default pins).
 
-The firmware can also expose the RaceChrono DIY service alongside, so the same device works
-with both apps.
+**INFO**, for example
+`{"fw":"0.1.0","chip":"ESP32-C6","gps":"u-blox M8","hz":10,"rx":4,"tx":5,"lines":3,"name":"TrackLap-1A2B"}`.
+`gps` is empty while no GPS answers; a notification comes when the module, the rate or the track
+changes.
 
 ## Next steps
 
-1. ESP32-C6 + BN-220 firmware (10 Hz, UBX NAV-PVT, display, the protocol above).
+1. A display on the ESP32 board (needs the exact model) and the RaceChrono DIY service alongside,
+   so the same device also works with RaceChrono.
 2. Multiplayer: server on the homelab (WebSocket/MQTT), sessions shared with a code or QR,
    live leaderboard and map, delta to a friend's best.
 

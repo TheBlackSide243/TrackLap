@@ -14,8 +14,13 @@ enum TrackLapBLE {
 
 struct DeviceInfo: Decodable {
     var fw: String? = nil
+    var chip: String? = nil
+    /// Empty while no GPS module answers.
     var gps: String? = nil
     var hz: Int? = nil
+    /// The GPIOs the GPS is wired to.
+    var rx: Int? = nil
+    var tx: Int? = nil
     var name: String? = nil
 }
 
@@ -103,6 +108,7 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     @ObservationIgnored private var weekOffset: Double = 0
     @ObservationIgnored private var lastITOW: Double? = nil
     @ObservationIgnored private var scanTimeout: DispatchWorkItem? = nil
+    @ObservationIgnored private var infoReread = false
 
     private static let lastDeviceKey = "lastDevice"
 
@@ -189,6 +195,16 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
     func resetDeviceSession() {
         write(Data([0x01]), to: TrackLapBLE.control)
+    }
+
+    /// Moves the GPS to other GPIOs (nil = the chip's defaults); the ESP32 restarts and reconnects.
+    func setGPSPins(rx: Int?, tx: Int?) {
+        var d = Data([0x02, 0xFF, 0xFF])
+        if let rx, let tx {
+            d[1] = UInt8(clamping: rx)
+            d[2] = UInt8(clamping: tx)
+        }
+        write(d, to: TrackLapBLE.control)
     }
 
     private func flushTrack() {
@@ -282,7 +298,11 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         for c in service.characteristics ?? [] {
             characteristics[c.uuid] = c
             if c.uuid == TrackLapBLE.fix || c.uuid == TrackLapBLE.lap { peripheral.setNotifyValue(true, for: c) }
-            if c.uuid == TrackLapBLE.info { peripheral.readValue(for: c) }
+            if c.uuid == TrackLapBLE.info {
+                peripheral.readValue(for: c)
+                // Firmware 0.1.0 and later say when the GPS module or its pins change.
+                if c.properties.contains(.notify) { peripheral.setNotifyValue(true, for: c) }
+            }
         }
         state = .connected
         connectedName = peripheral.name ?? connectedName
@@ -295,8 +315,19 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         switch characteristic.uuid {
         case TrackLapBLE.fix: handleFix(data)
         case TrackLapBLE.lap: handleLap(data)
-        case TrackLapBLE.info: info = try? JSONDecoder().decode(DeviceInfo.self, from: data)
+        case TrackLapBLE.info: handleInfo(data, characteristic)
         default: break
+        }
+    }
+
+    private func handleInfo(_ data: Data, _ c: CBCharacteristic) {
+        if let i = try? JSONDecoder().decode(DeviceInfo.self, from: data) {
+            info = i
+            infoReread = false
+        } else if !infoReread {
+            // A notification longer than the connection's MTU arrives cut: read it whole.
+            infoReread = true
+            peripheral?.readValue(for: c)
         }
     }
 

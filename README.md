@@ -3,7 +3,8 @@
 **Italiano** · [English](README.en.md)
 
 Cronometro da pista per iPhone: tempi sul giro, intermedi e delta live calcolati dal GPS,
-con un ESP32-C6 + GPS u-blox collegato via Bluetooth, il GPS dell'iPhone o un'auto simulata.
+con un ESP32 e un GPS collegati via Bluetooth (va bene qualsiasi ESP32 con Bluetooth: ESP32, S3,
+C3, C5, C6, H2), il GPS dell'iPhone o un'auto simulata.
 
 ## Cosa fa
 
@@ -25,7 +26,8 @@ con un ESP32-C6 + GPS u-blox collegato via Bluetooth, il GPS dell'iPhone o un'au
   o per dove si guadagna e si perde; confronto per settori; cerchio delle accelerazioni (g laterali
   e longitudinali calcolate dal GPS).
 - **Dispositivo**: sorgente GPS (ESP32, iPhone, Demo), ricerca e collegamento BLE con
-  ricollegamento automatico, invio della pista all'ESP32, impostazioni del cronometro.
+  ricollegamento automatico, invio della pista all'ESP32, chip e pin del GPS (si cambiano
+  dall'app), impostazioni del cronometro.
 
 - **Lingue**: italiano, inglese, spagnolo, francese, tedesco e portoghese (segue la lingua dell'iPhone,
   si cambia in Impostazioni → TrackLap). Unità km/h o mph.
@@ -50,6 +52,38 @@ Nuova versione: aumentare `MARKETING_VERSION` (e `CURRENT_PROJECT_VERSION`) in `
 Traduzioni: il testo italiano è la chiave nel codice (`Text("…")`, `L("…")`); la tabella con le altre
 lingue è in `tools/l10n.mjs`, che rigenera `Resources/<lingua>.lproj` con `node tools/l10n.mjs`.
 
+## Firmware ESP32
+
+Il firmware in `firmware/TrackLap` (Arduino, NimBLE) gira su tutti gli ESP32 con Bluetooth LE:
+ESP32, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6 ed ESP32-H2. L'ESP32-S2 e l'ESP32-P4 non hanno il
+Bluetooth e non vanno bene.
+
+- **GPS**: un u-blox (M7, M8 come il BN-220, M9, M10) viene portato da solo a 115200 baud, 10 Hz e
+  UBX NAV-PVT, con il modello dinamico per auto; qualsiasi altro GPS viene letto in NMEA alla velocità
+  a cui parla. Si può collegare anche a scheda già accesa.
+- **Giri**: con la pista inviata dall'app l'ESP32 cronometra giri e intermedi da solo (pacchetto LAP)
+  e se la ricorda anche da spento.
+- **LED**: sulle schede con il LED RGB è rosso senza GPS, giallo in attesa del fix e verde con il fix;
+  lampeggia finché l'app non si collega.
+
+**Collegamento**: GPS alimentato a 3,3 V o 5 V come indicato sul modulo, GND in comune, poi
+
+| Chip | TX del GPS → GPIO | RX del GPS ← GPIO |
+|---|---|---|
+| ESP32 | 16 | 17 |
+| ESP32-S3 | 18 | 17 |
+| ESP32-C3, C5, C6, H2 | 4 | 5 |
+
+Se la scheda usa quei pin per altro (display, LED), si cambiano dall'app (Dispositivo → ESP32 →
+Cambia pin) oppure dal monitor seriale USB a 115200 baud con `pins <rx> <tx>`; `pins default`
+torna ai predefiniti, `info` mostra lo stato.
+
+**Installazione**: a ogni modifica in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`)
+compila un file per ogni chip, `TrackLap-fw-<versione>-<chip>.bin`, nell'artefatto
+`tracklap-firmware`. Si scrive dal browser (Chrome, Edge o Brave) con ESP Tool di Espressif,
+https://espressif.github.io/esptool-js/: Connect, scegli la porta della scheda, indirizzo `0x0`,
+il file del tuo chip, Program. Se la scheda non si collega, tieni premuto BOOT mentre la colleghi.
+
 ## Protocollo BLE v1 (per il firmware ESP32)
 
 Servizio `7A1C0000-3F4B-4C8E-9D2A-6B1E5F0A9C10`, nome pubblicizzato `TrackLap-XXXX`.
@@ -61,7 +95,7 @@ Tutti i numeri sono little-endian.
 | LAP | `7A1C0002-…` | notify | giro cronometrato dall'ESP32 (facoltativo) |
 | TRACK | `7A1C0003-…` | write (con risposta) | linea del via e intermedi |
 | CONTROL | `7A1C0004-…` | write (con risposta) | comandi |
-| INFO | `7A1C0005-…` | read | JSON `{"fw":"0.1.0","gps":"BN-220","hz":10,"name":"TrackLap-1A2B"}` |
+| INFO | `7A1C0005-…` | read, notify | stato dell'ESP32 in JSON |
 
 **FIX**, 20 byte (entra nell'MTU minimo):
 
@@ -77,21 +111,28 @@ Tutti i numeri sono little-endian.
 | 16 | u16 | velocità in cm/s |
 | 18 | u16 | direzione in centesimi di grado |
 
+Senza GPS l'ESP32 manda un FIX vuoto (non valido, 0 satelliti) ogni secondo.
+
 **TRACK**: `u8 versione = 1`, `u8 numero di linee`, poi per ogni linea `i32 latA, i32 lonA,
 i32 latB, i32 lonB` (× 1e7). La prima linea è il via, le altre sono gli intermedi.
-L'ESP32 la salva in flash e la usa per i tempi sul display.
+L'ESP32 la salva in flash e la usa per cronometrare da solo.
 
-**LAP**: `u8 versione`, `u8 tipo` (1 = giro, 2 = intermedio), `u16 numero giro`,
-`u32 tempo in ms`, `u8 indice dell'intermedio`.
+**LAP**, 9 byte: `u8 versione = 1`, `u8 tipo` (1 = giro, 2 = intermedio), `u16 numero del giro`
+(quello finito, o quello in corso per un intermedio), `u32 tempo in ms` (del giro, o del solo
+intermedio), `u8 indice dell'intermedio` (da 0).
 
-**CONTROL**: `0x01` azzera la sessione dell'ESP32.
+**CONTROL**: `0x01` azzera la sessione dell'ESP32; `0x02 rx tx` sposta il GPS su altri GPIO, li
+salva e riavvia (`0x02 0xFF 0xFF` = pin predefiniti del chip).
 
-Il firmware può esporre in parallelo anche il servizio RaceChrono DIY, così lo stesso
-dispositivo funziona con entrambe le app.
+**INFO**, per esempio
+`{"fw":"0.1.0","chip":"ESP32-C6","gps":"u-blox M8","hz":10,"rx":4,"tx":5,"lines":3,"name":"TrackLap-1A2B"}`.
+`gps` è vuoto finché nessun GPS risponde; arriva una notifica quando cambiano il modulo, la
+frequenza o la pista.
 
 ## Prossimi passi
 
-1. Firmware ESP32-C6 + BN-220 (10 Hz, UBX NAV-PVT, display, protocollo qui sopra).
+1. Display sulla scheda dell'ESP32 (serve il modello esatto) e servizio RaceChrono DIY in parallelo,
+   così lo stesso dispositivo funziona anche con RaceChrono.
 2. Multiplayer: server sull'homelab (WebSocket/MQTT), sessioni condivise con codice o QR,
    classifica e mappa live, delta sul best di un amico.
 

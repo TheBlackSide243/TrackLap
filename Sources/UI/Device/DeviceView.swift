@@ -68,6 +68,7 @@ private struct SourceCard: View {
 
 private struct BLESection: View {
     @Environment(AppModel.self) private var model
+    @State private var editingPins = false
 
     var body: some View {
         let ble = model.ble
@@ -93,8 +94,8 @@ private struct BLESection: View {
                         StatTile(title: L("Frequenza"), value: "\(ble.rateHz)", unit: "Hz")
                         StatTile(title: L("Firmware"), value: ble.info?.fw ?? "—")
                     }
-                    if let gps = ble.info?.gps {
-                        Text("Modulo GPS: \(gps)").font(.caption).foregroundStyle(Theme.sub)
+                    if let info = ble.info {
+                        DeviceDetails(info: info) { editingPins = true }
                     }
                     HStack(spacing: 10) {
                         Button {
@@ -135,6 +136,9 @@ private struct BLESection: View {
                 }
             }
         }
+        .sheet(isPresented: $editingPins) {
+            GPSPinsSheet(info: ble.info) { ble.setGPSPins(rx: $0, tx: $1) }
+        }
     }
 
     private func icon(_ s: BLEManager.State) -> String {
@@ -144,6 +148,99 @@ private struct BLESection: View {
         case .off, .unauthorized, .unsupported: return "exclamationmark.triangle.fill"
         case .idle: return "cpu"
         }
+    }
+}
+
+/// The chip, the GPS module and the pins it is wired to, as the ESP32 reports them.
+private struct DeviceDetails: View {
+    let info: DeviceInfo
+    let onPins: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let gps = info.gps {
+                if gps.isEmpty {
+                    Label("Nessun GPS risponde: controlla i fili e i pin.", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Theme.yellow)
+                } else {
+                    Text("Modulo GPS: \(gps)").font(.caption).foregroundStyle(Theme.sub)
+                }
+            }
+            if let rx = info.rx, let tx = info.tx {
+                Button(action: onPins) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "cable.connector").foregroundStyle(Theme.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(info.chip ?? "ESP32").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                            Text("GPS su RX \(rx) · TX \(tx)").font(.caption.monospacedDigit()).foregroundStyle(Theme.sub)
+                        }
+                        Spacer()
+                        Text("Cambia pin").font(.caption.weight(.bold)).foregroundStyle(Theme.accent)
+                    }
+                    .padding(12)
+                    .background(Theme.input, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+/// Which GPIOs the GPS is wired to, for boards that use the chip's defaults for something else.
+private struct GPSPinsSheet: View {
+    let info: DeviceInfo?
+    /// nil, nil = the chip's defaults.
+    let onSave: (Int?, Int?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var rx = 0
+    @State private var tx = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Pin del GPS").font(.title3.weight(.bold)).foregroundStyle(Theme.text)
+            Text("Il TX del GPS va sul pin RX dell'ESP32, l'RX del GPS sul pin TX. L'ESP32 salva i pin e si riavvia.")
+                .font(.caption)
+                .foregroundStyle(Theme.sub)
+                .fixedSize(horizontal: false, vertical: true)
+            pin(L("RX, dal TX del GPS"), $rx)
+            pin(L("TX, verso l'RX del GPS"), $tx)
+            Button {
+                onSave(rx, tx)
+                dismiss()
+            } label: {
+                Label("Salva e riavvia", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .disabled(rx == tx || (rx == info?.rx && tx == info?.tx))
+            Button {
+                onSave(nil, nil)
+                dismiss()
+            } label: {
+                Text("Pin predefiniti del chip")
+            }
+            .buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(20)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .presentationDetents([.medium])
+        .presentationBackground(Theme.bg)
+        .onAppear {
+            rx = info?.rx ?? 0
+            tx = info?.tx ?? 0
+        }
+    }
+
+    private func pin(_ title: String, _ value: Binding<Int>) -> some View {
+        Stepper(value: value, in: 0...48) {
+            HStack {
+                Text(title).foregroundStyle(Theme.text)
+                Spacer()
+                Text(verbatim: "GPIO \(value.wrappedValue)").monospacedDigit().foregroundStyle(Theme.accent)
+            }
+        }
+        .padding(12)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
