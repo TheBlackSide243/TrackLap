@@ -57,7 +57,7 @@ struct SessionDetailView: View {
                 StatTile(title: "Ideale", value: Fmt.lap(s.idealTime))
                 StatTile(title: "Media", value: Fmt.lap(s.averageTime))
                 StatTile(title: "Giri", value: "\(s.laps.count)")
-                StatTile(title: "V max", value: Fmt.kmh(s.laps.map(\.maxSpeed).max() ?? 0), unit: "km/h")
+                StatTile(title: "V max", value: Fmt.speed(s.laps.map(\.maxSpeed).max() ?? 0), unit: Fmt.speedUnit)
                 StatTile(title: "Giro", value: Fmt.distance(best?.distance))
             }
 
@@ -168,14 +168,14 @@ private struct SpeedChart: View {
             Chart {
                 ForEach(Array(ref.enumerated()), id: \.offset) { item in
                     LineMark(x: .value("Distanza", item.element.d),
-                             y: .value("km/h", item.element.v * 3.6),
+                             y: .value(Fmt.speedUnit, item.element.v * Fmt.speedFactor),
                              series: .value("Giro", "Best"))
                         .foregroundStyle(Theme.purple.opacity(0.85))
                         .lineStyle(StrokeStyle(lineWidth: 2))
                 }
                 ForEach(Array(mine.enumerated()), id: \.offset) { item in
                     LineMark(x: .value("Distanza", item.element.d),
-                             y: .value("km/h", item.element.v * 3.6),
+                             y: .value(Fmt.speedUnit, item.element.v * Fmt.speedFactor),
                              series: .value("Giro", "Selezionato"))
                         .foregroundStyle(Theme.accent)
                         .lineStyle(StrokeStyle(lineWidth: 2.5))

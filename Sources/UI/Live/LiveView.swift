@@ -281,7 +281,7 @@ private struct LiveStatsRow: View {
             StatTile(title: "Ultimo", value: Fmt.lap(engine.lastLap?.time))
             StatTile(title: "Best", value: Fmt.lap(engine.bestLap?.time),
                      color: engine.bestLap == nil ? Theme.text : Theme.purple)
-            StatTile(title: "Velocità", value: Fmt.kmh(engine.speed), unit: "km/h")
+            StatTile(title: "Velocità", value: Fmt.speed(engine.speed), unit: Fmt.speedUnit)
         }
     }
 }

@@ -1,46 +1,19 @@
 import Foundation
 
-struct TrackCandidate: Identifiable, Hashable {
-    enum Kind: String { case circuit, karting, other }
-
-    let id: String
-    let name: String
-    let kind: Kind
-    let center: Coord
-    var distanceKm: Double? = nil
-    /// How far from the centre to look for the raceway ways.
-    var radius: Double = 2500
-
-    var icon: String { kind == .karting ? "flag.2.crossed.fill" : "flag.checkered" }
-
-    var subtitle: String {
-        let k: String
-        switch kind {
-        case .circuit: k = "Autodromo"
-        case .karting: k = "Kartodromo"
-        case .other: k = "Pista"
-        }
-        guard let distanceKm else { return k }
-        return k + " · " + (distanceKm < 10 ? String(format: "%.1f km", distanceKm) : "\(Int(distanceKm)) km")
-    }
-}
-
-enum OverpassError: LocalizedError {
-    case busy
-
-    var errorDescription: String? { "OpenStreetMap non risponde in questo momento: riprova tra poco." }
-}
-
-/// Track search and layouts from OpenStreetMap, through the public Overpass API.
+/// Tag-based search and track layouts from the public Overpass API (OpenStreetMap). Its servers
+/// are often slow or busy, so every query goes to all mirrors at once and the first answer wins.
 enum Overpass {
-    struct Response: Decodable { let elements: [Element] }
+    struct Response: Decodable {
+        let elements: [Element]
+        let remark: String?
+    }
 
     struct Element: Decodable {
         let type: String
         let id: Int64
         let lat: Double?
         let lon: Double?
-        let center: Point?
+        let bounds: Bounds?
         let tags: [String: String]?
         let geometry: [Point?]?
     }
@@ -50,6 +23,13 @@ enum Overpass {
         let lon: Double
     }
 
+    struct Bounds: Decodable {
+        let minlat: Double
+        let minlon: Double
+        let maxlat: Double
+        let maxlon: Double
+    }
+
     private static let endpoints = [
         URL(string: "https://overpass-api.de/api/interpreter")!,
         URL(string: "https://overpass.private.coffee/api/interpreter")!,
@@ -57,124 +37,150 @@ enum Overpass {
 
     private static let formSafe = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
 
-    static func run(_ query: String) async throws -> [Element] {
-        let body = "data=" + (query.addingPercentEncoding(withAllowedCharacters: formSafe) ?? "")
-        var lastError: Error = OverpassError.busy
-        for url in endpoints {
-            var req = URLRequest(url: url, timeoutInterval: 35)
-            req.httpMethod = "POST"
-            req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            req.setValue("TrackLap/0.1 (iOS lap timer)", forHTTPHeaderField: "User-Agent")
-            req.httpBody = Data(body.utf8)
-            do {
-                let (data, resp) = try await URLSession.shared.data(for: req)
-                guard (resp as? HTTPURLResponse)?.statusCode == 200 else {
-                    lastError = OverpassError.busy
-                    continue
-                }
-                return try JSONDecoder().decode(Response.self, from: data).elements
-            } catch {
-                lastError = error
+    static func run(_ query: String, timeout: TimeInterval) async throws -> [Element] {
+        let body = Data(("data=" + (query.addingPercentEncoding(withAllowedCharacters: formSafe) ?? "")).utf8)
+        return try await withThrowingTaskGroup(of: [Element]?.self, returning: [Element].self) { group in
+            for url in endpoints {
+                group.addTask { try? await fetch(url, body: body, timeout: timeout) }
             }
+            for try await answer in group {
+                if let answer {
+                    group.cancelAll()
+                    return answer
+                }
+            }
+            throw FinderError.busy
         }
-        throw lastError
     }
 
-    static func search(name: String) async throws -> [TrackCandidate] {
-        let q = sanitize(name)
-        guard !q.isEmpty else { return [] }
-        let query = """
-        [out:json][timeout:25];
-        area["ISO3166-1"="IT"][admin_level=2]->.it;
-        (
-          nwr["sport"~"motor|karting|motocross"]["name"~"\(q)",i](area.it);
-          way["highway"="raceway"]["name"~"\(q)",i](area.it);
-        );
-        out tags center 40;
-        """
-        return candidates(try await run(query), near: nil)
+    private static func fetch(_ url: URL, body: Data, timeout: TimeInterval) async throws -> [Element] {
+        var req = URLRequest(url: url, timeoutInterval: timeout)
+        req.httpMethod = "POST"
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        req.setValue(Net.userAgent, forHTTPHeaderField: "User-Agent")
+        req.httpBody = body
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FinderError.busy }
+        let decoded = try JSONDecoder().decode(Response.self, from: data)
+        // A busy server answers 200 with a timeout remark and whatever it found so far.
+        if let remark = decoded.remark, remark.localizedCaseInsensitiveContains("error") { throw FinderError.busy }
+        return decoded.elements
     }
 
-    static func nearby(_ c: Coord, radiusKm: Double = 60) async throws -> [TrackCandidate] {
+    /// Motorsport venues around a point, from their tags.
+    static func nearby(_ c: Coord, radiusKm: Double) async throws -> [TrackCandidate] {
         let r = Int(radiusKm * 1000)
         let query = """
-        [out:json][timeout:25];
+        [out:json][timeout:40];
         (
-          nwr["sport"~"motor|karting"]["name"](around:\(r),\(c.lat),\(c.lon));
+          nwr["sport"~"motor|karting|motocross|speedway"]["name"](around:\(r),\(c.lat),\(c.lon));
           way["highway"="raceway"]["name"](around:\(r),\(c.lat),\(c.lon));
         );
-        out tags center 60;
+        out tags bb 150;
         """
-        return candidates(try await run(query), near: c)
+        return try await run(query, timeout: 45).compactMap(candidate)
     }
 
-    /// The raceway ways around a point, longest first.
-    static func outline(around c: Coord, radius: Double) async throws -> [[Coord]] {
+    /// The raceway ways inside a box.
+    static func raceways(in box: GeoBox) async throws -> [[Coord]] {
         let query = """
         [out:json][timeout:25];
-        way["highway"="raceway"](around:\(Int(radius)),\(c.lat),\(c.lon));
+        way["highway"="raceway"](\(box.minLat),\(box.minLon),\(box.maxLat),\(box.maxLon));
         out geom;
         """
-        let ways = try await run(query).compactMap { e -> [Coord]? in
+        return try await run(query, timeout: 30).compactMap { e -> [Coord]? in
             let pts = (e.geometry ?? []).compactMap { $0.map { Coord($0.lat, $0.lon) } }
             return pts.count >= 2 ? pts : nil
         }
-        return ways.sorted { Geo.length($0) > Geo.length($1) }
     }
 
-    private static func candidates(_ elements: [Element], near: Coord?) -> [TrackCandidate] {
-        var seen = Set<String>()
-        var out: [TrackCandidate] = []
-        for e in elements {
-            guard let name = e.tags?["name"], !name.isEmpty, !seen.contains(name.lowercased()) else { continue }
-            let center: Coord
-            if let c = e.center {
-                center = Coord(c.lat, c.lon)
-            } else if let lat = e.lat, let lon = e.lon {
-                center = Coord(lat, lon)
-            } else {
-                continue
-            }
-            seen.insert(name.lowercased())
-            let sport = e.tags?["sport"] ?? ""
-            let kind: TrackCandidate.Kind = sport.contains("karting") ? .karting
-                : (sport.contains("motor") || e.tags?["highway"] == "raceway") ? .circuit : .other
-            var cand = TrackCandidate(id: "\(e.type)/\(e.id)", name: name, kind: kind, center: center,
-                                      radius: kind == .karting ? 700 : 2500)
-            if let near { cand.distanceKm = Geo.distance(near, center) / 1000 }
-            out.append(cand)
+    private static func candidate(_ e: Element) -> TrackCandidate? {
+        guard let tags = e.tags, let name = tags["name"], !name.isEmpty else { return nil }
+        var box: GeoBox?
+        let center: Coord
+        if let b = e.bounds {
+            box = GeoBox(b.minlat, b.minlon, b.maxlat, b.maxlon)
+            center = box!.center
+        } else if let lat = e.lat, let lon = e.lon {
+            center = Coord(lat, lon)
+        } else {
+            return nil
         }
-        if near != nil { out.sort { ($0.distanceKm ?? 0) < ($1.distanceKm ?? 0) } }
-        return out
-    }
-
-    /// Keeps the name usable inside an Overpass regex string: anything unusual matches any character.
-    private static func sanitize(_ s: String) -> String {
-        let trimmed = s.trimmingCharacters(in: .whitespaces)
-        return String(trimmed.map { $0.isLetter || $0.isNumber || $0 == " " || $0 == "-" ? $0 : "." })
+        let sport = tags["sport"] ?? ""
+        let kind: TrackCandidate.Kind
+        if tags["highway"] == "raceway" {
+            guard let k = TrackWords.kind(name: name, tag: "highway:raceway", box: box) else { return nil }
+            kind = k
+        } else if sport.contains("karting") || name.localizedCaseInsensitiveContains("kart") {
+            kind = .karting
+        } else if sport.contains("motocross") {
+            kind = .other
+        } else {
+            kind = .circuit
+        }
+        let place = tags["addr:city"] ?? ""
+        return TrackCandidate(id: "\(e.type)/\(e.id)", name: name, kind: kind, center: center, place: place, box: box)
     }
 }
 
-/// Quick picks: the best-known Italian circuits, downloaded from OpenStreetMap when tapped.
-enum ItalianCircuits {
-    static let all: [TrackCandidate] = [
-        pick("monza", "Autodromo Nazionale Monza", 45.6190, 9.2840),
-        pick("mugello", "Mugello Circuit", 43.9975, 11.3719),
-        pick("imola", "Autodromo Enzo e Dino Ferrari", 44.3439, 11.7167),
-        pick("misano", "Misano World Circuit", 43.9614, 12.6850),
-        pick("vallelunga", "Autodromo di Vallelunga", 42.1597, 12.3697),
-        pick("varano", "Autodromo Riccardo Paletti", 44.6807, 10.0215),
-        pick("franciacorta", "Autodromo di Franciacorta", 45.5139, 9.9600),
-        pick("adria", "Adria International Raceway", 45.0447, 12.1470),
-        pick("magione", "Autodromo dell'Umbria", 43.1340, 12.2280),
-        pick("cremona", "Cremona Circuit", 45.0850, 10.3120),
-        pick("modena", "Autodromo di Modena", 44.6390, 10.8350),
-        pick("pergusa", "Autodromo di Pergusa", 37.5160, 14.3050),
-        TrackCandidate(id: "it-lonato", name: "South Garda Karting", kind: .karting,
-                       center: Coord(45.4436, 10.4889), radius: 1500),
-    ]
+/// The main OpenStreetMap API: fast for a small box, used for a track layout when every Overpass
+/// server is busy. Only the raceway ways are kept from the answer.
+enum OSMMap {
+    static func raceways(in box: GeoBox) async throws -> [[Coord]] {
+        // The API refuses boxes over 0.25 square degrees; a circuit needs far less.
+        guard box.area < 0.02 else { throw FinderError.busy }
+        let url = URL(string: "https://api.openstreetmap.org/api/0.6/map?bbox=\(box.minLon),\(box.minLat),\(box.maxLon),\(box.maxLat)")!
+        var req = URLRequest(url: url, timeoutInterval: 25)
+        req.setValue(Net.userAgent, forHTTPHeaderField: "User-Agent")
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FinderError.busy }
+        let reader = RacewayReader()
+        let parser = XMLParser(data: data)
+        parser.delegate = reader
+        guard parser.parse() else { throw FinderError.busy }
+        return reader.ways
+    }
+}
 
-    private static func pick(_ id: String, _ name: String, _ lat: Double, _ lon: Double) -> TrackCandidate {
-        TrackCandidate(id: "it-" + id, name: name, kind: .circuit, center: Coord(lat, lon), radius: 3000)
+private final class RacewayReader: NSObject, XMLParserDelegate {
+    private var nodes: [Int64: Coord] = [:]
+    private var refs: [Int64] = []
+    private var inWay = false
+    private var isRaceway = false
+    private var found: [[Int64]] = []
+
+    var ways: [[Coord]] {
+        found.compactMap { ids in
+            let pts = ids.compactMap { nodes[$0] }
+            return pts.count >= 2 ? pts : nil
+        }
+    }
+
+    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?,
+                qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
+        switch elementName {
+        case "node":
+            if let id = attributeDict["id"].flatMap({ Int64($0) }),
+               let lat = attributeDict["lat"].flatMap({ Double($0) }),
+               let lon = attributeDict["lon"].flatMap({ Double($0) }) {
+                nodes[id] = Coord(lat, lon)
+            }
+        case "way":
+            inWay = true
+            isRaceway = false
+            refs = []
+        case "nd":
+            if inWay, let ref = attributeDict["ref"].flatMap({ Int64($0) }) { refs.append(ref) }
+        case "tag":
+            if inWay, attributeDict["k"] == "highway", attributeDict["v"] == "raceway" { isRaceway = true }
+        default:
+            break
+        }
+    }
+
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        guard elementName == "way" else { return }
+        if isRaceway { found.append(refs) }
+        inWay = false
     }
 }

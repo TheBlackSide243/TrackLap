@@ -47,7 +47,7 @@ struct TracksView: View {
                     path.append(id)
                 }
             }
-            .overlay { if busy { ProgressOverlay(text: "Cerco la pista qui intorno…") } }
+            .overlay { if busy { ProgressOverlay(text: L("Cerco la pista qui intorno…")) } }
             .alert("Qualcosa non va", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -68,8 +68,8 @@ struct TracksView: View {
         do {
             let loc = try await model.phone.currentLocation()
             let c = Coord(loc.coordinate)
-            let ways = (try? await Overpass.outline(around: c, radius: 900)) ?? []
-            let t = Track(name: "Nuova pista", place: "Creata sul posto", center: c, outline: ways)
+            let ways = await TrackFinder.outline(in: GeoBox(around: c, meters: 900))
+            let t = Track(name: L("Nuova pista"), place: L("Creata sul posto"), center: c, outline: ways)
             model.save(track: t)
             path.append(t.id)
         } catch {

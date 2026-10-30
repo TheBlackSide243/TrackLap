@@ -82,3 +82,39 @@ enum Geo {
         return (u >= 0 && u < 1 && v >= 0 && v <= 1) ? u : nil
     }
 }
+
+/// A latitude/longitude rectangle: a circuit's area on OpenStreetMap, or the box to search in.
+struct GeoBox: Codable, Hashable {
+    var minLat: Double
+    var minLon: Double
+    var maxLat: Double
+    var maxLon: Double
+
+    init(_ minLat: Double, _ minLon: Double, _ maxLat: Double, _ maxLon: Double) {
+        self.minLat = minLat
+        self.minLon = minLon
+        self.maxLat = maxLat
+        self.maxLon = maxLon
+    }
+
+    init(around c: Coord, meters: Double) {
+        let dLat = meters / 111_320
+        let dLon = meters / (111_320 * max(0.2, cos(c.lat * .pi / 180)))
+        self.init(c.lat - dLat, c.lon - dLon, c.lat + dLat, c.lon + dLon)
+    }
+
+    var center: Coord { Coord((minLat + maxLat) / 2, (minLon + maxLon) / 2) }
+
+    /// In square degrees, which is what the OpenStreetMap API limits.
+    var area: Double { (maxLat - minLat) * (maxLon - minLon) }
+
+    func padded(meters: Double) -> GeoBox {
+        let dLat = meters / 111_320
+        let dLon = meters / (111_320 * max(0.2, cos(center.lat * .pi / 180)))
+        return GeoBox(minLat - dLat, minLon - dLon, maxLat + dLat, maxLon + dLon)
+    }
+
+    func contains(_ c: Coord) -> Bool {
+        c.lat >= minLat && c.lat <= maxLat && c.lon >= minLon && c.lon <= maxLon
+    }
+}

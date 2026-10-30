@@ -56,7 +56,11 @@ enum Fmt {
         return (d < 0 ? "−" : "+") + String(format: "%.2f", abs(d))
     }
 
-    static func kmh(_ v: Double) -> String { "\(Int((v * 3.6).rounded()))" }
+    /// Metres per second to the unit of the settings.
+    static var speedFactor: Double { Units.current == .metric ? 3.6 : 2.236936 }
+    static var speedUnit: String { Units.current == .metric ? "km/h" : "mph" }
+
+    static func speed(_ v: Double) -> String { "\(Int((v * speedFactor).rounded()))" }
 
     static func hz(_ r: Double) -> String {
         r >= 2 ? "\(Int(r.rounded())) Hz" : String(format: "%.1f Hz", r)
@@ -64,13 +68,15 @@ enum Fmt {
 
     static func distance(_ m: Double?) -> String {
         guard let m else { return "—" }
+        if Units.current == .imperial {
+            return m >= 161 ? String(format: "%.2f mi", m / 1609.344) : "\(Int(m * 3.28084)) ft"
+        }
         return m >= 1000 ? String(format: "%.2f km", m / 1000) : "\(Int(m)) m"
     }
 
     static let day: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "it_IT")
-        f.dateFormat = "d MMM yyyy · HH:mm"
+        f.setLocalizedDateFormatFromTemplate("d MMM yyyy HH:mm")
         return f
     }()
 }
