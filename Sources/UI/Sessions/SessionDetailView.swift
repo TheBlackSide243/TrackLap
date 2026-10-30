@@ -18,11 +18,22 @@ struct SessionDetailView: View {
     @State private var csvURL: URL?
 
     var body: some View {
-        ScrollView {
-            if let session, let analysis, !session.laps.isEmpty {
-                content(session, analysis)
-            } else {
-                ProgressView().padding(60)
+        ScrollViewReader { proxy in
+            ScrollView {
+                if let session, let analysis, !session.laps.isEmpty {
+                    content(session, analysis)
+                } else {
+                    ProgressView().padding(60)
+                }
+            }
+            .onChange(of: analysis != nil) { _, ready in
+                // Screenshot mode: straight to the analysis, with the cursor a third of the way round.
+                guard ready, Showcase.screen == .analysis, let lap = analysis?.lap else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    cursor = lap.distance * 0.36
+                    proxy.scrollTo("analysis", anchor: .top)
+                }
             }
         }
         .scrollIndicators(.hidden)
@@ -113,6 +124,7 @@ struct SessionDetailView: View {
             }
 
             SectionLabel(L("Analisi"))
+                .id("analysis")
             compareBar(s, a)
 
             Panel(padding: 6) {

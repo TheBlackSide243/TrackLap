@@ -2,9 +2,10 @@ import SwiftUI
 
 struct SessionsView: View {
     @Environment(AppModel.self) private var model
+    @State private var path: [UUID] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 14) {
                     ScreenHeader(icon: "chart.bar.xaxis", title: L("Sessioni"), subtitle: subtitle)
@@ -37,6 +38,12 @@ struct SessionsView: View {
             .background(Theme.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: UUID.self) { SessionDetailView(sessionID: $0) }
+            .onAppear {
+                if Showcase.screen == .session || Showcase.screen == .analysis, path.isEmpty,
+                   let latest = model.sessions.summaries.first {
+                    path = [latest.id]
+                }
+            }
         }
     }
 
