@@ -78,7 +78,7 @@ Bluetooth e non vanno bene.
 
 | Scheda | TX del GPS → GPIO | RX del GPS ← GPIO |
 |---|---|---|
-| ESP32 | 16 | 17 |
+| ESP32-WROOM-32 (DevKit: RX2, TX2) | 16 | 17 |
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (pin RX) | 16 (pin TX) |
@@ -87,7 +87,7 @@ Negli schemi le frecce indicano dove vanno i dati: il TX del GPS va al pin che r
 quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
 
 <p>
-  <img src="docs/wiring/esp32.svg" width="300" alt="GPS collegato a ESP32">
+  <img src="docs/wiring/esp32.svg" width="300" alt="GPS collegato a ESP32-WROOM-32">
   <img src="docs/wiring/esp32s3.svg" width="300" alt="GPS collegato a ESP32-S3">
 </p>
 <p>

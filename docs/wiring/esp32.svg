@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 404" width="340" height="404" font-family="Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif">
-<title>GPS → ESP32</title>
+<title>GPS → ESP32-WROOM-32</title>
 <rect width="340" height="404" rx="18" fill="#131316"/>
 <rect x="30" y="16" width="280" height="120" rx="16" fill="#202027" stroke="#3A3A44"/>
 <rect x="48" y="30" width="64" height="64" rx="6" fill="#C8A964"/>
@@ -20,7 +20,8 @@
 <text x="275" y="284" fill="#F2F2F6" font-size="15" font-weight="700" text-anchor="middle">GPIO 17</text>
 <text x="275" y="301" fill="#9696A2" font-size="12" font-weight="600" text-anchor="middle">TX2</text>
 <path d="M44 332h6M96 332h6M44 345h6M96 345h6M44 358h6M96 358h6M60 316v6M60 368v6M73 316v6M73 368v6M86 316v6M86 368v6" stroke="#9696A2" stroke-width="2"/><rect x="50" y="322" width="46" height="46" rx="5" fill="#2C2C34" stroke="#4A4A55"/><circle cx="57" cy="329" r="2" fill="#22D3EE"/><text x="73" y="349" fill="#9696A2" font-size="9" font-weight="700" text-anchor="middle">ESP32</text>
-<text x="116" y="350" fill="#F2F2F6" font-size="15" font-weight="700">ESP32</text>
+<text x="116" y="340" fill="#F2F2F6" font-size="15" font-weight="700">ESP32-WROOM-32</text>
+<text x="116" y="359" fill="#F2F2F6" font-size="15" font-weight="700">DevKit</text>
 <path d="M65 136V256" stroke="#F06050" stroke-width="5" stroke-linecap="round"/>
 <path d="M135 136V256" stroke="#8A8A96" stroke-width="5" stroke-linecap="round"/>
 <path d="M205 136V256" stroke="#FACC15" stroke-width="5" stroke-linecap="round"/>

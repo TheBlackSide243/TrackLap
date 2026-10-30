@@ -78,7 +78,7 @@ Bluetooth and will not do.
 
 | Board | GPS TX → GPIO | GPS RX ← GPIO |
 |---|---|---|
-| ESP32 | 16 | 17 |
+| ESP32-WROOM-32 (DevKit: RX2, TX2) | 16 | 17 |
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (RX pin) | 16 (TX pin) |
@@ -87,7 +87,7 @@ In the diagrams the arrows show where the data goes: the GPS TX goes to the pin 
 its RX to the one that transmits. VCC goes to 3V3, or to 5V if the module asks for it.
 
 <p>
-  <img src="docs/wiring/esp32.svg" width="300" alt="GPS wired to ESP32">
+  <img src="docs/wiring/esp32.svg" width="300" alt="GPS wired to ESP32-WROOM-32">
   <img src="docs/wiring/esp32s3.svg" width="300" alt="GPS wired to ESP32-S3">
 </p>
 <p>
