@@ -1,5 +1,7 @@
 # TrackLap
 
+**Italiano** · [English](README.en.md)
+
 Cronometro da pista per iPhone: tempi sul giro, intermedi e delta live calcolati dal GPS,
 con un ESP32-C6 + GPS u-blox collegato via Bluetooth, il GPS dell'iPhone o un'auto simulata.
 
@@ -32,6 +34,10 @@ Non serve un Mac: a ogni push su `main` GitHub Actions (`.github/workflows/ipa.y
 progetto con XcodeGen, compila senza firma e pubblica l'artefatto `tracklap-ipa` con
 `TrackLap-<versione>-unsigned.ipa`. Si installa con Sideloadly, AltStore o Feather, che lo
 firmano con il proprio Apple ID.
+
+Ogni versione è nelle release del repo e nella sorgente Feather
+`https://raw.githubusercontent.com/TheBlackSide243/feather-repo/main/apps.json`; le novità sono in
+[CHANGELOG.md](CHANGELOG.md), in inglese e in italiano.
 
 Nuova versione: aumentare `MARKETING_VERSION` (e `CURRENT_PROJECT_VERSION`) in `project.yml`.
 
