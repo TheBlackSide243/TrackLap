@@ -1,0 +1,107 @@
+# Screenshots for the README (and later the store pages): builds the app for the simulator, puts
+# three real circuits in its tracks (screenshots/tracks.json) and photographs each screen in Italian
+# and English with the app's screenshot mode (-showcase <screen>, Sources/App/Showcase.swift).
+name: Screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['screenshots/**', 'Sources/App/Showcase.swift', '.github/workflows/screenshots.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  shots:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_[0-9]*.app 2>/dev/null | grep -vi 'beta' | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Tools
+        run: brew install xcodegen librsvg
+
+      - name: App icon
+        run: rsvg-convert -w 1024 -h 1024 -b '#0F0F11' icon.svg -o Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+
+      - name: Xcode project
+        run: xcodegen generate
+
+      # The largest iPhone on the newest runtime: the 6.9" size the App Store asks for.
+      - name: Simulator
+        run: |
+          xcrun simctl list devices available -j > devices.json
+          read -r UDID NAME < <(python3 - <<'PY'
+          import json, re
+          best = None
+          for rt, devs in json.load(open("devices.json"))["devices"].items():
+              if "iOS" not in rt:
+                  continue
+              ver = tuple(int(x) for x in re.findall(r"\d+", rt.split("iOS")[-1]))
+              for d in devs:
+                  if d["name"].startswith("iPhone"):
+                      key = (ver, "Pro Max" in d["name"], d["name"])
+                      if best is None or key > best[0]:
+                          best = (key, d["udid"], d["name"])
+          print(best[1], best[2])
+          PY
+          )
+          echo "Simulator: $NAME ($UDID)"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Build and install
+        run: |
+          set -o pipefail
+          xcodebuild -project TrackLap.xcodeproj -scheme TrackLap -configuration Debug \
+            -destination "id=$UDID" -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD" || true
+          APP=build/Build/Products/Debug-iphonesimulator/TrackLap.app
+          test -d "$APP" || { grep -E "error" build.log | head -60; exit 1; }
+          xcrun simctl install "$UDID" "$APP"
+
+      - name: Screenshots
+        run: |
+          set -eu
+          B=com.local.tracklap
+          xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiMode active \
+            --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          mkdir -p shots
+          # shot <language> <screen> <seconds>: fresh tracks and no sessions, so each launch fills its own.
+          shot() {
+            xcrun simctl terminate "$UDID" "$B" 2>/dev/null || true
+            DATA=$(xcrun simctl get_app_container "$UDID" "$B" data)
+            rm -rf "$DATA/Documents"
+            mkdir -p "$DATA/Documents"
+            cp screenshots/tracks.json "$DATA/Documents/tracks.json"
+            xcrun simctl launch "$UDID" "$B" -showcase "$2" -units metric \
+              -track 5E0C2C61-7D0B-4E8F-9A3B-6A3C1D1F0001 -AppleLanguages "($1)" -AppleLocale "$1"
+            sleep "$3"
+            xcrun simctl io "$UDID" screenshot "shots/$1-$2.png"
+          }
+          for l in it en; do
+            for s in tracks editor sessions session analysis device; do shot "$l" "$s" 14; done
+            shot "$l" live 60
+          done
+          ls -la shots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tracklap-screenshots
+          path: shots/
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
