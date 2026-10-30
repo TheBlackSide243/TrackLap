@@ -225,6 +225,21 @@ private struct SettingsPanel: View {
                     .pickerStyle(.segmented)
                 }
                 VStack(alignment: .leading, spacing: 8) {
+                    Text("Delta rispetto a").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Picker("Delta rispetto a", selection: Binding(get: { model.deltaReference }, set: { model.setDeltaReference($0) })) {
+                        ForEach(DeltaReference.allCases) { Text(verbatim: $0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("Il record è il giro più veloce delle sessioni precedenti su questa pista.").font(.caption).foregroundStyle(Theme.sub)
+                }
+                Toggle(isOn: Binding(get: { model.voiceOn }, set: { model.setVoice($0) })) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Annuncio vocale").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                        Text("A fine giro legge tempo e distacco, abbassando la musica.").font(.caption).foregroundStyle(Theme.sub)
+                    }
+                }
+                .tint(Theme.accent)
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Unità").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
                     Picker("Unità", selection: Binding(get: { model.units }, set: { model.setUnits($0) })) {
                         ForEach(Units.allCases) { Text(verbatim: $0.title).tag($0) }

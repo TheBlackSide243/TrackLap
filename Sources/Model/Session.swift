@@ -51,7 +51,7 @@ struct Session: Codable, Identifiable {
     }
 
     var summary: SessionSummary {
-        SessionSummary(id: id, trackName: trackName, date: date, source: source,
+        SessionSummary(id: id, trackID: trackID, trackName: trackName, date: date, source: source,
                        lapCount: laps.count, best: best?.time, ideal: idealTime)
     }
 }
@@ -59,6 +59,8 @@ struct Session: Codable, Identifiable {
 /// What the session list needs, kept apart so the full traces load only when a session opens.
 struct SessionSummary: Codable, Identifiable, Hashable {
     var id: UUID
+    /// Missing in indexes written before 0.3.0: the store fills it in from the session file.
+    var trackID: UUID?
     var trackName: String
     var date: Date
     var source: String
@@ -68,11 +70,11 @@ struct SessionSummary: Codable, Identifiable, Hashable {
 }
 
 extension Array where Element == TracePoint {
-    /// Elapsed time at a distance along the lap, linearly interpolated.
-    func time(atDistance d: Double) -> Double {
-        guard let first, let last else { return 0 }
-        if d <= first.d { return first.t }
-        if d >= last.d { return last.t }
+    /// The two points around a distance along the lap and how far between them it falls.
+    private func bracket(_ d: Double) -> (a: TracePoint, b: TracePoint, f: Double)? {
+        guard let first, let last else { return nil }
+        if d <= first.d { return (first, first, 0) }
+        if d >= last.d { return (last, last, 0) }
         var lo = 0
         var hi = count - 1
         while hi - lo > 1 {
@@ -81,7 +83,50 @@ extension Array where Element == TracePoint {
         }
         let a = self[lo]
         let b = self[hi]
-        let f = b.d > a.d ? (d - a.d) / (b.d - a.d) : 0
-        return a.t + (b.t - a.t) * f
+        return (a, b, b.d > a.d ? (d - a.d) / (b.d - a.d) : 0)
     }
+
+    /// Elapsed time at a distance along the lap, linearly interpolated.
+    func time(atDistance d: Double) -> Double {
+        guard let x = bracket(d) else { return 0 }
+        return x.a.t + (x.b.t - x.a.t) * x.f
+    }
+
+    /// Time, position and speed at a distance along the lap.
+    func point(atDistance d: Double) -> TracePoint? {
+        guard let x = bracket(d) else { return nil }
+        let (a, b, f) = (x.a, x.b, x.f)
+        return TracePoint(t: a.t + (b.t - a.t) * f, d: d,
+                          lat: a.lat + (b.lat - a.lat) * f, lon: a.lon + (b.lon - a.lon) * f,
+                          v: a.v + (b.v - a.v) * f)
+    }
+
+    /// Index of the last point at or before a distance.
+    func index(atDistance d: Double) -> Int {
+        var lo = 0
+        var hi = count - 1
+        guard hi > 0, d > self[0].d else { return 0 }
+        if d >= self[hi].d { return hi }
+        while hi - lo > 1 {
+            let mid = (lo + hi) / 2
+            if self[mid].d <= d { lo = mid } else { hi = mid }
+        }
+        return lo
+    }
+}
+
+/// A lap against a reference lap, matched by the share of the lap driven: a slightly longer or
+/// shorter line does not pile up as delta, and at the line the delta is the difference of the times.
+struct LapComparison {
+    let lap: Lap
+    let ref: Lap
+
+    /// Reference distance per metre of this lap.
+    var scale: Double { lap.distance > 0 && ref.distance > 0 ? ref.distance / lap.distance : 1 }
+
+    func delta(at d: Double) -> Double {
+        lap.trace.time(atDistance: d) - ref.trace.time(atDistance: d * scale)
+    }
+
+    func refPoint(at d: Double) -> TracePoint? { ref.trace.point(atDistance: d * scale) }
 }

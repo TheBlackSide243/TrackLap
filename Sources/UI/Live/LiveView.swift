@@ -188,7 +188,7 @@ private struct DeltaCard: View {
                             .font(.system(size: 13, weight: .heavy))
                             .tracking(1.5)
                             .foregroundStyle(Theme.sub)
-                        Text(d == nil ? L("Completa un giro per il confronto") : L("sul tuo giro migliore"))
+                        Text(caption(d))
                             .font(.caption)
                             .foregroundStyle(Theme.sub.opacity(0.8))
                     }
@@ -203,6 +203,14 @@ private struct DeltaCard: View {
                 DeltaBar(delta: d, scale: model.deltaScale)
             }
         }
+    }
+
+    private func caption(_ d: Double?) -> String {
+        let engine = model.engine
+        if engine.comparesWithRecord {
+            return L("sul record della pista (\(Fmt.lap(engine.referenceLap?.time)))")
+        }
+        return d == nil ? L("Completa un giro per il confronto") : L("sul tuo giro migliore")
     }
 }
 
@@ -367,16 +375,17 @@ private struct LapBanner: View {
     let event: LapEvent
 
     var body: some View {
-        let color = event.isBest ? Theme.purple : ((event.gap ?? 0) <= 0 ? Theme.good : Theme.yellow)
+        let color = event.isRecord ? Theme.yellow : event.isBest ? Theme.purple : ((event.gap ?? 0) <= 0 ? Theme.good : Theme.yellow)
         let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
         HStack(spacing: 14) {
-            Image(systemName: event.isBest ? "crown.fill" : "flag.checkered")
+            Image(systemName: event.isRecord ? "trophy.fill" : event.isBest ? "crown.fill" : "flag.checkered")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(color)
                 .frame(width: 44, height: 44)
                 .background(color.opacity(0.16), in: Circle())
             VStack(alignment: .leading, spacing: 0) {
-                Text(event.isBest ? L("GIRO \(event.number) · NUOVO BEST") : L("GIRO \(event.number)"))
+                Text(event.isRecord ? L("GIRO \(event.number) · RECORD PISTA")
+                     : event.isBest ? L("GIRO \(event.number) · NUOVO BEST") : L("GIRO \(event.number)"))
                     .font(.caption.weight(.heavy))
                     .tracking(1)
                     .foregroundStyle(color)

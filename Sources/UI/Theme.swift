@@ -74,6 +74,12 @@ enum Fmt {
         return m >= 1000 ? String(format: "%.2f km", m / 1000) : "\(Int(m)) m"
     }
 
+    static let dayShort: DateFormatter = {
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate("d MMM")
+        return f
+    }()
+
     static let day: DateFormatter = {
         let f = DateFormatter()
         f.setLocalizedDateFormatFromTemplate("d MMM yyyy HH:mm")
