@@ -6,7 +6,7 @@
 
 core esp32:esp32@3.3.12
 lib NimBLE-Arduino@2.5.2
-lib GFX Library for Arduino
+lib GFX Library for Arduino@1.6.9
 
 target esp32 esp32:esp32:esp32
 target esp32s3 esp32:esp32:esp32s3:CDCOnBoot=cdc

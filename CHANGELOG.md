@@ -13,7 +13,11 @@ Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non sol
   C5, C6 and H2, one ready-made `.bin` per chip built by GitHub Actions.
 - Any GPS: u-blox modules (M7, M8 like the BN-220, M9, M10) are set to 115200 baud and 10 Hz by
   themselves, any other module is read as NMEA. It can be plugged in after the board is on.
-- The ESP32 times laps and sectors by itself on the track the app sends, and remembers it.
+- The ESP32 times laps and sectors by itself on the track the app sends, with the delta against the
+  best lap at every line; the track and the best lap are kept until a different track arrives.
+- Dashboard on the Waveshare ESP32-C6-LCD-1.47 screen: the lap time in big digits, the delta at
+  each sector line for 4 seconds (green faster, red slower), the lap time at the finish for
+  5 seconds (purple for a best lap) with the gap, the speed when standing still.
 - Device → ESP32 shows the chip, the GPS module and its pins, warns when no GPS answers, and
   "Change pins" moves the GPS to other GPIOs for boards that use the default ones.
 - Status LED on boards that have one: red without GPS, yellow waiting for a fix, green with a fix.
@@ -25,7 +29,11 @@ Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non sol
   C3, C5, C6 e H2, con un `.bin` pronto per ogni chip compilato da GitHub Actions.
 - Qualsiasi GPS: i moduli u-blox (M7, M8 come il BN-220, M9, M10) vengono impostati da soli a
   115200 baud e 10 Hz, gli altri vengono letti in NMEA. Si può collegare anche a scheda accesa.
-- L'ESP32 cronometra giri e intermedi da solo sulla pista inviata dall'app, e se la ricorda.
+- L'ESP32 cronometra giri e intermedi da solo sulla pista inviata dall'app, con il delta sul giro
+  migliore a ogni linea; pista e giro migliore restano finché non arriva una pista diversa.
+- Cruscotto sullo schermo della Waveshare ESP32-C6-LCD-1.47: tempo del giro a cifre grandi, delta a
+  ogni intermedio per 4 secondi (verde più veloce, rosso più lento), tempo del giro al traguardo per
+  5 secondi (viola se è il migliore) con il distacco, velocità da fermo.
 - Dispositivo → ESP32 mostra chip, modulo GPS e pin, avvisa se nessun GPS risponde, e "Cambia pin"
   sposta il GPS su altri GPIO per le schede che usano quelli predefiniti.
 - LED di stato sulle schede che lo hanno: rosso senza GPS, giallo in attesa del fix, verde con il fix.

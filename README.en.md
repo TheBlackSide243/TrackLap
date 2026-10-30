@@ -62,25 +62,35 @@ Bluetooth and will not do.
 - **GPS**: a u-blox (M7, M8 like the BN-220, M9, M10) is switched by itself to 115200 baud, 10 Hz
   and UBX NAV-PVT, with the automotive dynamic model; any other GPS is read as NMEA at whatever
   speed it talks. It can be plugged in after the board is on.
-- **Laps**: with the track sent by the app the ESP32 times laps and sectors by itself (LAP packet)
-  and remembers the track when switched off.
+- **Laps**: with the track sent by the app the ESP32 times laps and sectors by itself (LAP packet),
+  with the delta against the best lap at every line. The track and the best lap stay when it is
+  switched off; the best lap is cleared when a different track arrives.
+- **Display**: on the Waveshare ESP32-C6-LCD-1.47 (file `…-esp32c6-lcd147.bin`) the screen is a
+  dashboard. During the lap it shows the time in big digits; at each sector line the delta against
+  the best lap comes up for 4 seconds (green when faster, red when slower); at the finish the lap time
+  comes up for 5 seconds (purple when it is the best) with the gap. Standing still it shows the speed;
+  at the top the lap, satellites, rate and a green dot while the app is connected.
 - **LED**: on boards with an RGB LED it is red without GPS, yellow while waiting for a fix and green
   with a fix; it blinks until the app connects.
 
 **Wiring**: power the GPS from 3.3 V or 5 V as its module says, common GND, then
 
-| Chip | GPS TX → GPIO | GPS RX ← GPIO |
+| Board | GPS TX → GPIO | GPS RX ← GPIO |
 |---|---|---|
 | ESP32 | 16 | 17 |
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
+| Waveshare ESP32-C6-LCD-1.47 | 17 (RX pin) | 16 (TX pin) |
 
-When the board uses those pins for something else (display, LED, the PSRAM of ESP32-WROVER modules on 16 and 17), change them from the app
-(Device → ESP32 → Change pins) or from the USB serial monitor at 115200 baud with
-`pins <rx> <tx>`; `pins default` goes back to the defaults, `info` shows the state.
+On the Waveshare GPIO 4 and 5 go to the microSD slot, so the GPS takes the header's RX and TX pins.
+When the board uses those pins for something else (display, LED, the PSRAM of ESP32-WROVER modules
+on 16 and 17), change them from the app (Device → ESP32 → Change pins) or from the USB serial
+monitor at 115200 baud with `pins <rx> <tx>`; `pins default` goes back to the defaults, `info`
+shows the state.
 
 **Install**: on every change in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) builds
-one file per chip, `TrackLap-fw-<version>-<chip>.bin`, in the `tracklap-firmware` artifact. Write it
+one file per board listed in `firmware/build.txt`, `TrackLap-fw-<version>-<board>.bin`, in the
+`tracklap-firmware` artifact. Write it
 from the browser (Chrome, Edge or Brave) with Espressif's ESP Tool,
 https://espressif.github.io/esptool-js/: Connect, pick the board's port, address `0x0`, the file for
 your chip, Program. If the board does not connect, hold BOOT while plugging it in.
@@ -118,22 +128,23 @@ Without GPS the ESP32 sends an empty FIX (not valid, 0 satellites) every second.
 i32 latB, i32 lonB` (× 1e7). The first line is the start, the others are the sectors.
 The ESP32 stores it in flash and uses it to time laps by itself.
 
-**LAP**, 9 bytes: `u8 version = 1`, `u8 type` (1 = lap, 2 = sector), `u16 lap number` (the one
+**LAP**, 14 bytes: `u8 version = 1`, `u8 type` (1 = lap, 2 = sector), `u16 lap number` (the one
 that ended, or the one in progress for a sector), `u32 time in ms` (of the lap, or of the sector
-alone), `u8 sector index` (from 0).
+alone), `u8 sector index` (from 0), `i32 delta in ms` against the best lap at the same line
+(`0x7FFFFFFF` while there is none), `u8 flags` (bit0 new best lap).
 
 **CONTROL**: `0x01` resets the ESP32 session; `0x02 rx tx` moves the GPS to other GPIOs, saves
 them and restarts (`0x02 0xFF 0xFF` = the chip's default pins).
 
 **INFO**, for example
-`{"fw":"0.1.0","chip":"ESP32-C6","gps":"u-blox M8","hz":10,"rx":4,"tx":5,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.1.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` is empty while no GPS answers; a notification comes when the module, the rate or the track
 changes.
 
 ## Next steps
 
-1. A display on the ESP32 board (needs the exact model) and the RaceChrono DIY service alongside,
-   so the same device also works with RaceChrono.
+1. The RaceChrono DIY service alongside, so the same device also works with RaceChrono; more
+   boards with a display.
 2. Multiplayer: server on the homelab (WebSocket/MQTT), sessions shared with a code or QR,
    live leaderboard and map, delta to a friend's best.
 
