@@ -42,6 +42,20 @@ enum SourceKind: String, CaseIterable, Identifiable {
 
 enum AppTab: Hashable { case live, tracks, sessions, device }
 
+/// What the live delta compares with.
+enum DeltaReference: String, CaseIterable, Identifiable {
+    case session, record
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .session: L("Best sessione")
+        case .record: L("Record pista")
+        }
+    }
+}
+
 @Observable
 final class AppModel {
     var tab: AppTab = .live
@@ -61,7 +75,10 @@ final class AppModel {
     private(set) var minLapTime: Double = 20
     private(set) var deltaScale: Double = 2
     private(set) var units: Units = Units.current
+    private(set) var deltaReference: DeltaReference = .session
+    private(set) var voiceOn = true
 
+    @ObservationIgnored private let voice = LapVoice()
     @ObservationIgnored private var session: Session? = nil
     @ObservationIgnored private var recentT: [Double] = []
 
@@ -73,13 +90,15 @@ final class AppModel {
         source = SourceKind(rawValue: d.string(forKey: "source") ?? "") ?? .demo
         if let v = d.object(forKey: "deltaScale") as? Double { deltaScale = v }
         if let v = d.object(forKey: "minLapTime") as? Double { minLapTime = v }
+        if let v = d.object(forKey: "voice") as? Bool { voiceOn = v }
+        deltaReference = DeltaReference(rawValue: d.string(forKey: "deltaReference") ?? "") ?? .session
         if let s = d.string(forKey: "track"), let id = UUID(uuidString: s), tracks.track(id) != nil {
             selectedTrackID = id
         } else {
             selectedTrackID = tracks.tracks.first?.id
         }
         engine.minLapTime = minLapTime
-        engine.load(track: selectedTrack)
+        prepareEngine(selectedTrack)
 
         ble.onSample = { [weak self] s in self?.receive(s, from: .device) }
         phone.onSample = { [weak self] s in self?.receive(s, from: .phone) }
@@ -139,14 +158,14 @@ final class AppModel {
         if isRunning { stop() }
         selectedTrackID = id
         UserDefaults.standard.set(id.uuidString, forKey: "track")
-        engine.load(track: selectedTrack)
+        prepareEngine(selectedTrack)
         if let t = selectedTrack { ble.send(track: t) }
     }
 
     func save(track t: Track) {
         tracks.upsert(t)
         if t.id == selectedTrackID && !isRunning {
-            engine.load(track: t)
+            prepareEngine(t)
             ble.send(track: t)
         }
     }
@@ -168,7 +187,7 @@ final class AppModel {
     func start() {
         guard let track = selectedTrack, track.isReady else { return }
         engine.minLapTime = minLapTime
-        engine.load(track: track)
+        prepareEngine(track)
         let s = Session(trackID: track.id, trackName: track.name, date: Date(),
                         source: source.title, sectorCount: track.sectorCount)
         session = s
@@ -195,6 +214,14 @@ final class AppModel {
         session?.laps.append(lap)
         // Saved after every lap, so nothing is lost if the app is closed mid-session.
         if let s = session { sessions.save(s) }
+        if voiceOn, let e = engine.lastEvent { voice.announce(e) }
+    }
+
+    /// Loads the track into the timer together with its record from earlier sessions.
+    private func prepareEngine(_ track: Track?) {
+        engine.load(track: track)
+        engine.compareWithRecord = deltaReference == .record
+        engine.setRecord(sessions.record(on: track?.id)?.lap)
     }
 
     // MARK: - Settings
@@ -202,6 +229,17 @@ final class AppModel {
     func setUnits(_ u: Units) {
         units = u
         UserDefaults.standard.set(u.rawValue, forKey: Units.key)
+    }
+
+    func setDeltaReference(_ r: DeltaReference) {
+        deltaReference = r
+        engine.compareWithRecord = r == .record
+        UserDefaults.standard.set(r.rawValue, forKey: "deltaReference")
+    }
+
+    func setVoice(_ on: Bool) {
+        voiceOn = on
+        UserDefaults.standard.set(on, forKey: "voice")
     }
 
     func setMinLapTime(_ v: Double) {

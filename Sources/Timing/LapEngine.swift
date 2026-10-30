@@ -30,6 +30,8 @@ struct LapEvent: Identifiable, Equatable {
     let number: Int
     let time: Double
     let isBest: Bool
+    /// Faster than every lap driven on this track in earlier sessions.
+    var isRecord = false
     /// Against the best before this lap: negative is faster.
     let gap: Double?
 
@@ -55,10 +57,22 @@ final class LapEngine {
     private(set) var heading: Double = 0
     private(set) var lapDistance: Double = 0
 
+    /// The fastest lap on this track from earlier sessions, if any.
+    private(set) var record: Lap? = nil
+    /// Compare with the track record instead of the best lap of this session.
+    var compareWithRecord = false
+
     var minLapTime: Double = 20
     @ObservationIgnored var onLap: ((Lap) -> Void)? = nil
 
     var bestLap: Lap? { laps.min { $0.time < $1.time } }
+    /// The lap the delta is measured against.
+    var referenceLap: Lap? {
+        guard compareWithRecord, let record else { return bestLap }
+        guard let best = bestLap, best.time < record.time else { return record }
+        return best
+    }
+    var comparesWithRecord: Bool { compareWithRecord && record != nil }
     var lastLap: Lap? { laps.last }
     var isTiming: Bool { lapStartWall != nil }
 
@@ -70,7 +84,6 @@ final class LapEngine {
     @ObservationIgnored private var trace: [TracePoint] = []
     @ObservationIgnored private var splits: [Int: Double] = [:]
     @ObservationIgnored private var maxSpeed: Double = 0
-    @ObservationIgnored private var reference: [TracePoint] = []
 
     func load(track: Track?) {
         self.track = track
@@ -83,7 +96,13 @@ final class LapEngine {
             startGate = (a: f.xy(start.a), b: f.xy(start.b))
             splitGates = track.sectors.map { (a: f.xy($0.a), b: f.xy($0.b)) }
         }
+        record = nil
         reset()
+    }
+
+    /// Sets the track record after the track is loaded; it lasts until another track is loaded.
+    func setRecord(_ lap: Lap?) {
+        record = lap
     }
 
     func reset() {
@@ -98,7 +117,6 @@ final class LapEngine {
         trace = []
         splits = [:]
         maxSpeed = 0
-        reference = []
         lapDistance = 0
         sectors = makeSectors(carry: [])
     }
@@ -181,9 +199,10 @@ final class LapEngine {
         let lap = Lap(number: lapNumber, startedAt: wall, time: time, sectors: times,
                       distance: lapDistance, maxSpeed: maxSpeed, trace: trace)
         let isBest = previousBest.map { time < $0 } ?? true
+        let isRecord = record.map { time < min($0.time, previousBest ?? .infinity) } ?? false
         laps.append(lap)
-        if isBest { reference = trace }
-        lastEvent = LapEvent(number: lap.number, time: time, isBest: isBest, gap: previousBest.map { time - $0 })
+        lastEvent = LapEvent(number: lap.number, time: time, isBest: isBest, isRecord: isRecord,
+                             gap: previousBest.map { time - $0 })
         onLap?(lap)
     }
 
@@ -233,13 +252,13 @@ final class LapEngine {
     // MARK: - Delta
 
     private func updateDelta(now t: Double) {
-        guard let t0 = lapStartT, let best = bestLap, reference.count > 1 else {
+        guard let t0 = lapStartT, let ref = referenceLap, ref.trace.count > 1 else {
             delta = nil
             predicted = nil
             return
         }
-        let d = (t - t0) - reference.time(atDistance: lapDistance)
+        let d = (t - t0) - ref.trace.time(atDistance: lapDistance)
         delta = d
-        predicted = best.time + d
+        predicted = ref.time + d
     }
 }

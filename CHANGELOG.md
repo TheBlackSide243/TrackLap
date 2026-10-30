@@ -2,6 +2,47 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.3.0 (2026-10-30)
+
+Lap analysis with ideas from RaceChrono. / Analisi dei giri con idee prese da RaceChrono.
+
+### English
+
+**New**
+- Lap comparison: any lap against another lap of the session or the best lap of an earlier
+  session on the same track (long-press a lap: "Use as reference"). Laps are matched by the
+  share of the lap driven, so a different line does not pile up as delta.
+- A cursor shared by the map, the speed and delta charts and a slider under the map, with
+  distance, time, both speeds, delta and g at that point.
+- Map coloured by speed with the minimum speed of every corner, or by where you gain (green)
+  and lose (red) against the reference, with the reference line dashed.
+- Sector-by-sector comparison with the reference.
+- Friction circle: lateral and longitudinal g of the lap, worked out from GPS, with peak
+  lateral, braking and acceleration.
+- Live delta against the track record from earlier sessions (Device → Timer), so it works
+  from the first lap; "track record" banner when you beat it, badge in the session.
+- Voice announcement of the lap time and gap at the end of each lap, turning the music down
+  (can be switched off).
+- CSV export (speed and g for every point) next to GPX.
+
+### Italiano
+
+**Novità**
+- Confronto giri: qualsiasi giro contro un altro giro della sessione o il best di una sessione
+  precedente sulla stessa pista (tieni premuto un giro: "Usa come riferimento"). I giri sono
+  allineati per percentuale di giro, così una traiettoria diversa non si accumula nel delta.
+- Cursore unico per mappa, grafici di velocità e delta e una barra sotto la mappa, con distanza,
+  tempo, le due velocità, delta e g in quel punto.
+- Mappa colorata per velocità con la velocità minima di ogni curva, oppure per dove guadagni
+  (verde) e perdi (rosso) sul riferimento, con la linea del riferimento tratteggiata.
+- Confronto settore per settore con il riferimento.
+- Cerchio delle accelerazioni: g laterali e longitudinali del giro calcolate dal GPS, con i
+  massimi in curva, in frenata e in accelerazione.
+- Delta live sul record della pista delle sessioni precedenti (Dispositivo → Cronometro), così
+  funziona dal primo giro; banner "record pista" quando lo batti e badge nella sessione.
+- Annuncio vocale di tempo e distacco a fine giro, abbassando la musica (si può spegnere).
+- Export CSV (velocità e g per ogni punto) accanto al GPX.
+
 ## 0.2.0 (2026-10-30)
 
 ### English
