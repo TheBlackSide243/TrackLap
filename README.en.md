@@ -109,7 +109,8 @@ Each version is on the repo's Releases page and in the Feather source
 `https://raw.githubusercontent.com/TheBlackSide243/feather-repo/main/apps.json`; what changed is in
 [CHANGELOG.md](CHANGELOG.md), in English and Italian.
 
-New version: bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`) in `project.yml`.
+New version: bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`) in `project.yml` and
+`FW_VERSION` in `firmware/TrackLap/TrackLap.ino`: the app and the firmware always share the number.
 
 Translations: the Italian text is the key in the code (`Text("…")`, `L("…")`); the table with the
 other languages is in `tools/l10n.mjs`, which regenerates `Resources/<language>.lproj` with
@@ -217,7 +218,7 @@ the finish, 3 red = worse).
 them and restarts (`0x02 0xFF 0xFF` = the chip's default pins).
 
 **INFO**, for example
-`{"fw":"0.1.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.4.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` is empty while no GPS answers; a notification comes when the module, the rate or the track
 changes.
 

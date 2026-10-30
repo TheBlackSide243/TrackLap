@@ -300,7 +300,7 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if c.uuid == TrackLapBLE.fix || c.uuid == TrackLapBLE.lap { peripheral.setNotifyValue(true, for: c) }
             if c.uuid == TrackLapBLE.info {
                 peripheral.readValue(for: c)
-                // Firmware 0.1.0 and later say when the GPS module or its pins change.
+                // The firmware says when the GPS module or its pins change.
                 if c.properties.contains(.notify) { peripheral.setNotifyValue(true, for: c) }
             }
         }

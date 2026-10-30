@@ -9,8 +9,9 @@ Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non sol
 ### English
 
 **New**
-- ESP32 firmware 0.1.0 in `firmware/TrackLap`, for every ESP32 with Bluetooth LE: ESP32, S3, C3,
-  C5, C6 and H2, one ready-made `.bin` per chip built by GitHub Actions.
+- ESP32 firmware in `firmware/TrackLap`, for every ESP32 with Bluetooth LE: ESP32, S3, C3, C5, C6
+  and H2, one ready-made `.bin` per chip built by GitHub Actions. It has the same version as the
+  app, 0.4.0, and installs from the browser at https://esp32.tbsgaming.win.
 - Any GPS: u-blox modules (M7, M8 like the BN-220, M9, M10) are set to 115200 baud and 10 Hz by
   themselves, any other module is read as NMEA. It can be plugged in after the board is on.
 - The ESP32 times laps and sectors by itself on the track the app sends, with the delta against the
@@ -27,8 +28,9 @@ Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non sol
 ### Italiano
 
 **Novità**
-- Firmware ESP32 0.1.0 in `firmware/TrackLap`, per tutti gli ESP32 con Bluetooth LE: ESP32, S3,
-  C3, C5, C6 e H2, con un `.bin` pronto per ogni chip compilato da GitHub Actions.
+- Firmware ESP32 in `firmware/TrackLap`, per tutti gli ESP32 con Bluetooth LE: ESP32, S3, C3, C5,
+  C6 e H2, con un `.bin` pronto per ogni chip compilato da GitHub Actions. Ha lo stesso numero
+  dell'app, 0.4.0, e si installa dal browser su https://esp32.tbsgaming.win.
 - Qualsiasi GPS: i moduli u-blox (M7, M8 come il BN-220, M9, M10) vengono impostati da soli a
   115200 baud e 10 Hz, gli altri vengono letti in NMEA. Si può collegare anche a scheda accesa.
 - L'ESP32 cronometra giri e intermedi da solo sulla pista inviata dall'app, con il delta sul giro
