@@ -12,6 +12,9 @@ struct Sample {
     var heading: Double
     /// When the fix reached the app: lets the timer tick smoothly between fixes.
     var wall = Date()
+    /// UTC of the fix in seconds since 1970, when the source gives it (GPS time from the ESP32): the
+    /// live group compares two cars by it.
+    var utc: Double? = nil
 }
 
 enum SectorState { case best, faster, slower }
@@ -34,6 +37,9 @@ struct LapEvent: Identifiable, Equatable {
     var isRecord = false
     /// Against the best before this lap: negative is faster.
     let gap: Double?
+    /// The friend whose lap you are chasing, and this lap against theirs.
+    var rival: String? = nil
+    var rivalGap: Double? = nil
 
     static func == (l: LapEvent, r: LapEvent) -> Bool { l.id == r.id }
 }
@@ -61,6 +67,9 @@ final class LapEngine {
     private(set) var record: Lap? = nil
     /// Compare with the track record instead of the best lap of this session.
     var compareWithRecord = false
+    /// A friend's lap to chase: while set, the delta is against it, whatever else is faster.
+    private(set) var ghost: Lap? = nil
+    private(set) var ghostName: String? = nil
 
     var minLapTime: Double = 20
     @ObservationIgnored var onLap: ((Lap) -> Void)? = nil
@@ -68,11 +77,12 @@ final class LapEngine {
     var bestLap: Lap? { laps.min { $0.time < $1.time } }
     /// The lap the delta is measured against.
     var referenceLap: Lap? {
+        if let ghost { return ghost }
         guard compareWithRecord, let record else { return bestLap }
         guard let best = bestLap, best.time < record.time else { return record }
         return best
     }
-    var comparesWithRecord: Bool { compareWithRecord && record != nil }
+    var comparesWithRecord: Bool { ghost == nil && compareWithRecord && record != nil }
     var lastLap: Lap? { laps.last }
     var isTiming: Bool { lapStartWall != nil }
 
@@ -97,12 +107,20 @@ final class LapEngine {
             splitGates = track.sectors.map { (a: f.xy($0.a), b: f.xy($0.b)) }
         }
         record = nil
+        ghost = nil
+        ghostName = nil
         reset()
     }
 
     /// Sets the track record after the track is loaded; it lasts until another track is loaded.
     func setRecord(_ lap: Lap?) {
         record = lap
+    }
+
+    /// The friend's lap to chase on this track, nil for none; like the record, until another track.
+    func setGhost(_ lap: Lap?, name: String?) {
+        ghost = lap
+        ghostName = lap == nil ? nil : name
     }
 
     func reset() {
@@ -202,7 +220,7 @@ final class LapEngine {
         let isRecord = record.map { time < min($0.time, previousBest ?? .infinity) } ?? false
         laps.append(lap)
         lastEvent = LapEvent(number: lap.number, time: time, isBest: isBest, isRecord: isRecord,
-                             gap: previousBest.map { time - $0 })
+                             gap: previousBest.map { time - $0 }, rival: ghostName, rivalGap: ghost.map { time - $0.time })
         onLap?(lap)
     }
 

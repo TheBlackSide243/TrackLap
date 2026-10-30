@@ -3,12 +3,14 @@ import SwiftUI
 struct SessionsView: View {
     @Environment(AppModel.self) private var model
     @State private var path: [UUID] = []
+    @State private var showFriends = false
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 14) {
                     ScreenHeader(icon: "chart.bar.xaxis", title: L("Sessioni"), subtitle: subtitle)
+                    FriendsRow(count: model.friends.laps.count) { showFriends = true }
                     if model.sessions.summaries.isEmpty {
                         Panel(padding: 24) {
                             VStack(alignment: .leading, spacing: 10) {
@@ -38,6 +40,7 @@ struct SessionsView: View {
             .background(Theme.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: UUID.self) { SessionDetailView(sessionID: $0) }
+            .navigationDestination(isPresented: $showFriends) { FriendLapsView() }
             .onAppear {
                 if Showcase.screen == .session || Showcase.screen == .analysis, path.isEmpty,
                    let latest = model.sessions.summaries.first {
@@ -50,6 +53,34 @@ struct SessionsView: View {
     private var subtitle: String {
         let n = model.sessions.summaries.count
         return n == 1 ? L("1 sessione") : L("\(n) sessioni")
+    }
+}
+
+/// The way to the laps friends sent.
+private struct FriendsRow: View {
+    let count: Int
+    let onTap: () -> Void
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                AppGlyph(symbol: "person.2.fill", size: 44, color: Theme.purple)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Giri degli amici").font(.headline).foregroundStyle(Theme.text)
+                    Text(count == 0 ? L("Apri con TrackLap i file .tracklap che ti mandano")
+                         : count == 1 ? L("1 giro da sfidare") : L("\(count) giri da sfidare"))
+                        .font(.caption)
+                        .foregroundStyle(Theme.sub)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.line)
+            }
+            .padding(14)
+            .background(Theme.panel, in: shape)
+            .overlay(shape.strokeBorder(Theme.line.opacity(0.8), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 
