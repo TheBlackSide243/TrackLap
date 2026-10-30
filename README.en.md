@@ -218,7 +218,7 @@ the finish, 3 red = worse).
 them and restarts (`0x02 0xFF 0xFF` = the chip's default pins).
 
 **INFO**, for example
-`{"fw":"0.4.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.5.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` is empty while no GPS answers; a notification comes when the module, the rate or the track
 changes.
 
