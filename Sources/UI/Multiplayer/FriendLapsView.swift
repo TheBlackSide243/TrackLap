@@ -16,7 +16,7 @@ struct FriendLapsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Image(systemName: "person.2.fill").font(.system(size: 30, weight: .bold)).foregroundStyle(Theme.accent)
                             Text("Ancora nessun giro degli amici").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
-                            Text("Chiedi a un amico di aprire una sua sessione e toccare Condividi il giro: il file .tracklap che ti manda si apre con TrackLap e finisce qui.")
+                            Text("Chiedi a un amico di aprire una sua sessione e toccare Condividi il giro migliore: il file .tracklap che ti manda si apre con TrackLap e finisce qui.")
                                 .font(.subheadline)
                                 .foregroundStyle(Theme.sub)
                         }

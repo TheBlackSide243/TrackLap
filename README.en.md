@@ -67,6 +67,27 @@ times are right to a few hundredths.
 
 In Italian, English, Spanish, French, German and Portuguese, following the iPhone's language; km/h or mph.
 
+## With friends
+
+- **Challenges**: in a session, tap *Share the best lap* and send a `.tracklap` file with WhatsApp,
+  Messages or AirDrop. Whoever opens it with TrackLap gets the track with the same start line,
+  chases that lap in Live (the delta is against it, on the ESP32 dashboard too, and the voice reads
+  the gap at the end of the lap) and compares it corner by corner in the analysis. No account and
+  no server: it works offline and on different days.
+- **Live group**: one creates the group and the others join with a five-character code or by
+  scanning the QR code. Live shows the group's standings (best, last lap, gap to the leader), your
+  friends' dots on the map and the real gap to the cars just ahead and behind, worked out from the
+  GPS times of both cars at the same point. At the end of each lap the voice reads your place and
+  the ESP32 shows it on its screen. Every phone times its own laps: the network only sends the times
+  to the others, so a delay or a gap in coverage doesn't change them.
+- **Online leaderboards**: with *Publish my best laps* on, the best lap of every session goes to the
+  leaderboard of its track, recognised by the start line; the ESP32 (10 Hz) and the iPhone (1 Hz)
+  have separate boards, and Demo laps never go in.
+
+Groups and leaderboards go through the TrackLap server in [`server/`](server/README.md), a Cloudflare
+Worker with Durable Objects: it gets your name, vehicle and times, and your position only while you
+are in a group.
+
 ## The hardware
 
 <p align="center">
@@ -215,10 +236,15 @@ alone), `u8 sector index` (from 0), `i32 delta in ms` against the best lap at th
 the finish, 3 red = worse).
 
 **CONTROL**: `0x01` resets the ESP32 session; `0x02 rx tx` moves the GPS to other GPIOs, saves
-them and restarts (`0x02 0xFF 0xFF` = the chip's default pins).
+them and restarts (`0x02 0xFF 0xFF` = the chip's default pins); `0x03 n` followed by `n` u32 values
+in ms (a friend's lap time, then when it crossed sector lines 1 … n-1, 0 when unknown) sets the lap
+to chase, and the deltas of LAP and of the dashboard are against it until `0x03` alone or another
+track arrives; `0x04 position count i32 gap` is the place in the live group (position 0 = no group,
+the gap in ms to the driver ahead, negative when first, `0x7FFFFFFF` for none), shown at the top of
+the dashboard and, when it changes, for 4 seconds at the bottom.
 
 **INFO**, for example
-`{"fw":"0.5.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.6.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` is empty while no GPS answers; a notification comes when the module, the rate or the track
 changes.
 
@@ -226,7 +252,5 @@ changes.
 
 1. The RaceChrono DIY service alongside, so the same device also works with RaceChrono; more
    boards with a display.
-2. Multiplayer: server on the homelab (WebSocket/MQTT), sessions shared with a code or QR,
-   live leaderboard and map, delta to a friend's best.
 
 Maps and layouts © OpenStreetMap contributors.
