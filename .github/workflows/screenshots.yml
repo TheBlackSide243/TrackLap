@@ -87,8 +87,11 @@ jobs:
             sleep "$3"
             xcrun simctl io "$UDID" screenshot "shots/$1-$2.png"
           }
+          # The editor goes after the screens with a map, with more time: the first satellite
+          # tiles of a fresh simulator take a while.
           for l in it en; do
-            for s in tracks editor sessions session analysis device; do shot "$l" "$s" 14; done
+            for s in tracks sessions session analysis device; do shot "$l" "$s" 14; done
+            shot "$l" editor 30
             shot "$l" live 60
           done
           ls -la shots
