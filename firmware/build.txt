@@ -1,0 +1,17 @@
+# What .github/workflows/firmware.yml installs and builds, one item per line:
+#   core <platform@version>
+#   lib <library@version>
+#   target <name> <fqbn> [compiler flags]
+# The native-USB chips print to their USB port, which is also the one used to flash them.
+
+core esp32:esp32@3.3.12
+lib NimBLE-Arduino@2.5.2
+lib GFX Library for Arduino
+
+target esp32 esp32:esp32:esp32
+target esp32s3 esp32:esp32:esp32s3:CDCOnBoot=cdc
+target esp32c3 esp32:esp32:esp32c3:CDCOnBoot=cdc
+target esp32c5 esp32:esp32:esp32c5:CDCOnBoot=cdc
+target esp32c6 esp32:esp32:esp32c6:CDCOnBoot=cdc
+target esp32c6-lcd147 esp32:esp32:esp32c6:CDCOnBoot=cdc -DTRACKLAP_LCD147
+target esp32h2 esp32:esp32:esp32h2:CDCOnBoot=cdc

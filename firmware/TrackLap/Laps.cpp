@@ -11,6 +11,8 @@ int32_t i32(const uint8_t* p) {
 
 uint32_t ms(double s) { return (uint32_t)lround(s * 1000); }
 
+int32_t delta(uint32_t now, uint32_t best) { return best ? (int32_t)now - (int32_t)best : kNoDelta; }
+
 }  // namespace
 
 bool Laps::setTrack(const uint8_t* data, size_t len) {
@@ -30,6 +32,13 @@ void Laps::reset() {
   running_ = false;
   lap_ = 0;
   next_ = 1;
+  last_ = 0;
+}
+
+bool Laps::takeNewBest() {
+  bool b = newBest_;
+  newBest_ = false;
+  return b;
 }
 
 uint8_t Laps::feed(const Fix& f, LapEvent out[2]) {
@@ -66,15 +75,29 @@ uint8_t Laps::feed(const Fix& f, LapEvent out[2]) {
     if (i == 0) {
       if (running_ && at - lapStart_ < kMinLap) continue;
       if (running_) {
-        if (count_ > 1 && next_ == count_) out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(count_ - 1)};
+        uint32_t lap = ms(at - lapStart_);
+        int32_t d = delta(lap, best_.lap);
+        bool best = !best_.lap || lap < best_.lap;
+        if (count_ > 1 && next_ == count_) {
+          out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(count_ - 1), d, false};
+        }
         lap_++;
-        out[n++] = {1, lap_, ms(at - lapStart_), 0};
+        last_ = lap;
+        out[n++] = {1, lap_, lap, 0, d, best};
+        if (best) {
+          // Sector lines missed on this lap stay 0: no delta there until a full lap beats it.
+          best_.lap = lap;
+          memcpy(best_.split, split_, sizeof split_);
+          newBest_ = true;
+        }
       }
       running_ = true;
       lapStart_ = lineTime_ = at;
       next_ = 1;
+      memset(split_, 0, sizeof split_);
     } else if (running_ && i == next_) {
-      out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(i - 1)};
+      split_[i] = ms(at - lapStart_);
+      out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(i - 1), delta(split_[i], best_.split[i]), false};
       lineTime_ = at;
       next_++;
     }

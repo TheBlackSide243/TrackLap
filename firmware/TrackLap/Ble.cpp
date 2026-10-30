@@ -114,15 +114,17 @@ void Ble::sendFix(const Fix& f, uint8_t rate) {
   fixChr->notify();
 }
 
-// 9 bytes: version, type, lap number, time ms, sector.
+// 14 bytes: version, type, lap number, time ms, sector, delta ms (i32), flags (bit0 best lap).
 void Ble::sendLap(const LapEvent& e) {
   if (!connected()) return;
-  uint8_t p[9];
+  uint8_t p[14];
   p[0] = 1;
   p[1] = e.type;
   put16(p + 2, e.lap);
   put32(p + 4, e.ms);
   p[8] = e.sector;
+  put32(p + 9, (uint32_t)e.delta);
+  p[13] = e.best ? 1 : 0;
   lapChr->setValue(p, sizeof p);
   lapChr->notify();
 }
