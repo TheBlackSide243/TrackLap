@@ -83,7 +83,6 @@ void Ble::begin(const char* name) {
   auto* writes = new WriteCallbacks();
   trackChr->setCallbacks(writes);
   controlChr->setCallbacks(writes);
-  service->start();
 
   // The service in the advertisement, since the app scans for it; the name in the scan response.
   NimBLEAdvertisementData ad, scan;

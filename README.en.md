@@ -75,7 +75,7 @@ Bluetooth and will not do.
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 
-When the board uses those pins for something else (display, LED), change them from the app
+When the board uses those pins for something else (display, LED, the PSRAM of ESP32-WROVER modules on 16 and 17), change them from the app
 (Device → ESP32 → Change pins) or from the USB serial monitor at 115200 baud with
 `pins <rx> <tx>`; `pins default` goes back to the defaults, `info` shows the state.
 

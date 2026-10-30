@@ -74,7 +74,7 @@ Bluetooth e non vanno bene.
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 
-Se la scheda usa quei pin per altro (display, LED), si cambiano dall'app (Dispositivo → ESP32 →
+Se la scheda usa quei pin per altro (display, LED, la PSRAM dei moduli ESP32-WROVER su 16 e 17), si cambiano dall'app (Dispositivo → ESP32 →
 Cambia pin) oppure dal monitor seriale USB a 115200 baud con `pins <rx> <tx>`; `pins default`
 torna ai predefiniti, `info` mostra lo stato.
 
