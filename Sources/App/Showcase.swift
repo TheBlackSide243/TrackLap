@@ -15,7 +15,7 @@ enum Showcase: String {
     }()
 
     /// The pretend friends: their laps to chase, and the cars of the pretend live group.
-    fileprivate static let friends = [("Marco", "Clio RS", 0.985), ("Giulia", "Yaris GR", 0.975), ("Davide", "MX-5", 0.95)]
+    fileprivate static let people = [("Marco", "Clio RS", 0.985), ("Giulia", "Yaris GR", 0.975), ("Davide", "MX-5", 0.95)]
     fileprivate static var cars: [(car: DemoDriver, timer: LapEngine)] = []
 }
 
@@ -71,7 +71,7 @@ extension AppModel {
     /// The best of three laps of each pretend friend, as if they had sent it.
     private func fillFriendLaps(on track: Track) {
         guard friends.laps(on: track.id).isEmpty else { return }
-        for (i, f) in Showcase.friends.enumerated() {
+        for (i, f) in Showcase.people.enumerated() {
             let t0 = Date().timeIntervalSince1970 - Double(i + 1) * 86_400
             guard let best = demoLaps(on: track, pace: f.2, laps: 3.4, from: t0).min(by: { $0.time < $1.time }) else { continue }
             friends.add(SharedLap(driver: f.0, vehicle: f.1, source: SourceKind.device.rawValue,
@@ -97,7 +97,7 @@ extension AppModel {
     private func startPretendGroup() {
         guard let track = selectedTrack else { return }
         let laps = friends.laps(on: track.id)
-        let members = Showcase.friends.enumerated().map { i, f in
+        let members = Showcase.people.enumerated().map { i, f in
             let best = laps.first { $0.driver == f.0 }?.time
             return GroupMember(id: "showcase-\(i)", name: f.0, vehicle: f.1, track: GroupTrack(track), best: best,
                                last: best.map { $0 + 0.6 + Double(i) * 0.3 }, laps: 5 + i, online: true, color: i)
@@ -108,7 +108,7 @@ extension AppModel {
         for (i, lead) in [4.0, 1.5, 0].enumerated() {
             let id = "showcase-\(i)"
             let car = DemoDriver()
-            car.pace = Showcase.friends[i].2
+            car.pace = Showcase.people[i].2
             let timer = LapEngine()
             timer.minLapTime = minLapTime
             timer.load(track: track)
