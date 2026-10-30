@@ -83,6 +83,18 @@ Bluetooth and will not do.
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (RX pin) | 16 (TX pin) |
 
+In the diagrams the arrows show where the data goes: the GPS TX goes to the pin that receives,
+its RX to the one that transmits. VCC goes to 3V3, or to 5V if the module asks for it.
+
+<p>
+  <img src="docs/wiring/esp32.svg" width="300" alt="GPS wired to ESP32">
+  <img src="docs/wiring/esp32s3.svg" width="300" alt="GPS wired to ESP32-S3">
+</p>
+<p>
+  <img src="docs/wiring/esp32c.svg" width="300" alt="GPS wired to ESP32-C3, C5, C6, H2">
+  <img src="docs/wiring/lcd147.svg" width="300" alt="GPS wired to Waveshare ESP32-C6-LCD-1.47">
+</p>
+
 On the Waveshare GPIO 4 and 5 go to the microSD slot, so the GPS takes the header's RX and TX pins.
 When the board uses those pins for something else (display, LED, the PSRAM of ESP32-WROVER modules
 on 16 and 17), change them from the app (Device → ESP32 → Change pins) or from the USB serial
