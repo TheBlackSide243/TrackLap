@@ -88,11 +88,15 @@ connettore. Se la scheda usa quei pin per altro (display, LED, la PSRAM dei modu
 16 e 17), si cambiano dall'app (Dispositivo → ESP32 → Cambia pin) oppure dal monitor seriale USB a
 115200 baud con `pins <rx> <tx>`; `pins default` torna ai predefiniti, `info` mostra lo stato.
 
-**Installazione**: a ogni modifica in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`)
-compila un file per ogni scheda elencata in `firmware/build.txt`, `TrackLap-fw-<versione>-<scheda>.bin`,
-nell'artefatto `tracklap-firmware`. Si scrive dal browser (Chrome, Edge o Brave) con ESP Tool di Espressif,
-https://espressif.github.io/esptool-js/: Connect, scegli la porta della scheda, indirizzo `0x0`,
-il file del tuo chip, Program. Se la scheda non si collega, tieni premuto BOOT mentre la colleghi.
+**Installazione**: apri https://esp32.tbsgaming.win da Chrome, Edge o Brave sul computer, collega
+la scheda via USB e premi Installa: "Qualsiasi ESP32 con Bluetooth" riconosce il chip da solo,
+"Waveshare ESP32-C6-LCD-1.47" mette la versione con il cruscotto. Gli aggiornamenti tengono pin
+e giro migliore. Se la scheda non si collega, tieni premuto BOOT mentre la colleghi.
+
+A ogni modifica in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) compila un file
+per ogni scheda elencata in `firmware/build.txt`, `TrackLap-fw-<versione>-<scheda>.bin`, nell'artefatto
+`tracklap-firmware`: è un'immagine unita da scrivere a `0x0` (per esempio con
+https://espressif.github.io/esptool-js/), ed è quella che il sito pubblica a ogni versione.
 
 ## Protocollo BLE v1 (per il firmware ESP32)
 

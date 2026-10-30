@@ -89,12 +89,15 @@ on 16 and 17), change them from the app (Device → ESP32 → Change pins) or fr
 monitor at 115200 baud with `pins <rx> <tx>`; `pins default` goes back to the defaults, `info`
 shows the state.
 
-**Install**: on every change in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) builds
-one file per board listed in `firmware/build.txt`, `TrackLap-fw-<version>-<board>.bin`, in the
-`tracklap-firmware` artifact. Write it
-from the browser (Chrome, Edge or Brave) with Espressif's ESP Tool,
-https://espressif.github.io/esptool-js/: Connect, pick the board's port, address `0x0`, the file for
-your chip, Program. If the board does not connect, hold BOOT while plugging it in.
+**Install**: open https://esp32.tbsgaming.win in Chrome, Edge or Brave on a computer, plug the
+board in over USB and press Install: "Any ESP32 with Bluetooth" detects the chip by itself,
+"Waveshare ESP32-C6-LCD-1.47" installs the build with the dashboard. Updates keep the pins and
+the best lap. If the board does not connect, hold BOOT while plugging it in.
+
+On every change in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) builds one file
+per board listed in `firmware/build.txt`, `TrackLap-fw-<version>-<board>.bin`, in the
+`tracklap-firmware` artifact: a merged image to write at `0x0` (for example with
+https://espressif.github.io/esptool-js/), and the one the site publishes for each version.
 
 ## BLE protocol v1 (for the ESP32 firmware)
 
