@@ -1,42 +1,104 @@
-# TrackLap
+<p align="center">
+  <img src="docs/readme/banner-en.jpg" alt="TrackLap: track lap timer for iPhone, with an ESP32 and a GPS" width="100%">
+</p>
 
-[Italiano](README.md) · **English**
+<p align="center">
+  <a href="README.md">Italiano</a> · <b>English</b>
+</p>
 
-Track lap timer for iPhone: lap times, sectors and live delta computed from GPS, with an
-ESP32 and a GPS connected over Bluetooth (any ESP32 with Bluetooth will do: ESP32, S3, C3, C5, C6,
-H2), the iPhone's own GPS, or a simulated car.
+<p align="center">
+  <img alt="iPhone, iOS 17 or later" src="https://img.shields.io/badge/iPhone-iOS%2017%2B-22D3EE?style=flat-square&logo=apple&logoColor=white">
+  <img alt="ESP32 with Bluetooth LE" src="https://img.shields.io/badge/ESP32-Bluetooth%20LE-22D3EE?style=flat-square&logo=espressif&logoColor=white">
+  <img alt="GPS at 10 Hz" src="https://img.shields.io/badge/GPS-10%20Hz-22D3EE?style=flat-square">
+  <img alt="6 languages" src="https://img.shields.io/badge/languages-6-22D3EE?style=flat-square">
+</p>
 
-## What it does
+**TrackLap** is a track lap timer for iPhone. Lap times, sectors and a live delta worked out from
+GPS: with an ESP32 and a 10 Hz GPS over Bluetooth, with the iPhone's own GPS, or with a simulated car
+to try everything right away. The line crossing is interpolated between two fixes, so at 10 Hz the
+times are right to a few hundredths.
 
-- **Live**: current lap time, delta to the best lap (green/red bar), predicted lap,
-  coloured sectors (purple = best, green = better than the previous lap, yellow = slower),
-  last lap, best, speed and a mini map with your position. Lap alert with vibration and the
-  time and gap read out loud. The delta can compare with the track record from earlier
-  sessions, so it works from the first lap.
-  Screen kept on during the session; landscape for a dashboard mount.
-- **Tracks**: search as you type, worldwide (Photon on OpenStreetMap, under a second),
-  "tracks near me" or near a town, a catalog of 60+ famous circuits with checked positions,
-  "create here" on the spot. The layout comes from Overpass or, when it is slow, from the
-  OpenStreetMap API. Satellite map editor: tap the track and the start line sets itself
-  across it; up to 4 sectors; "mark here" puts the line where you are.
-- **Sessions**: every lap is saved straight away. Best, ideal lap (sum of the best sectors),
-  average, top speed, lap-time chart, GPX and CSV export.
-- **Analysis** (ideas from RaceChrono): compare a lap with another lap of the session or the best
-  of an earlier session on the same track; one cursor for the map, the speed and delta charts and
-  a slider; map coloured by speed with the minimum speed of each corner, or by where time is
-  gained and lost; sector comparison; friction circle (lateral and longitudinal g from GPS).
-- **Device**: GPS source (ESP32, iPhone, Demo), BLE scan and connection with automatic
-  reconnection, sending the track to the ESP32, chip and GPS pins (changeable from the app),
-  timer settings.
+<table>
+  <tr>
+    <td width="34%"><img src="docs/readme/en-live.webp" alt="The Live screen during a lap"></td>
+    <td>
+      <h3>Live</h3>
+      <p>The running lap time, the <b>delta against the best lap</b> with a green or red bar, the
+      predicted time and coloured sectors: purple for the best, green for better than the lap before,
+      yellow for slower. Below, the last lap, the best, the speed and the circuit on satellite imagery.</p>
+      <p>At the end of a lap a vibration and a <b>voice call-out</b> of the time and the gap. The delta
+      can compare with the track record from earlier sessions, so it works from the first lap. The
+      screen stays on, also in landscape for a dashboard mount.</p>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/en-editor.webp" alt="The track editor on satellite imagery"></td>
+    <td>
+      <h3>Tracks</h3>
+      <p><b>Search as you type</b> worldwide on OpenStreetMap, tracks near you or near a town, a
+      catalogue of <b>60+ famous circuits</b> and "create here" on the spot.</p>
+      <p>The layout downloads by itself. In the editor on satellite imagery you tap the track and the
+      start line lays itself across it; add up to 4 sector lines, or "mark here" puts the line where
+      you stand.</p>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/en-session.webp" alt="A session summary"></td>
+    <td>
+      <h3>Sessions</h3>
+      <p>Every lap is saved as soon as it ends. For each session the best, the <b>ideal lap</b> (the
+      best sectors added up), the average, the top speed and the lap time chart.</p>
+      <p>Export to <b>GPX and CSV</b>, with the speed and g of every point, for spreadsheets and
+      analysis tools.</p>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/en-analysis.webp" alt="Lap analysis with map and comparison"></td>
+    <td>
+      <h3>Analysis</h3>
+      <p>Compare a lap with another lap of the session or with the best lap of an earlier session on
+      the same track. One cursor moves both cars on the map and on the speed and delta charts.</p>
+      <p>Map coloured by speed with the <b>minimum speed of every corner</b>, or by where you gain and
+      lose; sector comparison and a <b>friction circle</b> with lateral and longitudinal g worked out
+      from GPS.</p>
+    </td>
+  </tr>
+</table>
 
-- **Languages**: English, Italian, Spanish, French, German and Portuguese (follows the iPhone
-  language, change it in Settings → TrackLap). Units km/h or mph.
+In Italian, English, Spanish, French, German and Portuguese, following the iPhone's language; km/h or mph.
 
-Timing interpolates the line crossing between two GPS fixes: at 10 Hz the error is a few
-hundredths of a second. The delta compares the elapsed time with the best lap's time at the
-same distance travelled.
+## The hardware
 
-## Build and install
+<p align="center">
+  <img src="docs/readme/how-it-works-en.svg" alt="A GPS wired to the ESP32, which talks to the iPhone over Bluetooth LE" width="100%">
+</p>
+
+**Any ESP32 with Bluetooth** does (ESP32-WROOM-32, S3, C3, C5, C6, H2) plus a GPS, for example the
+Beitian BN-220: the ESP32 sets the GPS to 10 Hz, times laps and sectors by itself and sends it all
+to the app. Install the firmware from the browser at **[esp32.tbsgaming.win](https://esp32.tbsgaming.win)**;
+the [wiring](#esp32-firmware) is below, with a diagram for every board.
+
+On the **Waveshare ESP32-C6-LCD-1.47** the screen is a dashboard:
+
+<p align="center">
+  <img src="docs/readme/dashboard.svg" alt="The dashboard on the Waveshare ESP32-C6-LCD-1.47 screen" width="100%">
+</p>
+
+At each sector line the delta against the best lap: purple when you are the fastest ever there,
+green when ahead of the previous lap, red when behind. At the finish the lap time: purple for a best
+lap, green when faster than the session's average, red when slower.
+
+## Install
+
+- **iPhone**: add the source
+  `https://raw.githubusercontent.com/TheBlackSide243/feather-repo/main/apps.json` to
+  [Feather](https://github.com/khcrysalis/Feather) and install TrackLap, or download
+  `TrackLap-<version>-unsigned.ipa` from the [releases](https://github.com/TheBlackSide243/TrackLap/releases)
+  and install it with Sideloadly or AltStore. To try it without hardware, pick **Demo** in Device.
+- **ESP32**: open [esp32.tbsgaming.win](https://esp32.tbsgaming.win) in Chrome, Edge or Brave on a
+  computer, plug the board in over USB and press Install. Then in the app: Device → ESP32.
+
+## Building
 
 No Mac needed: on every push to `main` GitHub Actions (`.github/workflows/ipa.yml`) generates the
 project with XcodeGen, builds it unsigned and publishes the `tracklap-ipa` artifact with
