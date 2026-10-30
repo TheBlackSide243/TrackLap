@@ -90,7 +90,7 @@ private struct LiveHeader: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            ScreenHeader(icon: "flag.checkered", title: "TrackLap", subtitle: model.selectedTrack?.name ?? "Nessuna pista") {
+            ScreenHeader(icon: "flag.checkered", title: "TrackLap", subtitle: model.selectedTrack?.name ?? L("Nessuna pista")) {
                 if model.isRunning { RecordingBadge() }
             }
             HStack(spacing: 8) {
@@ -124,7 +124,7 @@ private struct GPSPill: View {
             let ok = age < 2.5
             let sats = model.source == .device && model.ble.sats > 0 ? " · \(model.ble.sats) sat" : ""
             StatusPill(icon: "location.fill",
-                       text: ok ? "GPS \(Fmt.hz(model.gpsRate))\(sats)" : "GPS assente",
+                       text: ok ? "GPS \(Fmt.hz(model.gpsRate))\(sats)" : L("GPS assente"),
                        color: ok ? (model.gpsRate >= 5 ? Theme.good : Theme.yellow) : Theme.bad)
         }
     }
@@ -164,8 +164,8 @@ private struct LapTimerCard: View {
     }
 
     private var label: String {
-        guard model.isRunning else { return "PRONTO" }
-        return model.engine.lapNumber == 0 ? "GIRO DI LANCIO" : "GIRO \(model.engine.lapNumber)"
+        guard model.isRunning else { return L("PRONTO") }
+        return model.engine.lapNumber == 0 ? L("GIRO DI LANCIO") : L("GIRO \(model.engine.lapNumber)")
     }
 
     private func elapsed(at date: Date) -> Double {
@@ -188,7 +188,7 @@ private struct DeltaCard: View {
                             .font(.system(size: 13, weight: .heavy))
                             .tracking(1.5)
                             .foregroundStyle(Theme.sub)
-                        Text(d == nil ? "Completa un giro per il confronto" : "sul tuo giro migliore")
+                        Text(d == nil ? L("Completa un giro per il confronto") : L("sul tuo giro migliore"))
                             .font(.caption)
                             .foregroundStyle(Theme.sub.opacity(0.8))
                     }
@@ -278,10 +278,10 @@ private struct LiveStatsRow: View {
     var body: some View {
         let engine = model.engine
         HStack(spacing: 10) {
-            StatTile(title: "Ultimo", value: Fmt.lap(engine.lastLap?.time))
-            StatTile(title: "Best", value: Fmt.lap(engine.bestLap?.time),
+            StatTile(title: L("Ultimo"), value: Fmt.lap(engine.lastLap?.time))
+            StatTile(title: L("Best"), value: Fmt.lap(engine.bestLap?.time),
                      color: engine.bestLap == nil ? Theme.text : Theme.purple)
-            StatTile(title: "Velocità", value: Fmt.speed(engine.speed), unit: Fmt.speedUnit)
+            StatTile(title: L("Velocità"), value: Fmt.speed(engine.speed), unit: Fmt.speedUnit)
         }
     }
 }
@@ -295,7 +295,7 @@ private struct MiniMapCard: View {
                 ZStack(alignment: .topLeading) {
                     TrackShape(track: track, position: model.engine.position, lineWidth: 4)
                     HStack(spacing: 6) {
-                        Badge(text: "\(model.engine.laps.count) giri")
+                        Badge(text: L("Giri: \(model.engine.laps.count)"))
                         if let l = track.length { Badge(text: Fmt.distance(l), color: Theme.sub) }
                     }
                     .padding(8)
@@ -313,7 +313,7 @@ private struct SessionButton: View {
             Button {
                 if model.isRunning { model.stop() } else { model.start() }
             } label: {
-                Label(model.isRunning ? "Ferma sessione" : "Avvia sessione",
+                Label(model.isRunning ? L("Ferma sessione") : L("Avvia sessione"),
                       systemImage: model.isRunning ? "stop.fill" : "play.fill")
             }
             .buttonStyle(PrimaryButtonStyle(color: model.isRunning ? Theme.bad : Theme.accent))
@@ -328,11 +328,11 @@ private struct SessionButton: View {
 
     private var hint: String {
         switch model.source {
-        case .demo: return "Demo: un'auto simulata gira sulla pista selezionata."
-        case .phone: return "GPS dell'iPhone, circa 1 Hz: per tempi precisi usa l'ESP32."
+        case .demo: return L("Demo: un'auto simulata gira sulla pista selezionata.")
+        case .phone: return L("GPS dell'iPhone, circa 1 Hz: per tempi precisi usa l'ESP32.")
         case .device:
-            return model.ble.state == .connected ? "Il giro parte al primo passaggio sulla linea del via."
-                : "Collega l'ESP32 nella scheda Dispositivo."
+            return model.ble.state == .connected ? L("Il giro parte al primo passaggio sulla linea del via.")
+                : L("Collega l'ESP32 nella scheda Dispositivo.")
         }
     }
 }
@@ -346,7 +346,7 @@ private struct NoTrackCard: View {
                 Image(systemName: "point.topleft.down.to.point.bottomright.curvepath.fill")
                     .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(Theme.accent)
-                Text(model.selectedTrack == nil ? "Scegli una pista" : "Segna la linea del via")
+                Text(model.selectedTrack == nil ? L("Scegli una pista") : L("Segna la linea del via"))
                     .font(.title2.weight(.heavy))
                     .foregroundStyle(Theme.text)
                 Text("Cerca il circuito su OpenStreetMap, poi tocca la pista sulla mappa satellitare per mettere il via e gli intermedi.")
@@ -376,7 +376,7 @@ private struct LapBanner: View {
                 .frame(width: 44, height: 44)
                 .background(color.opacity(0.16), in: Circle())
             VStack(alignment: .leading, spacing: 0) {
-                Text(event.isBest ? "GIRO \(event.number) · NUOVO BEST" : "GIRO \(event.number)")
+                Text(event.isBest ? L("GIRO \(event.number) · NUOVO BEST") : L("GIRO \(event.number)"))
                     .font(.caption.weight(.heavy))
                     .tracking(1)
                     .foregroundStyle(color)

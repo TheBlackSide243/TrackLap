@@ -108,25 +108,25 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
     var stateTitle: String {
         switch state {
-        case .off: "Bluetooth spento"
-        case .unauthorized: "Bluetooth non autorizzato"
-        case .unsupported: "Bluetooth non disponibile"
-        case .idle: "Nessun dispositivo collegato"
-        case .scanning: "Ricerca in corso…"
-        case .connecting: "Collegamento a \(connectedName ?? "TrackLap")…"
+        case .off: L("Bluetooth spento")
+        case .unauthorized: L("Bluetooth non autorizzato")
+        case .unsupported: L("Bluetooth non disponibile")
+        case .idle: L("Nessun dispositivo collegato")
+        case .scanning: L("Ricerca in corso…")
+        case .connecting: L("Collegamento a \(connectedName ?? "TrackLap")…")
         case .connected: connectedName ?? "TrackLap"
         }
     }
 
     var stateDetail: String {
         switch state {
-        case .off: "Accendilo dal Centro di Controllo."
-        case .unauthorized: "Consentilo in Impostazioni → TrackLap → Bluetooth."
-        case .unsupported: "Questo dispositivo non supporta il Bluetooth LE."
-        case .idle: "Accendi l'ESP32 e tocca Cerca."
-        case .scanning: "Tieni l'ESP32 acceso e vicino."
-        case .connecting: "Si ricollega da solo quando torna a portata."
-        case .connected: hasFix ? "GPS agganciato" : "In attesa del fix GPS"
+        case .off: L("Accendilo dal Centro di Controllo.")
+        case .unauthorized: L("Consentilo in Impostazioni → TrackLap → Bluetooth.")
+        case .unsupported: L("Questo dispositivo non supporta il Bluetooth LE.")
+        case .idle: L("Accendi l'ESP32 e tocca Cerca.")
+        case .scanning: L("Tieni l'ESP32 acceso e vicino.")
+        case .connecting: L("Si ricollega da solo quando torna a portata.")
+        case .connected: hasFix ? L("GPS agganciato") : L("In attesa del fix GPS")
         }
     }
 

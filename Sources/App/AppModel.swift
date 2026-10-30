@@ -10,7 +10,7 @@ enum SourceKind: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .device: "ESP32 TrackLap"
-        case .phone: "GPS dell'iPhone"
+        case .phone: L("GPS dell'iPhone")
         case .demo: "Demo"
         }
     }
@@ -33,9 +33,9 @@ enum SourceKind: String, CaseIterable, Identifiable {
 
     var detail: String {
         switch self {
-        case .device: "ESP32-C6 + GPS a 10–25 Hz via Bluetooth: tempi precisi al centesimo."
-        case .phone: "Circa 1 Hz: va bene per provare e per segnare la linea a piedi."
-        case .demo: "Un'auto simulata gira sulla pista scelta: prova tutto senza hardware."
+        case .device: L("ESP32-C6 + GPS a 10–25 Hz via Bluetooth: tempi precisi al centesimo.")
+        case .phone: L("Circa 1 Hz: va bene per provare e per segnare la linea a piedi.")
+        case .demo: L("Un'auto simulata gira sulla pista scelta: prova tutto senza hardware.")
         }
     }
 }
@@ -60,6 +60,7 @@ final class AppModel {
     private(set) var currentSessionID: UUID? = nil
     private(set) var minLapTime: Double = 20
     private(set) var deltaScale: Double = 2
+    private(set) var units: Units = Units.current
 
     @ObservationIgnored private var session: Session? = nil
     @ObservationIgnored private var recentT: [Double] = []
@@ -197,6 +198,11 @@ final class AppModel {
     }
 
     // MARK: - Settings
+
+    func setUnits(_ u: Units) {
+        units = u
+        UserDefaults.standard.set(u.rawValue, forKey: Units.key)
+    }
 
     func setMinLapTime(_ v: Double) {
         minLapTime = v

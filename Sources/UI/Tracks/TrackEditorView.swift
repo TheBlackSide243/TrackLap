@@ -19,9 +19,9 @@ struct TrackEditorView: View {
     @State private var confirmDelete = false
 
     enum Tool: String, CaseIterable, Identifiable {
-        case start = "Linea del via"
-        case sector = "Intermedio"
+        case start, sector
         var id: String { rawValue }
+        var title: String { self == .start ? L("Linea del via") : L("Intermedio") }
     }
 
     var body: some View {
@@ -32,7 +32,7 @@ struct TrackEditorView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.bg)
             }
         }
-        .navigationTitle(draft?.name ?? "Pista")
+        .navigationTitle(draft?.name ?? L("Pista"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
@@ -87,7 +87,7 @@ struct TrackEditorView: View {
                         MapPolyline(coordinates: [s.a.cl, s.b.cl])
                             .stroke(.black, style: StrokeStyle(lineWidth: 8, dash: [4, 4]))
                         Annotation("Via", coordinate: s.mid.cl, anchor: .bottom) {
-                            GateBadge(text: "VIA", color: .white, icon: "flag.checkered")
+                            GateBadge(text: L("VIA"), color: .white, icon: "flag.checkered")
                         }
                         .annotationTitles(.hidden)
                     }
@@ -124,7 +124,7 @@ struct TrackEditorView: View {
                 .animation(.default, value: hint)
 
             Picker("Strumento", selection: $tool) {
-                ForEach(Tool.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Tool.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
 
@@ -164,7 +164,7 @@ struct TrackEditorView: View {
                     model.select(track: t.id)
                     model.tab = .live
                 } label: {
-                    Label(model.selectedTrackID == t.id ? "In uso" : "Usa pista", systemImage: "checkmark")
+                    Label(model.selectedTrackID == t.id ? L("In uso") : L("Usa pista"), systemImage: "checkmark")
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(!t.isReady)
@@ -178,13 +178,13 @@ struct TrackEditorView: View {
     }
 
     private func defaultHint(_ t: Track) -> String {
-        if pending != nil { return "Tocca l'altro lato della pista." }
+        if pending != nil { return L("Tocca l'altro lato della pista.") }
         switch tool {
         case .start:
-            if t.outline.isEmpty { return "Nessun tracciato su OpenStreetMap: tocca i due lati della pista per il via." }
-            return t.start == nil ? "Tocca la pista nel punto del traguardo." : "Tocca di nuovo per spostare il via."
+            if t.outline.isEmpty { return L("Nessun tracciato su OpenStreetMap: tocca i due lati della pista per il via.") }
+            return t.start == nil ? L("Tocca la pista nel punto del traguardo.") : L("Tocca di nuovo per spostare il via.")
         case .sector:
-            return t.sectors.count < 4 ? "Tocca la pista per aggiungere un intermedio (\(t.sectors.count)/4)." : "Hai già 4 intermedi: toccane uno sotto per toglierlo."
+            return t.sectors.count < 4 ? L("Tocca la pista per aggiungere un intermedio (\(t.sectors.count)/4).") : L("Hai già 4 intermedi: toccane uno sotto per toglierlo.")
         }
     }
 
@@ -233,11 +233,11 @@ struct TrackEditorView: View {
         switch tool {
         case .start:
             update { $0.start = gate }
-            hint = "Linea del via messa. Ora aggiungi gli intermedi, se vuoi."
+            hint = L("Linea del via messa. Ora aggiungi gli intermedi, se vuoi.")
             tool = .sector
         case .sector:
             guard (draft?.sectors.count ?? 0) < 4 else {
-                hint = "Massimo 4 intermedi."
+                hint = L("Massimo 4 intermedi.")
                 return
             }
             update { $0.sectors.append(gate) }
@@ -258,13 +258,13 @@ struct TrackEditorView: View {
             if loc.course >= 0 && loc.speed > 2 { heading = loc.course }
         }
         guard let coord else {
-            hint = "Posizione non disponibile."
+            hint = L("Posizione non disponibile.")
             return
         }
         let gate = heading.map { TrackGeometry.gate(at: coord, heading: $0, width: width) }
             ?? TrackGeometry.gate(at: coord, outline: draft?.outline ?? [], width: width)
         guard let gate else {
-            hint = "Sei lontano dal tracciato: fermati sulla linea e riprova, oppure tocca la mappa."
+            hint = L("Sei lontano dal tracciato: fermati sulla linea e riprova, oppure tocca la mappa.")
             return
         }
         place(gate)

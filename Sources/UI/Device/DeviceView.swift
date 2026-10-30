@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import CoreLocation
 
 struct DeviceView: View {
@@ -8,9 +9,9 @@ struct DeviceView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    ScreenHeader(icon: "antenna.radiowaves.left.and.right", title: "Dispositivo", subtitle: model.source.title)
+                    ScreenHeader(icon: "antenna.radiowaves.left.and.right", title: L("Dispositivo"), subtitle: model.source.title)
 
-                    SectionLabel("Sorgente GPS")
+                    SectionLabel(L("Sorgente GPS"))
                     VStack(spacing: 10) {
                         ForEach(SourceKind.allCases) { k in
                             SourceCard(kind: k, selected: k == model.source) { model.setSource(k) }
@@ -23,10 +24,10 @@ struct DeviceView: View {
                     case .demo: DemoSection()
                     }
 
-                    SectionLabel("Cronometro")
+                    SectionLabel(L("Cronometro"))
                     SettingsPanel()
 
-                    SectionLabel("Informazioni")
+                    SectionLabel(L("Informazioni"))
                     AboutPanel()
                 }
                 .padding(16)
@@ -88,9 +89,9 @@ private struct BLESection: View {
 
                 if ble.state == .connected {
                     HStack(spacing: 10) {
-                        StatTile(title: "Satelliti", value: "\(ble.sats)", color: ble.sats >= 8 ? Theme.good : Theme.yellow)
-                        StatTile(title: "Frequenza", value: "\(ble.rateHz)", unit: "Hz")
-                        StatTile(title: "Firmware", value: ble.info?.fw ?? "—")
+                        StatTile(title: L("Satelliti"), value: "\(ble.sats)", color: ble.sats >= 8 ? Theme.good : Theme.yellow)
+                        StatTile(title: L("Frequenza"), value: "\(ble.rateHz)", unit: "Hz")
+                        StatTile(title: L("Firmware"), value: ble.info?.fw ?? "—")
                     }
                     if let gps = ble.info?.gps {
                         Text("Modulo GPS: \(gps)").font(.caption).foregroundStyle(Theme.sub)
@@ -126,7 +127,7 @@ private struct BLESection: View {
                     Button {
                         if ble.state == .scanning { ble.stopScan() } else { ble.scan() }
                     } label: {
-                        Label(ble.state == .scanning ? "Ferma la ricerca" : "Cerca dispositivi",
+                        Label(ble.state == .scanning ? L("Ferma la ricerca") : L("Cerca dispositivi"),
                               systemImage: ble.state == .scanning ? "stop.fill" : "dot.radiowaves.left.and.right")
                     }
                     .buttonStyle(PrimaryButtonStyle())
@@ -155,8 +156,8 @@ private struct PhoneSection: View {
         Panel {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
-                    StatTile(title: "Precisione", value: phone.accuracy.map { "\(Int($0.rounded()))" } ?? "—", unit: "m")
-                    StatTile(title: "Frequenza", value: Fmt.hz(model.gpsRate))
+                    StatTile(title: L("Precisione"), value: phone.accuracy.map { "\(Int($0.rounded()))" } ?? "—", unit: "m")
+                    StatTile(title: L("Frequenza"), value: Fmt.hz(model.gpsRate))
                 }
                 if phone.authorization == .denied || phone.authorization == .restricted {
                     Text("Posizione negata: abilitala in Impostazioni → TrackLap → Posizione.")
@@ -199,6 +200,11 @@ private struct DemoSection: View {
 private struct SettingsPanel: View {
     @Environment(AppModel.self) private var model
 
+    private var currentLanguage: String {
+        let code = Bundle.main.preferredLocalizations.first ?? "en"
+        return Locale.current.localizedString(forLanguageCode: code)?.localizedCapitalized ?? code
+    }
+
     var body: some View {
         Panel {
             VStack(alignment: .leading, spacing: 16) {
@@ -218,6 +224,27 @@ private struct SettingsPanel: View {
                     }
                     .pickerStyle(.segmented)
                 }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Unità").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Picker("Unità", selection: Binding(get: { model.units }, set: { model.setUnits($0) })) {
+                        ForEach(Units.allCases) { Text(verbatim: $0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Lingua").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                            Text("Si cambia nelle Impostazioni di iOS, alla voce TrackLap.").font(.caption).foregroundStyle(Theme.sub)
+                        }
+                        Spacer()
+                        Text(verbatim: currentLanguage).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent)
+                        Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -228,9 +255,9 @@ private struct AboutPanel: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         Panel {
             VStack(alignment: .leading, spacing: 8) {
-                row("Versione", version)
-                row("Protocollo BLE", "TrackLap v1")
-                row("Mappe e piste", "© OpenStreetMap")
+                row(L("Versione"), version)
+                row(L("Protocollo BLE"), "TrackLap v1")
+                row(L("Mappe e piste"), "© OpenStreetMap")
                 Text("Il cronometraggio interpola il passaggio sulla linea tra due fix GPS: a 10 Hz la precisione è di qualche centesimo.")
                     .font(.caption)
                     .foregroundStyle(Theme.sub)

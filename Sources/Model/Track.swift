@@ -55,7 +55,7 @@ enum DemoCircuit {
             return GateLine(a: f.coord(pts[i] - dir), b: f.coord(pts[i] + dir))
         }
 
-        var t = Track(name: "Circuito Demo", place: "Pista simulata", center: center, outline: [coords + [coords[0]]])
+        var t = Track(name: L("Circuito Demo"), place: L("Pista simulata"), center: center, outline: [coords + [coords[0]]])
         t.start = gate(0)
         t.sectors = [gate(n / 3), gate(2 * n / 3)]
         t.isDemo = true

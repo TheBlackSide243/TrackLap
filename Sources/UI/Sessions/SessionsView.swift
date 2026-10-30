@@ -7,7 +7,7 @@ struct SessionsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    ScreenHeader(icon: "chart.bar.xaxis", title: "Sessioni", subtitle: subtitle)
+                    ScreenHeader(icon: "chart.bar.xaxis", title: L("Sessioni"), subtitle: subtitle)
                     if model.sessions.summaries.isEmpty {
                         Panel(padding: 24) {
                             VStack(alignment: .leading, spacing: 10) {
@@ -42,7 +42,7 @@ struct SessionsView: View {
 
     private var subtitle: String {
         let n = model.sessions.summaries.count
-        return n == 1 ? "1 sessione" : "\(n) sessioni"
+        return n == 1 ? L("1 sessione") : L("\(n) sessioni")
     }
 }
 
@@ -56,11 +56,11 @@ private struct SessionCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Text(summary.trackName).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
-                    if live { Badge(text: "In corso", color: Theme.bad) }
+                    if live { Badge(text: L("In corso"), color: Theme.bad) }
                 }
                 Text(Fmt.day.string(from: summary.date)).font(.caption).foregroundStyle(Theme.sub)
                 HStack(spacing: 6) {
-                    Badge(text: summary.lapCount == 1 ? "1 giro" : "\(summary.lapCount) giri", color: Theme.accent)
+                    Badge(text: summary.lapCount == 1 ? L("1 giro") : L("\(summary.lapCount) giri"), color: Theme.accent)
                     Badge(text: summary.source, color: Theme.sub)
                 }
             }

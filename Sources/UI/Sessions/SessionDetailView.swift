@@ -20,7 +20,7 @@ struct SessionDetailView: View {
         }
         .scrollIndicators(.hidden)
         .background(Theme.bg.ignoresSafeArea())
-        .navigationTitle(session?.trackName ?? "Sessione")
+        .navigationTitle(session?.trackName ?? L("Sessione"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
@@ -53,39 +53,39 @@ struct SessionDetailView: View {
             header(s)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible())], spacing: 10) {
-                StatTile(title: "Best", value: Fmt.lap(best?.time), color: Theme.purple)
-                StatTile(title: "Ideale", value: Fmt.lap(s.idealTime))
-                StatTile(title: "Media", value: Fmt.lap(s.averageTime))
-                StatTile(title: "Giri", value: "\(s.laps.count)")
-                StatTile(title: "V max", value: Fmt.speed(s.laps.map(\.maxSpeed).max() ?? 0), unit: Fmt.speedUnit)
-                StatTile(title: "Giro", value: Fmt.distance(best?.distance))
+                StatTile(title: L("Best"), value: Fmt.lap(best?.time), color: Theme.purple)
+                StatTile(title: L("Ideale"), value: Fmt.lap(s.idealTime))
+                StatTile(title: L("Media"), value: Fmt.lap(s.averageTime))
+                StatTile(title: L("Giri"), value: "\(s.laps.count)")
+                StatTile(title: L("V max"), value: Fmt.speed(s.laps.map(\.maxSpeed).max() ?? 0), unit: Fmt.speedUnit)
+                StatTile(title: L("Lunghezza"), value: Fmt.distance(best?.distance))
             }
 
-            SectionLabel("Tempi sul giro")
+            SectionLabel(L("Tempi sul giro"))
             Panel {
                 LapTimesChart(laps: s.laps, bestID: best?.id, selectedID: selected.id)
             }
 
-            SectionLabel("Giro \(selected.number) sulla mappa")
+            SectionLabel(L("Giro \(selected.number) sulla mappa"))
             Panel(padding: 6) {
                 LapMap(lap: selected)
                     .frame(height: 280)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
 
-            SectionLabel("Velocità")
+            SectionLabel(L("Velocità"))
             Panel {
                 SpeedChart(lap: selected, best: best)
             }
 
             if let best, best.id != selected.id {
-                SectionLabel("Delta del giro \(selected.number) sul best")
+                SectionLabel(L("Delta del giro \(selected.number) sul best"))
                 Panel {
                     DeltaChart(lap: selected, best: best)
                 }
             }
 
-            SectionLabel("Giri")
+            SectionLabel(L("Giri"))
             VStack(spacing: 8) {
                 ForEach(s.laps) { lap in
                     LapRow(lap: lap, bestTime: best?.time ?? lap.time, bestSectors: bestSectors,
@@ -162,8 +162,8 @@ private struct SpeedChart: View {
         let ref = best.flatMap { $0.id == lap.id ? nil : thin($0.trace) } ?? []
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 14) {
-                legend("Giro \(lap.number)", Theme.accent)
-                if !ref.isEmpty { legend("Best", Theme.purple) }
+                legend(L("Giro \(lap.number)"), Theme.accent)
+                if !ref.isEmpty { legend(L("Best"), Theme.purple) }
             }
             Chart {
                 ForEach(Array(ref.enumerated()), id: \.offset) { item in
@@ -338,7 +338,7 @@ private struct LapRow: View {
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(isBest ? Theme.purple : Theme.text)
-                Text(isBest ? "BEST" : Fmt.delta(lap.time - bestTime))
+                Text(isBest ? L("BEST") : Fmt.delta(lap.time - bestTime))
                     .font(.caption.weight(.bold))
                     .monospacedDigit()
                     .foregroundStyle(isBest ? Theme.purple : Theme.bad)

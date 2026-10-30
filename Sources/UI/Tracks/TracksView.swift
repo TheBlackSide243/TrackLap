@@ -11,7 +11,7 @@ struct TracksView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 14) {
-                    ScreenHeader(icon: "map.fill", title: "Piste", subtitle: subtitle)
+                    ScreenHeader(icon: "map.fill", title: L("Piste"), subtitle: subtitle)
                     HStack(spacing: 10) {
                         Button { showSearch = true } label: {
                             Label("Cerca pista", systemImage: "magnifyingglass")
@@ -22,7 +22,7 @@ struct TracksView: View {
                         }
                         .buttonStyle(SecondaryButtonStyle())
                     }
-                    SectionLabel("Le tue piste")
+                    SectionLabel(L("Le tue piste"))
                     ForEach(model.tracks.tracks) { track in
                         TrackCard(track: track, selected: track.id == model.selectedTrackID) {
                             model.select(track: track.id)
@@ -58,7 +58,7 @@ struct TracksView: View {
 
     private var subtitle: String {
         let n = model.tracks.tracks.count
-        return n == 1 ? "1 pista salvata" : "\(n) piste salvate"
+        return n == 1 ? L("1 pista salvata") : L("\(n) piste salvate")
     }
 
     /// A new track where you are standing, with whatever raceway OpenStreetMap has around.
@@ -107,11 +107,11 @@ private struct TrackCard: View {
                 }
                 HStack(spacing: 6) {
                     if track.isReady {
-                        Badge(text: "Pronta", color: Theme.good)
+                        Badge(text: L("Pronta"), color: Theme.good)
                     } else {
-                        Badge(text: "Manca il via", color: Theme.yellow)
+                        Badge(text: L("Manca il via"), color: Theme.yellow)
                     }
-                    if track.sectorCount > 0 { Badge(text: "\(track.sectorCount) settori", color: Theme.purple) }
+                    if track.sectorCount > 0 { Badge(text: L("\(track.sectorCount) settori"), color: Theme.purple) }
                     if let l = track.length { Badge(text: Fmt.distance(l), color: Theme.sub) }
                 }
             }

@@ -6,7 +6,7 @@ enum LocationError: LocalizedError {
     case denied
 
     var errorDescription: String? {
-        "Accesso alla posizione negato: abilitalo in Impostazioni → TrackLap → Posizione."
+        L("Accesso alla posizione negato: abilitalo in Impostazioni → TrackLap → Posizione.")
     }
 }
 
