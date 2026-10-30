@@ -1,5 +1,6 @@
-# ESP32 firmware for every chip with Bluetooth LE, built with arduino-cli. Each chip gets one
-# merged .bin to flash at address 0x0 (ESP Web Tool or esptool), in the tracklap-firmware artifact.
+# ESP32 firmware, built with arduino-cli. firmware/build.txt lists the core, the libraries and the
+# targets, so they change without touching this file. Each target gets one merged .bin to flash at
+# address 0x0 (ESP Web Tool or esptool), in the tracklap-firmware artifact.
 name: ESP32 firmware
 
 on:
@@ -14,45 +15,42 @@ jobs:
   firmware:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      ESP32_INDEX: https://espressif.github.io/arduino-esp32/package_esp32_index.json
     steps:
       - uses: actions/checkout@v4
 
       - uses: arduino/setup-arduino-cli@v2
 
-      - name: ESP32 core and NimBLE
+      - name: Core and libraries
         run: |
-          arduino-cli core update-index --additional-urls "$ESP32_INDEX"
-          arduino-cli core install esp32:esp32 --additional-urls "$ESP32_INDEX"
-          arduino-cli lib install NimBLE-Arduino
+          set -eu
+          INDEX=https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index --additional-urls "$INDEX"
+          while read -r kind rest <&3; do
+            case "$kind" in
+              core) arduino-cli core install "$rest" --additional-urls "$INDEX" ;;
+              lib) arduino-cli lib install "$rest" ;;
+            esac
+          done 3< <(tr -d '\r' < firmware/build.txt)
           arduino-cli core list
           arduino-cli lib list
 
-      # The native-USB chips print to their USB port, which is the one used to flash them.
-      - name: Build every chip
+      - name: Build every target
         run: |
           set -u
           VER=$(sed -n 's/^#define FW_VERSION "\(.*\)"/\1/p' firmware/TrackLap/TrackLap.ino)
           mkdir -p out
           failed=""
-          for target in \
-            esp32=esp32:esp32:esp32 \
-            esp32s3=esp32:esp32:esp32s3:CDCOnBoot=cdc \
-            esp32c3=esp32:esp32:esp32c3:CDCOnBoot=cdc \
-            esp32c5=esp32:esp32:esp32c5:CDCOnBoot=cdc \
-            esp32c6=esp32:esp32:esp32c6:CDCOnBoot=cdc \
-            esp32h2=esp32:esp32:esp32h2:CDCOnBoot=cdc; do
-            chip=${target%%=*}
-            fqbn=${target#*=}
-            echo "::group::$chip ($fqbn)"
-            if arduino-cli compile --fqbn "$fqbn" --build-path "build/$chip" --warnings default firmware/TrackLap; then
-              cp "build/$chip/TrackLap.ino.merged.bin" "out/TrackLap-fw-$VER-$chip.bin" || failed="$failed $chip"
+          while read -r kind name fqbn flags <&3; do
+            [ "$kind" = target ] || continue
+            echo "::group::$name ($fqbn $flags)"
+            if arduino-cli compile --fqbn "$fqbn" --build-path "build/$name" --warnings default \
+                --build-property "compiler.cpp.extra_flags=$flags" firmware/TrackLap; then
+              cp "build/$name/TrackLap.ino.merged.bin" "out/TrackLap-fw-$VER-$name.bin" || failed="$failed $name"
             else
-              failed="$failed $chip"
+              failed="$failed $name"
             fi
             echo "::endgroup::"
-          done
+          done 3< <(tr -d '\r' < firmware/build.txt)
           ls -la out
           if [ -n "$failed" ]; then echo "::error::Failed:$failed"; exit 1; fi
 
