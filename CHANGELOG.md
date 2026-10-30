@@ -22,6 +22,7 @@ Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non sol
 - Device → ESP32 shows the chip, the GPS module and its pins, warns when no GPS answers, and
   "Change pins" moves the GPS to other GPIOs for boards that use the default ones.
 - Status LED on boards that have one: red without GPS, yellow waiting for a fix, green with a fix.
+- Live: the circuit map is on satellite imagery.
 
 ### Italiano
 
@@ -39,6 +40,7 @@ Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non sol
 - Dispositivo → ESP32 mostra chip, modulo GPS e pin, avvisa se nessun GPS risponde, e "Cambia pin"
   sposta il GPS su altri GPIO per le schede che usano quelli predefiniti.
 - LED di stato sulle schede che lo hanno: rosso senza GPS, giallo in attesa del fix, verde con il fix.
+- Live: la mappa del circuito è in vista satellite.
 
 ## 0.3.0 (2026-10-30)
 
