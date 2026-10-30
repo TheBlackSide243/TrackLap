@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import MapKit
 
 struct LiveView: View {
     @Environment(AppModel.self) private var model
@@ -301,7 +302,8 @@ private struct MiniMapCard: View {
         if let track = model.selectedTrack {
             Panel(padding: 8) {
                 ZStack(alignment: .topLeading) {
-                    TrackShape(track: track, position: model.engine.position, lineWidth: 4)
+                    TrackSatelliteMap(track: track, position: model.engine.position)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     HStack(spacing: 6) {
                         Badge(text: L("Giri: \(model.engine.laps.count)"))
                         if let l = track.length { Badge(text: Fmt.distance(l), color: Theme.sub) }
@@ -310,6 +312,42 @@ private struct MiniMapCard: View {
                 }
             }
         }
+    }
+}
+
+/// The circuit on satellite imagery, framed on the whole track and not draggable: the outline, the
+/// start line in white, the sector lines in yellow and the car.
+private struct TrackSatelliteMap: View {
+    let track: Track
+    let position: Coord?
+
+    var body: some View {
+        Map(initialPosition: .region(TrackGeometry.region(for: track.allPoints, minMeters: 300)), interactionModes: []) {
+            ForEach(Array(track.outline.enumerated()), id: \.offset) { item in
+                MapPolyline(coordinates: item.element.map(\.cl))
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            }
+            ForEach(Array(track.sectors.enumerated()), id: \.offset) { item in
+                MapPolyline(coordinates: [item.element.a.cl, item.element.b.cl])
+                    .stroke(Theme.yellow, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            }
+            if let s = track.start {
+                MapPolyline(coordinates: [s.a.cl, s.b.cl])
+                    .stroke(.white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            }
+            if let position {
+                Annotation("", coordinate: position.cl) {
+                    Circle()
+                        .fill(Theme.accent)
+                        .frame(width: 14, height: 14)
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 2))
+                        .shadow(color: Theme.accent.opacity(0.8), radius: 6)
+                }
+                .annotationTitles(.hidden)
+            }
+        }
+        .mapStyle(.imagery(elevation: .flat))
+        .id(track.id)
     }
 }
 

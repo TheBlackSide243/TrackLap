@@ -1,0 +1,62 @@
+# ESP32 firmware, built with arduino-cli. firmware/build.txt lists the core, the libraries and the
+# targets, so they change without touching this file. Each target gets one merged .bin to flash at
+# address 0x0 (ESP Web Tool or esptool), in the tracklap-firmware artifact.
+name: ESP32 firmware
+
+on:
+  push:
+    paths: ['firmware/**', '.github/workflows/firmware.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Core and libraries
+        run: |
+          set -eu
+          INDEX=https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index --additional-urls "$INDEX"
+          while read -r kind rest <&3; do
+            case "$kind" in
+              core) arduino-cli core install "$rest" --additional-urls "$INDEX" ;;
+              lib) arduino-cli lib install "$rest" ;;
+            esac
+          done 3< <(tr -d '\r' < firmware/build.txt)
+          arduino-cli core list
+          arduino-cli lib list
+
+      - name: Build every target
+        run: |
+          set -u
+          VER=$(sed -n 's/^#define FW_VERSION "\(.*\)"/\1/p' firmware/TrackLap/TrackLap.ino)
+          mkdir -p out
+          failed=""
+          while read -r kind name fqbn flags <&3; do
+            [ "$kind" = target ] || continue
+            echo "::group::$name ($fqbn $flags)"
+            if arduino-cli compile --fqbn "$fqbn" --build-path "build/$name" --warnings default \
+                --build-property "compiler.cpp.extra_flags=$flags" firmware/TrackLap; then
+              cp "build/$name/TrackLap.ino.merged.bin" "out/TrackLap-fw-$VER-$name.bin" || failed="$failed $name"
+            else
+              failed="$failed $name"
+            fi
+            echo "::endgroup::"
+          done 3< <(tr -d '\r' < firmware/build.txt)
+          ls -la out
+          if [ -n "$failed" ]; then echo "::error::Failed:$failed"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tracklap-firmware
+          path: out/*.bin
+          retention-days: 30

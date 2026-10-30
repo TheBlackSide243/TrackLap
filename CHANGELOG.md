@@ -2,6 +2,46 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.4.0 (2026-10-30)
+
+Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non solo il C6, e il primo firmware.
+
+### English
+
+**New**
+- ESP32 firmware 0.1.0 in `firmware/TrackLap`, for every ESP32 with Bluetooth LE: ESP32, S3, C3,
+  C5, C6 and H2, one ready-made `.bin` per chip built by GitHub Actions.
+- Any GPS: u-blox modules (M7, M8 like the BN-220, M9, M10) are set to 115200 baud and 10 Hz by
+  themselves, any other module is read as NMEA. It can be plugged in after the board is on.
+- The ESP32 times laps and sectors by itself on the track the app sends, with the delta against the
+  best lap at every line; the track and the best lap are kept until a different track arrives.
+- Dashboard on the Waveshare ESP32-C6-LCD-1.47 screen: the lap time in big digits; the delta at
+  each sector line for 4 seconds, purple when it is the fastest ever there, green ahead of the
+  previous lap, red behind; the lap time at the finish for 5 seconds with the gap, purple for a best
+  lap, green faster than the session's average, red slower; the speed when standing still.
+- Device → ESP32 shows the chip, the GPS module and its pins, warns when no GPS answers, and
+  "Change pins" moves the GPS to other GPIOs for boards that use the default ones.
+- Status LED on boards that have one: red without GPS, yellow waiting for a fix, green with a fix.
+- Live: the circuit map is on satellite imagery.
+
+### Italiano
+
+**Novità**
+- Firmware ESP32 0.1.0 in `firmware/TrackLap`, per tutti gli ESP32 con Bluetooth LE: ESP32, S3,
+  C3, C5, C6 e H2, con un `.bin` pronto per ogni chip compilato da GitHub Actions.
+- Qualsiasi GPS: i moduli u-blox (M7, M8 come il BN-220, M9, M10) vengono impostati da soli a
+  115200 baud e 10 Hz, gli altri vengono letti in NMEA. Si può collegare anche a scheda accesa.
+- L'ESP32 cronometra giri e intermedi da solo sulla pista inviata dall'app, con il delta sul giro
+  migliore a ogni linea; pista e giro migliore restano finché non arriva una pista diversa.
+- Cruscotto sullo schermo della Waveshare ESP32-C6-LCD-1.47: tempo del giro a cifre grandi; delta a
+  ogni intermedio per 4 secondi, viola se lì sei il più veloce di sempre, verde davanti al giro
+  precedente, rosso dietro; tempo del giro al traguardo per 5 secondi con il distacco, viola se è il
+  migliore, verde più veloce della media della sessione, rosso più lento; velocità da fermo.
+- Dispositivo → ESP32 mostra chip, modulo GPS e pin, avvisa se nessun GPS risponde, e "Cambia pin"
+  sposta il GPS su altri GPIO per le schede che usano quelli predefiniti.
+- LED di stato sulle schede che lo hanno: rosso senza GPS, giallo in attesa del fix, verde con il fix.
+- Live: la mappa del circuito è in vista satellite.
+
 ## 0.3.0 (2026-10-30)
 
 Lap analysis with ideas from RaceChrono. / Analisi dei giri con idee prese da RaceChrono.

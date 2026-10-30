@@ -33,7 +33,7 @@ enum SourceKind: String, CaseIterable, Identifiable {
 
     var detail: String {
         switch self {
-        case .device: L("ESP32-C6 + GPS a 10–25 Hz via Bluetooth: tempi precisi al centesimo.")
+        case .device: L("Qualsiasi ESP32 con Bluetooth + GPS a 10–25 Hz: tempi precisi al centesimo.")
         case .phone: L("Circa 1 Hz: va bene per provare e per segnare la linea a piedi.")
         case .demo: L("Un'auto simulata gira sulla pista scelta: prova tutto senza hardware.")
         }

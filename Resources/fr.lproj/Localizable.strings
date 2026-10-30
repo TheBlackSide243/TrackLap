@@ -5,7 +5,7 @@
 "Sessioni" = "Sessions";
 "Dispositivo" = "Appareil";
 "GPS dell'iPhone" = "GPS de l'iPhone";
-"ESP32-C6 + GPS a 10–25 Hz via Bluetooth: tempi precisi al centesimo." = "ESP32-C6 + GPS à 10–25 Hz en Bluetooth : temps précis au centième.";
+"Qualsiasi ESP32 con Bluetooth + GPS a 10–25 Hz: tempi precisi al centesimo." = "Tout ESP32 avec Bluetooth + GPS à 10–25 Hz : temps précis au centième.";
 "Circa 1 Hz: va bene per provare e per segnare la linea a piedi." = "Environ 1 Hz : bien pour essayer et pour placer la ligne à pied.";
 "Un'auto simulata gira sulla pista scelta: prova tutto senza hardware." = "Une voiture simulée tourne sur le circuit choisi : essayez tout sans matériel.";
 "Autodromo" = "Circuit";
@@ -194,3 +194,12 @@
 "Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative." = "Calculées à partir du GPS : fiables avec l'ESP32 à 10 Hz, seulement indicatives avec le GPS de l'iPhone.";
 "Esporta GPX" = "Exporter en GPX";
 "Esporta CSV" = "Exporter en CSV";
+"Nessun GPS risponde: controlla i fili e i pin." = "Aucun GPS ne répond : vérifiez les fils et les broches.";
+"GPS su RX %lld · TX %lld" = "GPS sur RX %lld · TX %lld";
+"Cambia pin" = "Changer les broches";
+"Pin del GPS" = "Broches du GPS";
+"Il TX del GPS va sul pin RX dell'ESP32, l'RX del GPS sul pin TX. L'ESP32 salva i pin e si riavvia." = "Le TX du GPS va sur la broche RX de l'ESP32, le RX du GPS sur la broche TX. L'ESP32 enregistre les broches et redémarre.";
+"RX, dal TX del GPS" = "RX, depuis le TX du GPS";
+"TX, verso l'RX del GPS" = "TX, vers le RX du GPS";
+"Salva e riavvia" = "Enregistrer et redémarrer";
+"Pin predefiniti del chip" = "Broches par défaut de la puce";
