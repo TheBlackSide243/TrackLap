@@ -78,7 +78,7 @@ enum Overpass {
         );
         out tags bb 150;
         """
-        return try await run(query, timeout: 45).compactMap(candidate)
+        return try await run(query, timeout: 75).compactMap(candidate)
     }
 
     /// The raceway ways inside a box.

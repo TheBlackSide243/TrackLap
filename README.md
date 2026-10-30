@@ -9,14 +9,18 @@ con un ESP32-C6 + GPS u-blox collegato via Bluetooth, il GPS dell'iPhone o un'au
   settori colorati (viola = best, verde = meglio del giro prima, giallo = più lento),
   ultimo giro, best, velocità e mini mappa con la posizione. Avviso a fine giro con vibrazione.
   Schermo sempre acceso durante la sessione; in orizzontale per il supporto sul cruscotto.
-- **Piste**: ricerca su OpenStreetMap per nome o "vicino a me", circuiti italiani già pronti,
-  "crea qui" sul posto. Editor sulla mappa satellitare: tocchi la pista e la linea del via si mette
+- **Piste**: ricerca mentre scrivi in tutto il mondo (Photon su OpenStreetMap, meno di un secondo),
+  "piste vicino a me" o vicino a una città, catalogo di oltre 60 circuiti famosi con posizione verificata,
+  "crea qui" sul posto. Il tracciato si scarica da Overpass o, se è lento, dall'API di OpenStreetMap. Editor sulla mappa satellitare: tocchi la pista e la linea del via si mette
   di traverso al tracciato da sola; fino a 4 intermedi; "segna qui" mette la linea dove sei.
 - **Sessioni**: ogni giro viene salvato subito. Best, giro ideale (somma dei settori migliori),
   media, velocità massima, grafico dei tempi, mappa del giro colorata per velocità,
   velocità e delta sulla distanza rispetto al best, esportazione GPX.
 - **Dispositivo**: sorgente GPS (ESP32, iPhone, Demo), ricerca e collegamento BLE con
   ricollegamento automatico, invio della pista all'ESP32, impostazioni del cronometro.
+
+- **Lingue**: italiano, inglese, spagnolo, francese, tedesco e portoghese (segue la lingua dell'iPhone,
+  si cambia in Impostazioni → TrackLap). Unità km/h o mph.
 
 Il cronometraggio interpola il passaggio sulla linea tra due fix GPS: a 10 Hz l'errore è di
 pochi centesimi. Il delta confronta il tempo trascorso con quello del giro migliore alla stessa
@@ -30,6 +34,9 @@ progetto con XcodeGen, compila senza firma e pubblica l'artefatto `tracklap-ipa`
 firmano con il proprio Apple ID.
 
 Nuova versione: aumentare `MARKETING_VERSION` (e `CURRENT_PROJECT_VERSION`) in `project.yml`.
+
+Traduzioni: il testo italiano è la chiave nel codice (`Text("…")`, `L("…")`); la tabella con le altre
+lingue è in `tools/l10n.mjs`, che rigenera `Resources/<lingua>.lproj` con `node tools/l10n.mjs`.
 
 ## Protocollo BLE v1 (per il firmware ESP32)
 
