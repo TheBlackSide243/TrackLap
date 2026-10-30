@@ -2,6 +2,39 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.5.0 (2026-10-30)
+
+A welcome on the first launch, and a GitHub page with real screenshots. / Un'introduzione al primo
+avvio, e una pagina GitHub con gli screenshot veri.
+
+### English
+
+**New**
+- Intro on the first launch, in all six languages: the circuit of the icon draws itself with a car
+  lapping it, a lap with its live delta, what the app does, and the choice of GPS source (ESP32,
+  iPhone GPS or Demo). Skip it from any page; Device → Information shows it again.
+- The README opens with a banner and real screenshots of every screen, a diagram of how the parts
+  talk to each other, a preview of the ESP32 dashboard and a wiring diagram for every board.
+
+**Changed**
+- The ESP32 firmware has the same version as the app from now on: this is firmware 0.5.0, the same
+  code as 0.4.0. Boards on 0.4.0 don't need the update.
+
+### Italiano
+
+**Novità**
+- Introduzione al primo avvio, in tutte e sei le lingue: il circuito dell'icona si disegna con
+  un'auto che ci gira sopra, un giro con il delta in diretta, cosa fa l'app e la scelta della
+  sorgente GPS (ESP32, GPS dell'iPhone o Demo). Si salta da qualsiasi pagina; Dispositivo →
+  Informazioni la fa rivedere.
+- Il README si apre con un banner e gli screenshot veri di ogni schermata, uno schema di come
+  parlano le parti, un'anteprima del cruscotto dell'ESP32 e lo schema dei collegamenti per ogni
+  scheda.
+
+**Cambiato**
+- Da ora il firmware ESP32 ha lo stesso numero dell'app: questo è il firmware 0.5.0, lo stesso
+  codice della 0.4.0. Le schede con la 0.4.0 non hanno bisogno di aggiornarlo.
+
 ## 0.4.0 (2026-10-30)
 
 Every ESP32, not just the C6, and the first firmware. / Tutti gli ESP32, non solo il C6, e il primo firmware.

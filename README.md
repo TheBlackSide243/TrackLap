@@ -217,7 +217,7 @@ della media al traguardo, 3 rosso = peggio).
 salva e riavvia (`0x02 0xFF 0xFF` = pin predefiniti del chip).
 
 **INFO**, per esempio
-`{"fw":"0.4.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.5.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` è vuoto finché nessun GPS risponde; arriva una notifica quando cambiano il modulo, la
 frequenza o la pista.
 
