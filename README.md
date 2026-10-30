@@ -78,10 +78,22 @@ Bluetooth e non vanno bene.
 
 | Scheda | TX del GPS → GPIO | RX del GPS ← GPIO |
 |---|---|---|
-| ESP32 | 16 | 17 |
+| ESP32-WROOM-32 (DevKit: RX2, TX2) | 16 | 17 |
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (pin RX) | 16 (pin TX) |
+
+Negli schemi le frecce indicano dove vanno i dati: il TX del GPS va al pin che riceve, l'RX a
+quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
+
+<p>
+  <img src="docs/wiring/esp32.svg" width="300" alt="GPS collegato a ESP32-WROOM-32">
+  <img src="docs/wiring/esp32s3.svg" width="300" alt="GPS collegato a ESP32-S3">
+</p>
+<p>
+  <img src="docs/wiring/esp32c.svg" width="300" alt="GPS collegato a ESP32-C3, C5, C6, H2">
+  <img src="docs/wiring/lcd147.svg" width="300" alt="GPS collegato a Waveshare ESP32-C6-LCD-1.47">
+</p>
 
 Sulla Waveshare i GPIO 4 e 5 vanno allo slot microSD, per questo il GPS usa i pin RX e TX del
 connettore. Se la scheda usa quei pin per altro (display, LED, la PSRAM dei moduli ESP32-WROVER su
