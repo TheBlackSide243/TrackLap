@@ -9,15 +9,21 @@ con un ESP32-C6 + GPS u-blox collegato via Bluetooth, il GPS dell'iPhone o un'au
 
 - **Live**: tempo del giro in corso, delta sul best (barra verde/rossa), tempo previsto,
   settori colorati (viola = best, verde = meglio del giro prima, giallo = più lento),
-  ultimo giro, best, velocità e mini mappa con la posizione. Avviso a fine giro con vibrazione.
+  ultimo giro, best, velocità e mini mappa con la posizione. Avviso a fine giro con vibrazione
+  e annuncio vocale di tempo e distacco. Il delta può confrontare con il record della pista
+  delle sessioni precedenti, così funziona già dal primo giro.
   Schermo sempre acceso durante la sessione; in orizzontale per il supporto sul cruscotto.
 - **Piste**: ricerca mentre scrivi in tutto il mondo (Photon su OpenStreetMap, meno di un secondo),
   "piste vicino a me" o vicino a una città, catalogo di oltre 60 circuiti famosi con posizione verificata,
   "crea qui" sul posto. Il tracciato si scarica da Overpass o, se è lento, dall'API di OpenStreetMap. Editor sulla mappa satellitare: tocchi la pista e la linea del via si mette
   di traverso al tracciato da sola; fino a 4 intermedi; "segna qui" mette la linea dove sei.
 - **Sessioni**: ogni giro viene salvato subito. Best, giro ideale (somma dei settori migliori),
-  media, velocità massima, grafico dei tempi, mappa del giro colorata per velocità,
-  velocità e delta sulla distanza rispetto al best, esportazione GPX.
+  media, velocità massima, grafico dei tempi, esportazione GPX e CSV.
+- **Analisi** (idee prese da RaceChrono): confronto di un giro con un altro della sessione o con il
+  best di una sessione precedente sulla stessa pista; cursore unico per mappa, grafici di velocità
+  e delta e barra di scorrimento; mappa colorata per velocità con la velocità minima di ogni curva
+  o per dove si guadagna e si perde; confronto per settori; cerchio delle accelerazioni (g laterali
+  e longitudinali calcolate dal GPS).
 - **Dispositivo**: sorgente GPS (ESP32, iPhone, Demo), ricerca e collegamento BLE con
   ricollegamento automatico, invio della pista all'ESP32, impostazioni del cronometro.
 

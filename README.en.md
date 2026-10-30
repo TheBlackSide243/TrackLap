@@ -9,7 +9,9 @@ ESP32-C6 + u-blox GPS connected over Bluetooth, the iPhone's own GPS, or a simul
 
 - **Live**: current lap time, delta to the best lap (green/red bar), predicted lap,
   coloured sectors (purple = best, green = better than the previous lap, yellow = slower),
-  last lap, best, speed and a mini map with your position. Lap alert with vibration.
+  last lap, best, speed and a mini map with your position. Lap alert with vibration and the
+  time and gap read out loud. The delta can compare with the track record from earlier
+  sessions, so it works from the first lap.
   Screen kept on during the session; landscape for a dashboard mount.
 - **Tracks**: search as you type, worldwide (Photon on OpenStreetMap, under a second),
   "tracks near me" or near a town, a catalog of 60+ famous circuits with checked positions,
@@ -17,8 +19,11 @@ ESP32-C6 + u-blox GPS connected over Bluetooth, the iPhone's own GPS, or a simul
   OpenStreetMap API. Satellite map editor: tap the track and the start line sets itself
   across it; up to 4 sectors; "mark here" puts the line where you are.
 - **Sessions**: every lap is saved straight away. Best, ideal lap (sum of the best sectors),
-  average, top speed, lap-time chart, lap map coloured by speed, speed and delta over distance
-  against the best, GPX export.
+  average, top speed, lap-time chart, GPX and CSV export.
+- **Analysis** (ideas from RaceChrono): compare a lap with another lap of the session or the best
+  of an earlier session on the same track; one cursor for the map, the speed and delta charts and
+  a slider; map coloured by speed with the minimum speed of each corner, or by where time is
+  gained and lost; sector comparison; friction circle (lateral and longitudinal g from GPS).
 - **Device**: GPS source (ESP32, iPhone, Demo), BLE scan and connection with automatic
   reconnection, sending the track to the ESP32, timer settings.
 
