@@ -13,7 +13,7 @@ struct LapEvent {
   uint16_t lap;    // the lap that ended, or the one the sector belongs to
   uint32_t ms;     // the lap's or the sector's own time
   uint8_t sector;  // the sector that ended, from 0
-  int32_t delta;   // ms against the best lap at the same line, kNoDelta without one
+  int32_t delta;   // ms against the best lap (or the friend's) at the same line, kNoDelta without one
   bool best;       // a lap faster than the best one
   Grade grade;
 };
@@ -22,7 +22,8 @@ const int32_t kNoDelta = INT32_MAX;
 
 /// Lap and sector times from the start line and sector lines the app sends (TRACK packet), so the
 /// ESP32 times laps by itself. The crossing time is interpolated between the two fixes around it.
-/// Each line also gets the delta against the best lap, which is kept until the track changes.
+/// Each line also gets the delta against the best lap, which is kept until the track changes, or
+/// against a friend's lap the app sends (CONTROL 0x03) while one is set.
 class Laps {
  public:
   static const uint8_t kMaxLines = 8;
@@ -51,6 +52,9 @@ class Laps {
   uint32_t lastLap() const { return last_; }
   const Best& best() const { return best_; }
   void setBest(const Best& b) { best_ = b; }
+  /// A friend's lap to chase: its time and its crossings of the sector lines (0 where unknown). The
+  /// deltas are against it until it is cleared or the track changes; the best lap is kept apart.
+  void setRival(const Best& r) { rival_ = r; }
   /// True once after the best lap or a fastest sector time changed, so it can be saved.
   bool takeChanged();
 
@@ -75,5 +79,9 @@ class Laps {
   uint64_t sessionSum_ = 0;
   uint16_t sessionLaps_ = 0;
   Best best_;
+  Best rival_;
   bool changed_ = false;
+
+  /// What the deltas are against: the friend's lap while there is one, else the best lap.
+  const Best& ref() const { return rival_.lap ? rival_ : best_; }
 };

@@ -385,6 +385,6 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
 private extension Data {
     mutating func appendLE(_ v: UInt32) {
-        withUnsafeBytes(of: v.littleEndian) { append(contentsOf: $0) }
+        Swift.withUnsafeBytes(of: v.littleEndian) { append(contentsOf: $0) }
     }
 }

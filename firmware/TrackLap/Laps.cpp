@@ -31,6 +31,7 @@ bool Laps::setTrack(const uint8_t* data, size_t len) {
     lines_[i] = {(double)i32(p + 4), (double)i32(p), (double)i32(p + 12), (double)i32(p + 8)};
   }
   count_ = n;
+  rival_ = Best();
   reset();
   return true;
 }
@@ -86,7 +87,7 @@ uint8_t Laps::feed(const Fix& f, LapEvent out[2]) {
       if (running_ && at - lapStart_ < kMinLap) continue;
       if (running_) {
         uint32_t lap = ms(at - lapStart_);
-        int32_t d = delta(lap, best_.lap);
+        int32_t d = delta(lap, ref().lap);
         bool best = !best_.lap || lap < best_.lap;
         if (count_ > 1 && next_ == count_) {
           out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(count_ - 1), d, false,
@@ -118,7 +119,7 @@ uint8_t Laps::feed(const Fix& f, LapEvent out[2]) {
       uint32_t now = ms(at - lapStart_);
       split_[i] = now;
       Grade grade = lineGrade(now, best_.fastest[i], prevSplit_[i]);
-      out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(i - 1), delta(now, best_.split[i]), false, grade};
+      out[n++] = {2, (uint16_t)(lap_ + 1), ms(at - lineTime_), (uint8_t)(i - 1), delta(now, ref().split[i]), false, grade};
       if (!best_.fastest[i] || now < best_.fastest[i]) {
         best_.fastest[i] = now;
         changed_ = true;
