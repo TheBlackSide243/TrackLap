@@ -16,6 +16,12 @@ struct TrackLapApp: App {
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @AppStorage("introSeen") private var introSeen = false
+
+    /// Once, on the first launch, and again from Device; in screenshot mode only for its own screen.
+    private var showIntro: Bool {
+        Showcase.screen == nil ? !introSeen : Showcase.screen == .intro
+    }
 
     var body: some View {
         @Bindable var model = model
@@ -37,5 +43,9 @@ struct RootView: View {
                 .tag(AppTab.device)
         }
         .task { model.runShowcase() }
+        .fullScreenCover(isPresented: Binding(get: { showIntro }, set: { if !$0 { introSeen = true } })) {
+            IntroView { introSeen = true }
+                .environment(model)
+        }
     }
 }
