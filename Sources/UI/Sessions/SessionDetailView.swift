@@ -29,6 +29,7 @@ struct SessionDetailView: View {
                 }
             }
             .onChange(of: analysis != nil) { _, ready in
+                if ready, Showcase.screen == .share { sharing = session?.best }
                 // Screenshot mode: straight to the analysis, with the cursor a third of the way round.
                 guard ready, Showcase.screen == .analysis, let lap = analysis?.lap else { return }
                 Task {

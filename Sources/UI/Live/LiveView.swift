@@ -10,10 +10,18 @@ struct LiveView: View {
         ZStack(alignment: .top) {
             Theme.bg.ignoresSafeArea()
             GeometryReader { geo in
-                ScrollView {
-                    if geo.size.width > geo.size.height { wide } else { tall }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        if geo.size.width > geo.size.height { wide } else { tall }
+                    }
+                    .scrollIndicators(.hidden)
+                    .task {
+                        // Screenshot mode: down to the live group.
+                        guard Showcase.screen == .group else { return }
+                        try? await Task.sleep(for: .seconds(3))
+                        proxy.scrollTo("multiplayer", anchor: .bottom)
+                    }
                 }
-                .scrollIndicators(.hidden)
             }
             if let banner {
                 LapBanner(event: banner)
@@ -38,7 +46,7 @@ struct LiveView: View {
                 LiveStatsRow()
                 MiniMapCard().frame(height: 210)
                 SessionButton()
-                MultiplayerCard()
+                MultiplayerCard().id("multiplayer")
             } else {
                 NoTrackCard()
             }

@@ -42,7 +42,8 @@ struct SessionsView: View {
             .navigationDestination(for: UUID.self) { SessionDetailView(sessionID: $0) }
             .navigationDestination(isPresented: $showFriends) { FriendLapsView() }
             .onAppear {
-                if Showcase.screen == .session || Showcase.screen == .analysis, path.isEmpty,
+                if Showcase.screen == .friends { showFriends = true }
+                if Showcase.screen == .session || Showcase.screen == .analysis || Showcase.screen == .share, path.isEmpty,
                    let latest = model.sessions.summaries.first {
                     path = [latest.id]
                 }

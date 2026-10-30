@@ -434,6 +434,34 @@ final class GroupSession {
     private func saveMine() {
         if let data = try? JSONEncoder().encode(mine) { UserDefaults.standard.set(data, forKey: Self.mineKey) }
     }
+
+    // MARK: - Screenshot mode
+
+    /// A pretend group for the screenshot mode (see Showcase): no server, the members driven by
+    /// `showcaseMove` and `showcaseLap`.
+    func showcase(code: String, members: [GroupMember], on track: Track?, best: Double?) {
+        close()
+        self.code = code
+        mine = Mine(track: GroupTrack(track), best: best, last: best.map { $0 + 0.8 }, laps: 4)
+        self.members = members
+        for m in members { colors[m.id] = m.color }
+        status = .live
+    }
+
+    func showcaseMove(_ id: String, to p: GroupPosition) {
+        guard let i = members.firstIndex(where: { $0.id == id }) else { return }
+        members[i].position = p
+        Self.remember(p, in: &history[id, default: []])
+    }
+
+    func showcaseLap(_ id: String, time: Double) {
+        guard let i = members.firstIndex(where: { $0.id == id }) else { return }
+        members[i].last = time
+        members[i].best = min(members[i].best ?? .infinity, time)
+        members[i].laps += 1
+        members[i].lapAt = Date()
+        onStandingsChange?()
+    }
 }
 
 // MARK: - Messages
