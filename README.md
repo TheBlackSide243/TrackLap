@@ -84,6 +84,19 @@ In italiano, inglese, spagnolo, francese, tedesco e portoghese, con la lingua de
   alla classifica della sua pista, riconosciuta dalla linea del via; ESP32 (10 Hz) e iPhone (1 Hz)
   hanno classifiche separate, i giri della Demo non entrano mai.
 
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/it-challenge.webp" alt="Live con la sfida al giro di Giulia"></td>
+    <td width="33%"><img src="docs/readme/it-group.webp" alt="Live con la classifica del gruppo e i distacchi in pista"></td>
+    <td width="33%"><img src="docs/readme/it-share.webp" alt="Condivisione di un giro come file .tracklap"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>La sfida al giro di un amico</sub></td>
+    <td align="center"><sub>Il gruppo live</sub></td>
+    <td align="center"><sub>Un giro da mandare</sub></td>
+  </tr>
+</table>
+
 Gruppi e classifiche passano dal server di TrackLap in [`server/`](server/README.md), un Cloudflare
 Worker con Durable Objects: riceve nome, auto e tempi, e la posizione solo mentre sei in un gruppo.
 
