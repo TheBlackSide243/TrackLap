@@ -84,6 +84,19 @@ In Italian, English, Spanish, French, German and Portuguese, following the iPhon
   leaderboard of its track, recognised by the start line; the ESP32 (10 Hz) and the iPhone (1 Hz)
   have separate boards, and Demo laps never go in.
 
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/en-challenge.webp" alt="Live while chasing Giulia's lap"></td>
+    <td width="33%"><img src="docs/readme/en-group.webp" alt="Live with the group standings and the gaps on track"></td>
+    <td width="33%"><img src="docs/readme/en-share.webp" alt="Sharing a lap as a .tracklap file"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Chasing a friend's lap</sub></td>
+    <td align="center"><sub>The live group</sub></td>
+    <td align="center"><sub>A lap to send</sub></td>
+  </tr>
+</table>
+
 Groups and leaderboards go through the TrackLap server in [`server/`](server/README.md), a Cloudflare
 Worker with Durable Objects: it gets your name, vehicle and times, and your position only while you
 are in a group.
