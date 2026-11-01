@@ -48,8 +48,10 @@ or later, nothing to install).
 
 Cloudflare deploys it from this folder through its Git integration (Workers & Pages → the `tracklap`
 Worker → Settings → Build, root directory `server`), with `npx wrangler deploy` and the migrations
-in [`wrangler.toml`](wrangler.toml). The app talks to `https://tracklap.tbsgaming.win`, a custom
-domain on the Worker; `-server <url>` on the app's command line points it somewhere else.
+in [`wrangler.toml`](wrangler.toml), at every push to `main`. The app talks to
+`https://tracklap.tbsgaming.win`, a custom domain on the Worker (also at
+`https://tracklap.theblackside243.workers.dev`); `-server <url>` on the app's command line points it
+somewhere else.
 
 ## Italiano
 
@@ -70,5 +72,6 @@ nelle tabelle sopra.
 
 `npm test` prova i due oggetti con una copia in memoria del runtime dei Durable Object (Node 22 o
 successivo, niente da installare). Cloudflare lo pubblica da questa cartella con l'integrazione Git
-(Workers & Pages → il Worker `tracklap` → Settings → Build, cartella `server`); l'app usa
-`https://tracklap.tbsgaming.win`, dominio personalizzato del Worker.
+(Workers & Pages → il Worker `tracklap` → Settings → Build, cartella `server`) a ogni push su
+`main`; l'app usa `https://tracklap.tbsgaming.win`, dominio personalizzato del Worker (c'è anche
+`https://tracklap.theblackside243.workers.dev`).
