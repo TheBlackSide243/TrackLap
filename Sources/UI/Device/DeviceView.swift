@@ -336,7 +336,7 @@ private struct SettingsPanel: View {
                 Toggle(isOn: Binding(get: { model.voiceOn }, set: { model.setVoice($0) })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Annuncio vocale").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                        Text("A fine giro legge tempo e distacco, abbassando la musica.").font(.caption).foregroundStyle(Theme.sub)
+                        Text("A fine giro legge tempo e distacco, nel Drag i tempi principali, abbassando la musica.").font(.caption).foregroundStyle(Theme.sub)
                     }
                 }
                 .tint(Theme.accent)

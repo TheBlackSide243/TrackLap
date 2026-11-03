@@ -255,6 +255,7 @@ bool Gps::feedUbx(uint8_t c, Fix& out) {
   int32_t heading = (int32_t)u32(p + 64);  // 1e-5 degrees
   out.speed = speed > 0 ? speed / 10 : 0;
   out.heading = heading > 0 ? heading / 1000 : 0;
+  if (out.fix3d) out.alt = (int32_t)u32(p + 36);  // hMSL, mm
   return true;
 }
 
@@ -276,7 +277,7 @@ bool Gps::feedNmea(uint8_t c, Fix& out) {
   return false;
 }
 
-// True on an RMC sentence; GGA and GSA only fill in the satellites and the 3D flag.
+// True on an RMC sentence; GGA and GSA only fill in the satellites, the altitude and the 3D flag.
 bool Gps::parseNmea(Fix& out) {
   char* star = strchr(line_, '*');
   if (!star || strlen(star) < 3) return false;
@@ -298,6 +299,7 @@ bool Gps::parseNmea(Fix& out) {
   const char* type = f[0] + 2;  // after the talker: GPRMC, GNRMC…
   if (!strcmp(type, "GGA") && n > 7) {
     nmeaSats_ = atoi(f[7]);
+    nmeaAlt_ = n > 9 && f[9][0] ? (int32_t)lround(atof(f[9]) * 1000) : INT32_MIN;
     return false;
   }
   if (!strcmp(type, "GSA") && n > 2) {
@@ -309,6 +311,7 @@ bool Gps::parseNmea(Fix& out) {
   out.valid = f[2][0] == 'A';
   out.fix3d = out.valid && nmea3d_;
   out.sats = nmeaSats_;
+  if (out.fix3d) out.alt = nmeaAlt_;
   out.lat = nmeaCoord(f[3], f[4][0] == 'S');
   out.lon = nmeaCoord(f[5], f[6][0] == 'W');
   out.speed = (uint32_t)(atof(f[7]) * 51.4444 + 0.5);  // knots

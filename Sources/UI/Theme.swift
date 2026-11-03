@@ -62,6 +62,22 @@ enum Fmt {
 
     static func speed(_ v: Double) -> String { "\(Int((v * speedFactor).rounded()))" }
 
+    /// A drag time: hundredths of a second, no minutes.
+    static func dragTime(_ t: Double?) -> String {
+        guard let t, t.isFinite, t >= 0 else { return "—" }
+        return String(format: "%.2f", t)
+    }
+
+    /// A stopping distance: to the tenth of a metre, or in feet.
+    static func shortDistance(_ m: Double) -> String {
+        Units.current == .imperial ? "\(Int((m * 3.28084).rounded()))" : String(format: "%.1f", m)
+    }
+
+    static var shortDistanceUnit: String { Units.current == .imperial ? "ft" : "m" }
+
+    /// The road's slope: "+0.4%".
+    static func slope(_ s: Double) -> String { String(format: "%+.1f%%", s) }
+
     static func hz(_ r: Double) -> String {
         r >= 2 ? "\(Int(r.rounded())) Hz" : String(format: "%.1f Hz", r)
     }

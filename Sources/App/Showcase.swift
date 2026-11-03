@@ -7,6 +7,7 @@ import Foundation
 enum Showcase: String {
     case live, tracks, editor, sessions, session, analysis, device, intro
     case challenge, group, friends, share
+    case drag, dragRun
 
     static let screen: Showcase? = {
         let args = ProcessInfo.processInfo.arguments
@@ -33,6 +34,11 @@ extension AppModel {
             profile.set(vehicle: "Civic Type R")
             fillFriendLaps(on: track)
         }
+        if [.drag, .dragRun].contains(screen) {
+            profile.set(vehicle: "Civic Type R")
+            setSource(.demo)
+            fillDemoDrags()
+        }
         switch screen {
         case .intro: tab = .live
         case .live:
@@ -53,6 +59,25 @@ extension AppModel {
         case .tracks, .editor: tab = .tracks
         case .sessions, .session, .analysis, .friends, .share: tab = .sessions
         case .device: tab = .device
+        case .drag:
+            tab = .drag
+            setDragMode(true)
+            startDemoDrag()
+        case .dragRun: tab = .drag
+        }
+    }
+
+    /// Three runs from a standstill a few days apart, the car a little quicker every time.
+    private func fillDemoDrags() {
+        guard drags.summaries.isEmpty else { return }
+        let origin = selectedTrack.map { $0.start?.mid ?? $0.center } ?? Coord(43.9975, 11.3719)
+        let now = Date().timeIntervalSince1970
+        for (k, power) in [0.94, 0.97, 1.0].enumerated() {
+            let timer = DragEngine()
+            timer.source = SourceKind.demo.rawValue
+            timer.vehicle = profile.displayVehicle
+            timer.onFinish = { [weak self] in self?.drags.save($0) }
+            for s in DemoDrag.simulate(at: origin, power: power, from: now - Double(3 - k) * 2 * 86_400) { timer.ingest(s) }
         }
     }
 
