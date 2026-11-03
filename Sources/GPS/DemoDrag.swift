@@ -37,16 +37,16 @@ final class DemoDrag {
         var t = t0
         while !car.done {
             t += 0.1
-            out.append(car.advance(dt: 0.1, at: t))
+            out.append(car.advance(dt: 0.1, at: t, wall: Date(timeIntervalSince1970: t)))
         }
         return out
     }
 
+    /// A clock of its own, a tenth of a second a fix like a GPS: when the main thread is busy the run
+    /// slows down instead of getting a gap, which the timer would take for a lost signal.
     private func tick() {
-        let now = Date().timeIntervalSince1970
-        let dt = min(0.3, max(0.01, now - t))
-        t = now
-        onSample?(car.advance(dt: dt, at: now))
+        t += 0.1
+        onSample?(car.advance(dt: 0.1, at: t, wall: Date()))
         if car.done { stop() }
     }
 
@@ -73,7 +73,7 @@ final class DemoDrag {
         /// Standing for 3 s, the run, then 3 s stopped.
         var done: Bool { stoppedAt.map { clock - $0 > 3 } ?? false }
 
-        mutating func advance(dt: Double, at time: Double) -> Sample {
+        mutating func advance(dt: Double, at time: Double, wall: Date) -> Sample {
             clock += dt
             if clock > 3 && stoppedAt == nil {
                 let a: Double
@@ -100,7 +100,7 @@ final class DemoDrag {
             // A gentle climb of 0.4%.
             let alt = 120 + s * 0.004 + Double.random(in: -0.15...0.15)
             return Sample(t: time, coord: frame.coord(dir * s + jitter), speed: max(0, v + noise), heading: heading,
-                          wall: Date(timeIntervalSince1970: time), utc: time, alt: alt)
+                          wall: wall, utc: time, alt: alt)
         }
     }
 }

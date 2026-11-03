@@ -100,11 +100,12 @@ final class LapVoice: NSObject, AVSpeechSynthesizerDelegate {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    /// A voice in the language the app is shown in.
-    private static var voice: AVSpeechSynthesisVoice? {
+    /// A voice in the language the app is shown in, looked up once: going through the voices can
+    /// hold up the main thread for seconds.
+    private static let voice: AVSpeechSynthesisVoice? = {
         let code = Bundle.main.preferredLocalizations.first ?? "en"
         let current = AVSpeechSynthesisVoice.currentLanguageCode()
         if current.hasPrefix(code) { return AVSpeechSynthesisVoice(language: current) }
         return AVSpeechSynthesisVoice.speechVoices().first { $0.language.hasPrefix(code) }
-    }
+    }()
 }
