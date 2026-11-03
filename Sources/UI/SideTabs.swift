@@ -63,11 +63,12 @@ struct SideTabBar: View {
         (.device, "Dispositivo", "antenna.radiowaves.left.and.right"),
     ]
 
-    /// In the status column the icons start below the time and the battery, lower still while the
-    /// island is taller (a call, the screen being recorded), where they move down to about 250 pt.
+    /// In the status column the icons start below the time, the battery and the front camera, whose
+    /// ring ends about 166 pt down on the closed Duo (measured on the user's screenshot), lower still
+    /// while the island is taller (a call, the screen being recorded).
     private var top: CGFloat {
         guard layout.statusColumn else { return insets.top + 8 }
-        return max(insets.top + 8, islandTall ? 264 : 160)
+        return max(insets.top + 8, islandTall ? 288 : 184)
     }
 
     var body: some View {

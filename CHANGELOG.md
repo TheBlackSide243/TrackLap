@@ -2,6 +2,28 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.7.2 (2026-11-03)
+
+The closed iPhone Duo's tabs below the camera. / Le schede del Duo chiuso sotto la fotocamera.
+
+### English
+
+**Fixed**
+- **iPhone Duo closed**: the first tab covered the bottom of the front camera; the tabs now start
+  below it.
+
+**Firmware 0.7.2**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Corretto**
+- **iPhone Duo chiuso**: la prima scheda copriva la parte bassa della fotocamera; ora le schede
+  partono sotto.
+
+**Firmware 0.7.2**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.7.1 (2026-11-03)
 
 Tabs on the right, for the iPhone Duo and the iPhone on its side. / Schede a destra, per l'iPhone
