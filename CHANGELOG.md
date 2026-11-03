@@ -2,6 +2,50 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.7.0 (2026-11-03)
+
+Drag: acceleration and braking like a performance meter, on the iPhone and the ESP32 dashboard. /
+Drag: accelerazione e frenata come un misuratore di prestazioni, sull'iPhone e sul cruscotto
+dell'ESP32.
+
+### English
+
+**New**
+- **Drag tab**: stop, *READY* comes up, and the clock starts by itself when the car moves off. From
+  the GPS speed, each threshold interpolated between two fixes: 0–50, 0–100, 0–150 and 0–200 km/h,
+  60 ft, 1/8 and 1/4 mile and 1000 m with the trap speed, 80–120 and 100–200 km/h also rolling, and
+  100–0 km/h with the stopping distance (0–30, 0–60, 0–100, 0–130, 50–70, 60–130 mph, the half mile
+  and 60–0 in mph). Optional 1 ft rollout, as on a drag strip.
+- For every run: the road's slope from the GPS altitude, the peak g, speed and acceleration charts,
+  and a picture to share. Your records of each measure, in purple, and the history of every run.
+- The voice reads 0–100 (0–60), the quarter mile and braking; a banner shows every measure as it
+  is done.
+- Demo: a simulated run, a hot hatch on a kilometre of straight road.
+
+**Firmware 0.7.0**
+- The FIX packet carries the altitude (24 bytes, the first 20 as before), for the slope.
+- CONTROL `0x05`: the Waveshare dashboard switches to drag, with the speed, *READY* / *GO* with the
+  run's time, and the main results for 5 seconds.
+
+### Italiano
+
+**Novità**
+- **Scheda Drag**: ti fermi, compare *PRONTO*, e il tempo parte da solo quando l'auto si muove.
+  Dalla velocità del GPS, con ogni soglia interpolata tra due fix: 0–50, 0–100, 0–150 e 0–200 km/h,
+  60 ft, 1/8 e 1/4 di miglio e 1000 m con la velocità all'arrivo, 80–120 e 100–200 km/h anche
+  lanciati, e 100–0 km/h con lo spazio di arresto (in mph 0–30, 0–60, 0–100, 0–130, 50–70, 60–130,
+  mezzo miglio e 60–0). Rollout di 1 ft a scelta, come sulle piste di accelerazione.
+- Per ogni corsa: la pendenza della strada dall'altitudine del GPS, il picco di g, i grafici di
+  velocità e accelerazione e un'immagine da condividere. I tuoi record di ogni misura, in viola, e
+  lo storico di tutte le corse.
+- La voce legge 0–100 (0–60), quarto di miglio e frenata; un banner mostra ogni misura appena fatta.
+- Demo: una corsa simulata, una hot hatch su un chilometro di rettilineo.
+
+**Firmware 0.7.0**
+- Il pacchetto FIX porta l'altitudine (24 byte, i primi 20 come prima), per la pendenza.
+- CONTROL `0x05`: il cruscotto della Waveshare passa alla modalità drag, con la velocità, *READY* /
+  *GO* con il tempo della corsa e i risultati principali per 5 secondi.
+
 ## 0.6.0 (2026-10-30)
 
 Multiplayer: friends' laps to chase, live groups and online leaderboards. / Multiplayer: i giri

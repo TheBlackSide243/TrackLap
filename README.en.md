@@ -101,6 +101,26 @@ Groups and leaderboards go through the TrackLap server in [`server/`](server/REA
 Worker with Durable Objects: it gets your name, vehicle and times, and your position only while you
 are in a group.
 
+## Drag
+
+The **Drag** tab turns TrackLap into a performance meter. Stop, *READY* comes up, and the clock
+starts by itself as soon as the car moves: no button to press. Times come from the GPS speed
+(steadier than the positions) and the distance from adding it up, each threshold interpolated
+between two fixes: at 10 Hz or more they are good to a few hundredths.
+
+- **Standing start**: 0–50, 0–100, 0–150 and 0–200 km/h; 60 ft, 1/8 and 1/4 mile and 1000 m, with
+  the trap speed. With the *1 ft rollout* the clock starts after the first foot, as on a drag strip.
+- **Rolling**: 80–120 and 100–200 km/h, on the move, without stopping.
+- **Braking**: 100–0 km/h, with the stopping distance.
+- In mph: 0–30, 0–60, 0–100 and 0–130, 50–70 and 60–130, the half mile instead of 1000 m, and 60–0.
+- For every run the road's **slope** from the GPS altitude (downhill times can't be compared), the
+  peak g, the speed and acceleration charts and a **picture to share**. Your best of each measure is
+  in purple, and the voice reads 0–100, the quarter mile and braking.
+- On the Waveshare the dashboard switches to drag: the speed in big digits, *READY* when stopped,
+  *GO* with the run's time, and the main results for 5 seconds.
+
+Only ever test where the road is closed to traffic.
+
 ## The hardware
 
 <p align="center">
@@ -167,7 +187,9 @@ Bluetooth and will not do.
   the best lap comes up for 4 seconds: purple when you are the fastest ever at that point, green when
   ahead of the previous lap, red when behind. At the finish the lap time comes up for 5 seconds with
   the gap: purple for a best lap, green when faster than the session's average, red when slower. Standing still it shows the speed;
-  at the top the lap, satellites, rate and a green dot while the app is connected.
+  at the top the lap, satellites, rate and a green dot while the app is connected. With the app's
+  Drag tab open it shows the speed, *READY* when stopped, *GO* with the run's time, and the main
+  results.
 - **LED**: on boards with an RGB LED it is red without GPS, yellow while waiting for a fix and green
   with a fix; it blinks until the app connects.
 
@@ -221,11 +243,11 @@ All numbers are little-endian.
 | CONTROL | `7A1C0004-…` | write (with response) | commands |
 | INFO | `7A1C0005-…` | read, notify | the ESP32's state as JSON |
 
-**FIX**, 20 bytes (fits the minimum MTU):
+**FIX**, 24 bytes; the first 20 fit the minimum MTU, and with that the app does without the altitude:
 
 | Offset | Type | Field |
 |---|---|---|
-| 0 | u8 | version = 1 |
+| 0 | u8 | version = 2 (1 up to firmware 0.6.0, 20 bytes without the altitude) |
 | 1 | u8 | flags: bit0 valid fix, bit1 3D fix |
 | 2 | u8 | satellites |
 | 3 | u8 | GPS rate in Hz |
@@ -234,6 +256,7 @@ All numbers are little-endian.
 | 12 | i32 | longitude × 1e7 |
 | 16 | u16 | speed in cm/s |
 | 18 | u16 | heading in hundredths of a degree |
+| 20 | i32 | altitude above sea level in mm (`0x80000000` without a 3D fix) |
 
 Without GPS the ESP32 sends an empty FIX (not valid, 0 satellites) every second.
 
@@ -254,10 +277,14 @@ in ms (a friend's lap time, then when it crossed sector lines 1 … n-1, 0 when 
 to chase, and the deltas of LAP and of the dashboard are against it until `0x03` alone or another
 track arrives; `0x04 position count i32 gap` is the place in the live group (position 0 = no group,
 the gap in ms to the driver ahead, negative when first, `0x7FFFFFFF` for none), shown at the top of
-the dashboard and, when it changes, for 4 seconds at the bottom.
+the dashboard and, when it changes, for 4 seconds at the bottom; `0x05` is the drag dashboard of the
+app's Drag tab: `0x05 0x00` goes back to the lap one, `0x05 0x01 state u32 ms` shows it (state 0
+waiting for the car to stop, 1 ready, 2 a run that started that many ms ago), `0x05 0x02 flags u32
+value label` shows a result for 5 seconds (flags bit0 a personal best, in purple, bit1 the value is a
+distance in cm, else a time in ms; the label in ASCII, up to 12 characters).
 
 **INFO**, for example
-`{"fw":"0.6.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.7.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` is empty while no GPS answers; a notification comes when the module, the rate or the track
 changes.
 
