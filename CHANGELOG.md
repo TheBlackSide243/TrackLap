@@ -2,6 +2,36 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.7.1 (2026-11-03)
+
+Tabs on the right, for the iPhone Duo and the iPhone on its side. / Schede a destra, per l'iPhone
+Duo e l'iPhone in orizzontale.
+
+### English
+
+**New**
+- **Tabs on the right** when the screen is wider than it is tall: the iPhone Duo opened, or the
+  iPhone on its side in the car mount. The page keeps its whole height.
+- **iPhone Duo closed**: the tabs are the column on the right where iOS writes the time and the
+  battery, below them, and move lower while a call or a screen recording makes the island taller.
+- **Device → Tab bar**: Automatic (the default), Bottom or Right.
+
+**Firmware 0.7.1**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Novità**
+- **Schede a destra** quando lo schermo è più largo che alto: l'iPhone Duo aperto, o l'iPhone in
+  orizzontale sul supporto in auto. La pagina tiene tutta la sua altezza.
+- **iPhone Duo chiuso**: le schede sono la colonna a destra dove iOS scrive ora e batteria, sotto di
+  esse, e scendono più in basso quando una chiamata o una registrazione dello schermo allunga
+  l'isola.
+- **Dispositivo → Barra delle schede**: Automatica (predefinita), In basso o A destra.
+
+**Firmware 0.7.1**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.7.0 (2026-11-03)
 
 Drag: acceleration and braking like a performance meter, on the iPhone and the ESP32 dashboard. /
