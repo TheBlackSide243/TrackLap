@@ -119,6 +119,17 @@ between two fixes: at 10 Hz or more they are good to a few hundredths.
 - On the Waveshare the dashboard switches to drag: the speed in big digits, *READY* when stopped,
   *GO* with the run's time, and the main results for 5 seconds.
 
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/en-drag.webp" alt="Drag with the demo run at full speed and the times filling in"></td>
+    <td width="33%"><img src="docs/readme/en-drag-run.webp" alt="A finished drag run, with the records in purple"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>A run, live</sub></td>
+    <td align="center"><sub>Every measure of a run</sub></td>
+  </tr>
+</table>
+
 Only ever test where the road is closed to traffic.
 
 ## The hardware

@@ -120,6 +120,17 @@ interpolata tra due fix: a 10 Hz o più sono precisi a pochi centesimi.
 - Sulla Waveshare il cruscotto passa alla modalità drag: la velocità a cifre grandi, *READY* da
   fermo, *GO* con il tempo della corsa e i risultati principali per 5 secondi.
 
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/it-drag.webp" alt="Drag con la corsa demo in pieno e i tempi che si riempiono"></td>
+    <td width="33%"><img src="docs/readme/it-drag-run.webp" alt="Una corsa drag finita, con i record in viola"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Una corsa in diretta</sub></td>
+    <td align="center"><sub>Tutte le misure di una corsa</sub></td>
+  </tr>
+</table>
+
 Le prove si fanno solo dove la strada è chiusa al traffico.
 
 ## L'hardware
