@@ -1,4 +1,3 @@
-import CallKit
 import SwiftUI
 import UIKit
 
@@ -26,8 +25,8 @@ enum TabbarPlace: String, CaseIterable, Identifiable {
 struct SideTabsLayout {
     /// A right inset this wide is not a camera cutout (an iPhone on its side keeps about 60 pt
     /// there): it is the column the iPhone Duo's closed screen writes the time and the battery in
-    /// (about 80 pt, the status block about 150 pt tall). The tabs are then that column, their icons
-    /// below the status block, instead of a bar beside it.
+    /// (about 80 pt). The tabs are then that column, below the status block, instead of a bar
+    /// beside it.
     static let statusColumnMin: CGFloat = 70
 
     let side: Bool
@@ -53,7 +52,6 @@ struct SideTabBar: View {
     @Binding var tab: AppTab
     let layout: SideTabsLayout
     let insets: EdgeInsets
-    let islandTall: Bool
 
     static let tabs: [(tab: AppTab, title: LocalizedStringKey, symbol: String)] = [
         (.live, "Live", "stopwatch.fill"),
@@ -63,17 +61,17 @@ struct SideTabBar: View {
         (.device, "Dispositivo", "antenna.radiowaves.left.and.right"),
     ]
 
-    /// In the status column the icons start below the time, the battery and the front camera, whose
-    /// ring ends about 166 pt down on the closed Duo (measured on the user's screenshot), lower still
-    /// while the island is taller (a call, the screen being recorded).
-    private var top: CGFloat {
-        guard layout.statusColumn else { return insets.top + 8 }
-        return max(insets.top + 8, islandTall ? 288 : 184)
-    }
+    /// In the closed Duo's status column the tabs stand at the bottom, as the Home screen's dock
+    /// does there, and never above this. Above them the system writes the time and the battery
+    /// around the front camera, and the whole block moves down when the island grows: about
+    /// 166 pt down normally, 202 pt with another app's activity in the island (both measured on
+    /// the user's screenshots). iOS tells an app neither how tall the island is nor what another
+    /// app shows in it, so the tabs keep clear of it from below instead of guessing.
+    static let statusBlockClearance: CGFloat = 224
 
     var body: some View {
-        VStack(spacing: layout.compact || islandTall ? 0 : 4) {
-            if !layout.statusColumn { Spacer(minLength: 0) }
+        VStack(spacing: layout.compact ? 0 : 4) {
+            Spacer(minLength: layout.statusColumn ? Self.statusBlockClearance : 0)
             ForEach(Self.tabs, id: \.tab) { item in
                 Button {
                     tab = item.tab
@@ -91,17 +89,17 @@ struct SideTabBar: View {
                     }
                     .foregroundStyle(tab == item.tab ? Theme.accent : Theme.sub)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, layout.compact || islandTall ? 6 : 8)
+                    .padding(.vertical, layout.compact ? 6 : 8)
                     .background(tab == item.tab ? Theme.button : .clear, in: RoundedRectangle(cornerRadius: 12))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(tab == item.tab ? .isSelected : [])
             }
-            Spacer(minLength: 0)
+            if !layout.statusColumn { Spacer(minLength: 0) }
         }
-        .padding(.top, top)
-        .padding(.bottom, insets.bottom + 8)
+        .padding(.top, insets.top + 8)
+        .padding(.bottom, insets.bottom + (layout.statusColumn ? 16 : 8))
         .padding(.leading, 4)
         .padding(.trailing, layout.statusColumn ? 4 : insets.trailing + 4)
         .frame(width: layout.width)
@@ -110,35 +108,5 @@ struct SideTabBar: View {
         .overlay(alignment: .leading) {
             if !layout.statusColumn { Rectangle().fill(Theme.line.opacity(0.6)).frame(width: 0.5) }
         }
-        .animation(.easeOut(duration: 0.3), value: islandTall)
     }
-}
-
-/// Whether the island is taller than usual, which pushes the closed Duo's time and battery down.
-/// iOS does not say how tall the island is, nor what another app shows in it, but two of the
-/// reasons it grows it does tell: the screen being recorded and a call going on, a phone call or
-/// any app's (CallKit).
-@Observable
-final class IslandWatch: NSObject, CXCallObserverDelegate {
-    private(set) var tall = false
-    @ObservationIgnored private let calls = CXCallObserver()
-
-    override init() {
-        super.init()
-        calls.setDelegate(self, queue: .main)
-        for name in [UIScreen.capturedDidChangeNotification, UIApplication.didBecomeActiveNotification] {
-            NotificationCenter.default.addObserver(self, selector: #selector(update), name: name, object: nil)
-        }
-        update()
-    }
-
-    @objc func update() {
-        let recording = UIApplication.shared.connectedScenes.contains {
-            ($0 as? UIWindowScene)?.traitCollection.sceneCaptureState == .active
-        }
-        let now = recording || calls.calls.contains { !$0.hasEnded }
-        if now != tall { tall = now }
-    }
-
-    func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) { update() }
 }

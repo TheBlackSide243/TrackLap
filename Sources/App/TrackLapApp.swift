@@ -19,9 +19,7 @@ struct RootView: View {
     @AppStorage("introSeen") private var introSeen = false
     @State private var imported: FriendLap?
     @State private var importError: String?
-    @State private var island = IslandWatch()
     @AppStorage(TabbarPlace.key) private var tabbarPlace: TabbarPlace = .auto
-    @Environment(\.scenePhase) private var scenePhase
 
     /// Once, on the first launch, and again from Device; in screenshot mode only for its own screen.
     private var showIntro: Bool {
@@ -35,14 +33,13 @@ struct RootView: View {
             HStack(spacing: 0) {
                 tabs(hideBar: layout.side)
                 if layout.side {
-                    SideTabBar(tab: $model.tab, layout: layout, insets: geo.safeAreaInsets, islandTall: island.tall)
+                    SideTabBar(tab: $model.tab, layout: layout, insets: geo.safeAreaInsets)
                 }
             }
             .ignoresSafeArea(edges: layout.side ? .trailing : [])
         }
         .background(Theme.bg.ignoresSafeArea())
         .task { model.runShowcase() }
-        .onChange(of: scenePhase) { _, _ in island.update() }
         .onChange(of: model.tab) { _, tab in model.setDragMode(tab == .drag) }
         .onOpenURL(perform: open)
         .alert(L("Giro di un amico"), isPresented: Binding(get: { imported != nil }, set: { if !$0 { imported = nil } }),

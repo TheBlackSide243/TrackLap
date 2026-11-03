@@ -2,6 +2,33 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.7.3 (2026-11-03)
+
+The closed iPhone Duo's tabs at the bottom of the column, clear of the island. / Le schede del Duo
+chiuso in fondo alla colonna, lontane dall'isola.
+
+### English
+
+**Changed**
+- **iPhone Duo closed**: the tabs stand at the bottom of the right column, like the Home screen's
+  dock. When another app shows something in the island (navigation, a timer) the time and the
+  battery move down, and iOS does not tell an app: from the bottom the tabs stay clear of them
+  whatever the island shows.
+
+**Firmware 0.7.3**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Modificato**
+- **iPhone Duo chiuso**: le schede stanno in fondo alla colonna di destra, come il dock della Home.
+  Quando un'altra app mostra qualcosa nell'isola (navigazione, un timer) ora e batteria scendono, e
+  iOS non lo dice alle app: partendo dal basso le schede restano libere qualunque cosa mostri
+  l'isola.
+
+**Firmware 0.7.3**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.7.2 (2026-11-03)
 
 The closed iPhone Duo's tabs below the camera. / Le schede del Duo chiuso sotto la fotocamera.
