@@ -165,7 +165,8 @@ final class DragEngine {
 
         if f.v < Self.stillSpeed {
             if stillSince == nil { stillSince = f.t }
-            if live == nil, let s = stillSince, f.t - s >= 1 { setPhase(.ready) }
+            // A second still, give or take a fix of the iPhone's.
+            if live == nil, let s = stillSince, f.t - s >= 0.9 { setPhase(.ready) }
         } else {
             stillSince = nil
             if live == nil && (phase != .ready || f.v >= Self.launchSpeed) { setPhase(.moving) }
@@ -175,9 +176,20 @@ final class DragEngine {
     // MARK: - Runs
 
     private func launch(_ p: Fix, _ f: Fix, _ dt: Double) {
-        // Back to the moment the car moved off, at the acceleration between the two fixes.
-        let back = dt * f.v / max(f.v - p.v, 0.01)
-        let t0 = min(f.t, max(p.t - dt, f.t - back))
+        // Back to the moment the car moved off: the line through the speeds since it was last still
+        // (one pair of fixes is too noisy at 25 Hz), down to zero; not before it was last still.
+        let still = recent.last { $0.v <= 0.1 && $0.t <= p.t }?.t
+        let moving = recent.filter { $0.t > (still ?? -.infinity) && $0.v > 0.1 }
+        var guess = f.t - dt * f.v / max(f.v - p.v, 0.01)
+        if moving.count >= 2 {
+            let n = Double(moving.count)
+            let tm = moving.map(\.t).reduce(0, +) / n
+            let vm = moving.map(\.v).reduce(0, +) / n
+            let num = moving.map { ($0.t - tm) * ($0.v - vm) }.reduce(0, +)
+            let den = moving.map { ($0.t - tm) * ($0.t - tm) }.reduce(0, +)
+            if den > 0 && num / den > 0.5 { guess = tm - vm / (num / den) }
+        }
+        let t0 = min(f.t, max(max(still ?? p.t - dt, f.t - max(2 * dt, 0.5)), guess))
         let r = Live(standing: true, t0: t0, wall: f.wall.addingTimeInterval(t0 - f.t), start: p.coord, rollout: rollout)
         r.d = f.v / 2 * (f.t - t0)
         r.lastT = f.t
