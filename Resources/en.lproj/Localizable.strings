@@ -349,3 +349,8 @@
 "quarto di miglio" = "quarter mile";
 "ottavo di miglio" = "eighth mile";
 "mezzo miglio" = "half mile";
+"Barra delle schede" = "Tab bar";
+"Automatica" = "Automatic";
+"In basso" = "Bottom";
+"A destra" = "Right";
+"Automatica: a destra quando lo schermo è più largo che alto, come l'iPhone in orizzontale o il Duo aperto, e nella colonna dell'ora del Duo chiuso." = "Automatic: on the right when the screen is wider than it is tall, like the iPhone on its side or the Duo opened, and in the closed Duo's clock column.";

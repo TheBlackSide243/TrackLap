@@ -300,6 +300,7 @@ private struct DemoSection: View {
 
 private struct SettingsPanel: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(TabbarPlace.key) private var tabbarPlace: TabbarPlace = .auto
 
     private var currentLanguage: String {
         let code = Bundle.main.preferredLocalizations.first ?? "en"
@@ -346,6 +347,14 @@ private struct SettingsPanel: View {
                         ForEach(Units.allCases) { Text(verbatim: $0.title).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Barra delle schede").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Picker("Barra delle schede", selection: $tabbarPlace) {
+                        ForEach(TabbarPlace.allCases) { Text(verbatim: $0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("Automatica: a destra quando lo schermo è più largo che alto, come l'iPhone in orizzontale o il Duo aperto, e nella colonna dell'ora del Duo chiuso.").font(.caption).foregroundStyle(Theme.sub)
                 }
                 Button {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }

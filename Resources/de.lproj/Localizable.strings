@@ -349,3 +349,8 @@
 "quarto di miglio" = "Viertelmeile";
 "ottavo di miglio" = "Achtelmeile";
 "mezzo miglio" = "halbe Meile";
+"Barra delle schede" = "Tableiste";
+"Automatica" = "Automatisch";
+"In basso" = "Unten";
+"A destra" = "Rechts";
+"Automatica: a destra quando lo schermo è più largo che alto, come l'iPhone in orizzontale o il Duo aperto, e nella colonna dell'ora del Duo chiuso." = "Automatisch: rechts, wenn der Bildschirm breiter als hoch ist, wie beim iPhone im Querformat oder beim aufgeklappten Duo, und in der Uhrzeitspalte des zugeklappten Duo.";

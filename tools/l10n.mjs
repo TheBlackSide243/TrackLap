@@ -585,6 +585,16 @@ const strings = [
   ['quarto di miglio', 'quarter mile', 'cuarto de milla', 'quart de mile', 'Viertelmeile', 'quarto de milha'],
   ['ottavo di miglio', 'eighth mile', 'octavo de milla', 'huitième de mile', 'Achtelmeile', 'oitavo de milha'],
   ['mezzo miglio', 'half mile', 'media milla', 'demi-mile', 'halbe Meile', 'meia milha'],
+  ['Barra delle schede', 'Tab bar', 'Barra de pestañas', "Barre d'onglets", 'Tableiste', 'Barra de abas'],
+  ['Automatica', 'Automatic', 'Automática', 'Automatique', 'Automatisch', 'Automática'],
+  ['In basso', 'Bottom', 'Abajo', 'En bas', 'Unten', 'Embaixo'],
+  ['A destra', 'Right', 'A la derecha', 'À droite', 'Rechts', 'À direita'],
+  ["Automatica: a destra quando lo schermo è più largo che alto, come l'iPhone in orizzontale o il Duo aperto, e nella colonna dell'ora del Duo chiuso.",
+    "Automatic: on the right when the screen is wider than it is tall, like the iPhone on its side or the Duo opened, and in the closed Duo's clock column.",
+    'Automática: a la derecha cuando la pantalla es más ancha que alta, como el iPhone en horizontal o el Duo abierto, y en la columna de la hora del Duo cerrado.',
+    "Automatique : à droite quand l'écran est plus large que haut, comme l'iPhone à l'horizontale ou le Duo ouvert, et dans la colonne de l'heure du Duo fermé.",
+    'Automatisch: rechts, wenn der Bildschirm breiter als hoch ist, wie beim iPhone im Querformat oder beim aufgeklappten Duo, und in der Uhrzeitspalte des zugeklappten Duo.',
+    'Automática: à direita quando a tela é mais larga que alta, como o iPhone na horizontal ou o Duo aberto, e na coluna da hora do Duo fechado.'],
 ];
 
 // The permission prompts, in Info.plist.

@@ -19,6 +19,9 @@ struct RootView: View {
     @AppStorage("introSeen") private var introSeen = false
     @State private var imported: FriendLap?
     @State private var importError: String?
+    @State private var island = IslandWatch()
+    @AppStorage(TabbarPlace.key) private var tabbarPlace: TabbarPlace = .auto
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Once, on the first launch, and again from Device; in screenshot mode only for its own screen.
     private var showIntro: Bool {
@@ -27,28 +30,19 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var model = model
-        TabView(selection: $model.tab) {
-            LiveView()
-                .id(model.units)
-                .tabItem { Label("Live", systemImage: "stopwatch.fill") }
-                .tag(AppTab.live)
-            DragView()
-                .id(model.units)
-                .tabItem { Label("Drag", systemImage: "speedometer") }
-                .tag(AppTab.drag)
-            TracksView()
-                .id(model.units)
-                .tabItem { Label("Piste", systemImage: "map.fill") }
-                .tag(AppTab.tracks)
-            SessionsView()
-                .id(model.units)
-                .tabItem { Label("Sessioni", systemImage: "chart.bar.xaxis") }
-                .tag(AppTab.sessions)
-            DeviceView()
-                .tabItem { Label("Dispositivo", systemImage: "antenna.radiowaves.left.and.right") }
-                .tag(AppTab.device)
+        GeometryReader { geo in
+            let layout = SideTabsLayout(place: tabbarPlace, size: geo.size, insets: geo.safeAreaInsets)
+            HStack(spacing: 0) {
+                tabs(hideBar: layout.side)
+                if layout.side {
+                    SideTabBar(tab: $model.tab, layout: layout, insets: geo.safeAreaInsets, islandTall: island.tall)
+                }
+            }
+            .ignoresSafeArea(edges: layout.side ? .trailing : [])
         }
+        .background(Theme.bg.ignoresSafeArea())
         .task { model.runShowcase() }
+        .onChange(of: scenePhase) { _, _ in island.update() }
         .onChange(of: model.tab) { _, tab in model.setDragMode(tab == .drag) }
         .onOpenURL(perform: open)
         .alert(L("Giro di un amico"), isPresented: Binding(get: { imported != nil }, set: { if !$0 { imported = nil } }),
@@ -64,6 +58,39 @@ struct RootView: View {
         .fullScreenCover(isPresented: Binding(get: { showIntro }, set: { if !$0 { introSeen = true } })) {
             IntroView { introSeen = true }
                 .environment(model)
+        }
+    }
+
+    /// The five tabs; beside a SideTabBar the system's bar at the bottom is hidden. Hidden, not
+    /// removed, so each tab keeps its place and navigation when the phone turns.
+    private func tabs(hideBar: Bool) -> some View {
+        @Bindable var model = model
+        let bar: Visibility = hideBar ? .hidden : .automatic
+        return TabView(selection: $model.tab) {
+            LiveView()
+                .id(model.units)
+                .toolbar(bar, for: .tabBar)
+                .tabItem { Label("Live", systemImage: "stopwatch.fill") }
+                .tag(AppTab.live)
+            DragView()
+                .id(model.units)
+                .toolbar(bar, for: .tabBar)
+                .tabItem { Label("Drag", systemImage: "speedometer") }
+                .tag(AppTab.drag)
+            TracksView()
+                .id(model.units)
+                .toolbar(bar, for: .tabBar)
+                .tabItem { Label("Piste", systemImage: "map.fill") }
+                .tag(AppTab.tracks)
+            SessionsView()
+                .id(model.units)
+                .toolbar(bar, for: .tabBar)
+                .tabItem { Label("Sessioni", systemImage: "chart.bar.xaxis") }
+                .tag(AppTab.sessions)
+            DeviceView()
+                .toolbar(bar, for: .tabBar)
+                .tabItem { Label("Dispositivo", systemImage: "antenna.radiowaves.left.and.right") }
+                .tag(AppTab.device)
         }
     }
 
