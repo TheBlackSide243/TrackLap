@@ -11,6 +11,7 @@ struct Fix {
   int32_t lon = 0;
   uint32_t speed = 0;    // cm/s
   uint32_t heading = 0;  // 0.01 degrees
+  int32_t alt = INT32_MIN;  // mm above sea level, INT32_MIN without a 3D fix
 };
 
 /// A GPS module on a UART, read by a task of its own. u-blox modules (M7, M8, M9, M10…) are
@@ -61,4 +62,5 @@ class Gps {
   uint8_t linePos_ = 0;
   uint8_t nmeaSats_ = 0;
   bool nmea3d_ = false;
+  int32_t nmeaAlt_ = INT32_MIN;
 };

@@ -100,6 +100,39 @@ In italiano, inglese, spagnolo, francese, tedesco e portoghese, con la lingua de
 Gruppi e classifiche passano dal server di TrackLap in [`server/`](server/README.md), un Cloudflare
 Worker con Durable Objects: riceve nome, auto e tempi, e la posizione solo mentre sei in un gruppo.
 
+## Drag
+
+Nella scheda **Drag** TrackLap diventa un misuratore di prestazioni. Ti fermi, compare *PRONTO*, e
+il tempo parte da solo appena l'auto si muove: niente pulsanti da premere. I tempi vengono dalla
+velocità del GPS (più stabile delle posizioni) e la distanza dalla sua somma, con ogni soglia
+interpolata tra due fix: a 10 Hz o più sono precisi a pochi centesimi.
+
+- **Da fermo**: 0–50, 0–100, 0–150 e 0–200 km/h; 60 ft, 1/8 e 1/4 di miglio e 1000 m, con la
+  velocità all'arrivo. Con il *rollout di 1 ft* il tempo parte dopo il primo piede, come sulle piste
+  di accelerazione.
+- **Riprese**: 80–120 e 100–200 km/h, anche lanciati, senza fermarsi.
+- **Frenata**: 100–0 km/h, con lo spazio di arresto.
+- In mph: 0–30, 0–60, 0–100 e 0–130, 50–70 e 60–130, mezzo miglio al posto dei 1000 m e 60–0.
+- Per ogni corsa la **pendenza** della strada dall'altitudine del GPS (in discesa i tempi non sono
+  confrontabili), il picco di g, i grafici di velocità e accelerazione e un'**immagine da
+  condividere**. I record personali di ogni misura sono in viola e la voce legge 0–100, quarto di
+  miglio e frenata.
+- Sulla Waveshare il cruscotto passa alla modalità drag: la velocità a cifre grandi, *READY* da
+  fermo, *GO* con il tempo della corsa e i risultati principali per 5 secondi.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/it-drag.webp" alt="Drag con la corsa demo in pieno e i tempi che si riempiono"></td>
+    <td width="33%"><img src="docs/readme/it-drag-run.webp" alt="Una corsa drag finita, con i record in viola"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Una corsa in diretta</sub></td>
+    <td align="center"><sub>Tutte le misure di una corsa</sub></td>
+  </tr>
+</table>
+
+Le prove si fanno solo dove la strada è chiusa al traffico.
+
 ## L'hardware
 
 <p align="center">
@@ -166,7 +199,9 @@ Bluetooth e non vanno bene.
   giro precedente, rosso se sei dietro. Al traguardo compare per 5 secondi il tempo del giro con il
   distacco: viola se è il giro migliore, verde se è più veloce della media della sessione, rosso se è
   più lento. Fermo mostra la velocità; in
-  alto giro, satelliti, frequenza e il pallino verde quando l'app è collegata.
+  alto giro, satelliti, frequenza e il pallino verde quando l'app è collegata. Con la scheda Drag
+  dell'app aperta mostra la velocità, *READY* da fermo, *GO* con il tempo della corsa e i risultati
+  principali.
 - **LED**: sulle schede con il LED RGB è rosso senza GPS, giallo in attesa del fix e verde con il fix;
   lampeggia finché l'app non si collega.
 
@@ -219,11 +254,11 @@ Tutti i numeri sono little-endian.
 | CONTROL | `7A1C0004-…` | write (con risposta) | comandi |
 | INFO | `7A1C0005-…` | read, notify | stato dell'ESP32 in JSON |
 
-**FIX**, 20 byte (entra nell'MTU minimo):
+**FIX**, 24 byte; i primi 20 entrano nell'MTU minimo, e con quello l'app fa a meno dell'altitudine:
 
 | Offset | Tipo | Campo |
 |---|---|---|
-| 0 | u8 | versione = 1 |
+| 0 | u8 | versione = 2 (1 fino al firmware 0.6.0, 20 byte senza altitudine) |
 | 1 | u8 | flag: bit0 fix valido, bit1 fix 3D |
 | 2 | u8 | satelliti |
 | 3 | u8 | frequenza GPS in Hz |
@@ -232,6 +267,7 @@ Tutti i numeri sono little-endian.
 | 12 | i32 | longitudine × 1e7 |
 | 16 | u16 | velocità in cm/s |
 | 18 | u16 | direzione in centesimi di grado |
+| 20 | i32 | altitudine sul livello del mare in mm (`0x80000000` senza fix 3D) |
 
 Senza GPS l'ESP32 manda un FIX vuoto (non valido, 0 satelliti) ogni secondo.
 
@@ -252,10 +288,15 @@ ms (il tempo del giro di un amico, poi quando ha passato gli intermedi 1 … n-1
 imposta il giro da sfidare, e i delta di LAP e del cruscotto diventano su quel giro finché arriva
 `0x03` da solo o un'altra pista; `0x04 posizione numero i32 distacco` è il posto nel gruppo live
 (posizione 0 = nessun gruppo, distacco in ms da chi sta davanti, negativo per il primo, `0x7FFFFFFF`
-se non c'è), che il cruscotto mostra in alto e, quando cambia, per 4 secondi in basso.
+se non c'è), che il cruscotto mostra in alto e, quando cambia, per 4 secondi in basso; `0x05` è il
+cruscotto drag della scheda Drag dell'app: `0x05 0x00` torna a quello dei giri, `0x05 0x01 stato
+u32 ms` lo mostra (stato 0 in attesa che l'auto si fermi, 1 pronto, 2 corsa partita da quei ms),
+`0x05 0x02 flag u32 valore etichetta` mostra un risultato per 5 secondi (flag bit0 record personale,
+in viola, bit1 il valore è una distanza in cm, altrimenti un tempo in ms; l'etichetta in ASCII, fino
+a 12 caratteri).
 
 **INFO**, per esempio
-`{"fw":"0.6.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
+`{"fw":"0.7.0","chip":"ESP32-C6","board":"Waveshare ESP32-C6-LCD-1.47","gps":"u-blox M8","hz":10,"rx":17,"tx":16,"lines":3,"name":"TrackLap-1A2B"}`.
 `gps` è vuoto finché nessun GPS risponde; arriva una notifica quando cambiano il modulo, la
 frequenza o la pista.
 

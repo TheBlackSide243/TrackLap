@@ -156,6 +156,12 @@ uint8_t groupPos = 0, groupCount = 0;
 int32_t groupGap = kNoDelta;
 bool groupPending = false;
 char topGroup[8] = "-";
+// The drag dashboard: the speed always, and at the bottom what the app's drag timer waits for, the
+// time of the run in progress, or a result for 5 s.
+bool dragMode = false;
+uint8_t dragState = 0;
+uint32_t dragStart = 0;
+char dragKey[16] = "";
 
 void clearMain() { gfx->fillRect(0, kMainY, W, kBottomY - kMainY, kBg); }
 void clearBottom() { gfx->fillRect(0, kBottomY, W, H - kBottomY, kBg); }
@@ -183,13 +189,14 @@ void message(const char* title, const char* sub, uint16_t color) {
 void topBar(const DashState& s, uint32_t now) {
   char left[sizeof topLeft], right[sizeof topRight];
   uint16_t lap = now < lapUntil ? shownLap : s.running ? s.lap : 0;
-  if (lap) snprintf(left, sizeof left, "LAP %-3u", lap);
+  if (dragMode) strcpy(left, "DRAG   ");
+  else if (lap) snprintf(left, sizeof left, "LAP %-3u", lap);
   else strcpy(left, "LAP -  ");
   snprintf(right, sizeof right, "%2u SAT %2uHz", s.sats, s.rate);
   if (strcmp(left, topLeft)) text(10, 5, 2, kText, kPanel, strcpy(topLeft, left));
   if (strcmp(right, topRight)) text(W - 24 - 11 * 12, 5, 2, kSub, kPanel, strcpy(topRight, right));
   char place[sizeof topGroup];
-  if (groupPos) snprintf(place, sizeof place, "P%u/%-2u", groupPos, groupCount);
+  if (groupPos && !dragMode) snprintf(place, sizeof place, "P%u/%-2u", groupPos, groupCount);
   else strcpy(place, "      ");
   if (strcmp(place, topGroup)) text(100, 5, 2, kYellow, kPanel, strcpy(topGroup, place));
   if (topLink != s.connected) {
@@ -233,7 +240,62 @@ void showGroup(uint32_t now) {
   small.show(buf, groupPos == 1 ? kGood : kBad);
 }
 
+// "STOP TO START", "READY" in green, or "GO" with the time since the launch.
+void dragBottom(uint32_t now) {
+  char key[sizeof dragKey], buf[12] = "";
+  if (dragState == 2) {
+    formatTime(buf, sizeof buf, now - dragStart, false);
+    snprintf(key, sizeof key, "R%s", buf);
+  } else {
+    snprintf(key, sizeof key, "S%u", dragState);
+  }
+  if (!bottomEvent && !strcmp(key, dragKey)) return;
+  bool redraw = bottomEvent || key[0] != dragKey[0] || dragState != 2;
+  bottomEvent = false;
+  strcpy(dragKey, key);
+  if (redraw) {
+    clearBottom();
+    small.reset();
+  }
+  if (dragState == 2) {
+    if (redraw) text(12, kBottomY + 14, 3, kAccent, kBg, "GO");
+    small.show(buf, kText);
+  } else if (dragState == 1) {
+    centered(kBottomY + 14, 3, kGood, "READY");
+  } else {
+    centered(kBottomY + 18, 2, kSub, "STOP TO START");
+  }
+}
+
 }  // namespace
+
+void Display::drag(bool on, uint8_t state, uint32_t elapsed) {
+  if (on != dragMode) {
+    dragMode = on;
+    // The whole bottom line, and the main one, are drawn again for the other dashboard.
+    dragKey[0] = 0;
+    infoKey[0] = 0;
+    bottomEvent = true;
+    eventUntil = lapUntil = 0;
+  }
+  dragState = state;
+  dragStart = millis() - elapsed;
+}
+
+void Display::dragResult(const char* label, uint32_t value, bool distance, bool best) {
+  if (!gfx) return;
+  uint32_t now = millis();
+  clearBottom();
+  small.reset();
+  bottomEvent = true;
+  eventUntil = now + 5000;
+  char buf[12];
+  if (distance) snprintf(buf, sizeof buf, "%lu.%lu", (unsigned long)(value / 100), (unsigned long)(value % 100 / 10));
+  else formatTime(buf, sizeof buf, value, true);
+  text(12, kBottomY + 18, 2, best ? kPurple : kSub, kBg, label);
+  small.show(buf, best ? kPurple : kText);
+  text(W - 30, kBottomY + 30, 2, kSub, kBg, distance ? "m" : "s");
+}
 
 void Display::group(uint8_t position, uint8_t count, int32_t gap) {
   if (position == groupPos && count == groupCount && gap == groupGap) return;
@@ -271,11 +333,11 @@ void Display::show(const DashState& s) {
   } else if (!s.fix) {
     snprintf(buf, sizeof buf, "%u SATELLITES", s.sats);
     message("NO FIX", buf, kYellow);
-  } else if (now < lapUntil) {
+  } else if (!dragMode && now < lapUntil) {
     // The lap just finished stays up for a few seconds.
     setMain(Time);
     big.show(lapText, lapColor);
-  } else if (s.running) {
+  } else if (!dragMode && s.running) {
     setMain(Time);
     formatTime(buf, sizeof buf, (uint32_t)(s.elapsed * 1000), false);
     big.show(buf, kText);
@@ -284,7 +346,9 @@ void Display::show(const DashState& s) {
     snprintf(buf, sizeof buf, "%lu", (unsigned long)(s.speed * 36 / 1000));
     big.show(buf, kText);
   }
-  if (now >= eventUntil && groupPending && groupPos) {
+  if (dragMode) {
+    if (now >= eventUntil) dragBottom(now);
+  } else if (now >= eventUntil && groupPending && groupPos) {
     groupPending = false;
     showGroup(now);
   } else if (now >= eventUntil) {
@@ -297,7 +361,7 @@ void Display::show(const DashState& s) {
 // The finish: the lap time for 5 s with its delta; purple for a best lap, green faster than the
 // session's average, red slower.
 void Display::event(const LapEvent& e) {
-  if (!gfx) return;
+  if (!gfx || dragMode) return;
   uint32_t now = millis();
   clearBottom();
   small.reset();

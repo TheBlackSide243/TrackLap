@@ -42,9 +42,11 @@ enum BLEPacket {
         var lon: Double
         var speed: Double
         var heading: Double
+        var alt: Double? = nil
     }
 
-    /// 20 bytes: version, flags, sats, rate Hz, iTOW ms (u32), lat/lon 1e-7° (i32), speed cm/s (u16), heading 0.01° (u16).
+    /// 20 bytes: version, flags, sats, rate Hz, iTOW ms (u32), lat/lon 1e-7° (i32), speed cm/s (u16), heading 0.01° (u16);
+    /// from firmware 0.7.0 then the altitude above sea level in mm (i32, INT32_MIN for none).
     static func fix(_ data: Data) -> Fix? {
         guard data.count >= 20 else { return nil }
         let b = [UInt8](data)
@@ -63,7 +65,8 @@ enum BLEPacket {
                    lat: Double(Int32(bitPattern: u32(8))) * 1e-7,
                    lon: Double(Int32(bitPattern: u32(12))) * 1e-7,
                    speed: Double(u16(16)) / 100,
-                   heading: Double(u16(18)) / 100)
+                   heading: Double(u16(18)) / 100,
+                   alt: b.count >= 24 && Int32(bitPattern: u32(20)) != Int32.min ? Double(Int32(bitPattern: u32(20))) / 1000 : nil)
     }
 
     /// The fix's UTC time: iTOW counts from the start of the GPS week, GPS time runs 18 s ahead of
@@ -237,6 +240,27 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         write(d, to: TrackLapBLE.control)
     }
 
+    /// The drag dashboard: nil puts the lap one back; otherwise 0 waiting for a stop, 1 ready, 2 a run
+    /// in progress, `elapsed` seconds since the launch.
+    func setDrag(state: UInt8?, elapsed: Double = 0) {
+        guard let state else {
+            write(Data([0x05, 0x00]), to: TrackLapBLE.control)
+            return
+        }
+        var d = Data([0x05, 0x01, state])
+        d.appendLE(UInt32(clamping: Int((elapsed * 1000).rounded())))
+        write(d, to: TrackLapBLE.control)
+    }
+
+    /// A drag result for the dashboard, shown for 5 s: a time, or a distance (braking), purple for a best.
+    func showDrag(label: String, time: Double?, distance: Double?, best: Bool) {
+        var d = Data([0x05, 0x02, (best ? 1 : 0) | (distance != nil ? 2 : 0)])
+        let value = distance.map { $0 * 100 } ?? (time ?? 0) * 1000
+        d.appendLE(UInt32(clamping: Int(value.rounded())))
+        d.append(contentsOf: Array(label.utf8.prefix(12)))
+        write(d, to: TrackLapBLE.control)
+    }
+
     private func flushTrack() {
         guard let data = pendingTrack, state == .connected, characteristics[TrackLapBLE.track] != nil else { return }
         write(data, to: TrackLapBLE.track)
@@ -371,7 +395,7 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if let last = lastITOW, fix.itow < last - 302_400 { weekOffset += 604_800 }
         lastITOW = fix.itow
         onSample?(Sample(t: weekOffset + fix.itow, coord: Coord(fix.lat, fix.lon), speed: fix.speed, heading: fix.heading,
-                         utc: BLEPacket.utc(itow: fix.itow)))
+                         utc: BLEPacket.utc(itow: fix.itow), alt: fix.alt))
     }
 
     /// version, kind (1 = lap), lap number (u16), time ms (u32): the lap as timed by the ESP32 itself.

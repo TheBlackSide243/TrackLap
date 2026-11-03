@@ -15,6 +15,8 @@ struct Sample {
     /// UTC of the fix in seconds since 1970, when the source gives it (GPS time from the ESP32): the
     /// live group compares two cars by it.
     var utc: Double? = nil
+    /// Metres above sea level, when the source gives it: the slope of a drag run.
+    var alt: Double? = nil
 }
 
 enum SectorState { case best, faster, slower }

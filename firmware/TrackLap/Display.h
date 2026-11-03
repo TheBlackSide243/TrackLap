@@ -22,7 +22,8 @@ struct DashState {
 
 /// The dashboard on the board's screen, for boards that have one (built with TRACKLAP_LCD147 for the
 /// Waveshare ESP32-C6-LCD-1.47): the lap time, the delta at each sector line, the lap time at the
-/// finish, the place in the app's live group. Elsewhere these do nothing.
+/// finish, the place in the app's live group; or, while the app's Drag tab is open, the speed with
+/// the drag timer's state and results. Elsewhere these do nothing.
 namespace Display {
 #ifdef TRACKLAP_LCD147
 void begin();
@@ -31,10 +32,17 @@ void event(const LapEvent& e);
 /// The place in the live group (position 0 = not in one) and the gap in ms to the driver just ahead,
 /// negative when first (the margin over the second), kNoDelta for none.
 void group(uint8_t position, uint8_t count, int32_t gap);
+/// The drag dashboard: `on` false puts the lap one back; state 0 waiting for a stop, 1 ready, 2 a run
+/// `elapsed` ms old.
+void drag(bool on, uint8_t state, uint32_t elapsed);
+/// A drag result for 5 s: a time in ms, or a distance in cm; purple for a best.
+void dragResult(const char* label, uint32_t value, bool distance, bool best);
 #else
 inline void begin() {}
 inline void show(const DashState&) {}
 inline void event(const LapEvent&) {}
 inline void group(uint8_t, uint8_t, int32_t) {}
+inline void drag(bool, uint8_t, uint32_t) {}
+inline void dragResult(const char*, uint32_t, bool, bool) {}
 #endif
 }  // namespace Display

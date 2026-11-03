@@ -15,7 +15,7 @@
 #include "Gps.h"
 #include "Laps.h"
 
-#define FW_VERSION "0.6.0"
+#define FW_VERSION "0.7.0"
 
 static Preferences prefs;
 static Gps gps;
@@ -76,7 +76,8 @@ static uint32_t u32(const uint8_t* p) { return p[0] | (uint32_t)p[1] << 8 | (uin
 
 // CONTROL: 0x01 resets the session; 0x02 rx tx moves the GPS (0xFF 0xFF = the chip's defaults);
 // 0x03 n lap split... sets a friend's lap to chase (0x03 alone clears it); 0x04 position count gap
-// is the place in the app's live group.
+// is the place in the app's live group; 0x05 is the drag dashboard (0x05 0x00 off, 0x05 0x01 state
+// elapsed, 0x05 0x02 flags value label for a result).
 static void handleControl(const uint8_t* b, size_t len) {
   if (len >= 1 && b[0] == 0x01) {
     laps.reset();
@@ -99,6 +100,19 @@ static void handleControl(const uint8_t* b, size_t len) {
     else Serial.println("No lap to chase");
   } else if (len >= 7 && b[0] == 0x04) {
     Display::group(b[1], b[2], (int32_t)u32(b + 3));
+  } else if (len >= 2 && b[0] == 0x05) {
+    if (b[1] == 0x00) {
+      Display::drag(false, 0, 0);
+    } else if (b[1] == 0x01 && len >= 7) {
+      Display::drag(true, b[2], u32(b + 3));
+    } else if (b[1] == 0x02 && len >= 7) {
+      // flags: bit0 a best, bit1 the value is a distance in cm (else a time in ms); then the label.
+      char label[13] = "";
+      size_t n = len - 7 < 12 ? len - 7 : 12;
+      for (size_t i = 0; i < n; i++) label[i] = b[7 + i] >= 32 && b[7 + i] < 127 ? b[7 + i] : '?';
+      Display::dragResult(label, u32(b + 3), b[2] & 2, b[2] & 1);
+      Serial.printf("Drag %s: %lu\n", label, (unsigned long)u32(b + 3));
+    }
   }
 }
 

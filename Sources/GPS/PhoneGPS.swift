@@ -79,7 +79,8 @@ final class PhoneGPS: NSObject, CLLocationManagerDelegate {
             accuracy = l.horizontalAccuracy
             onSample?(Sample(t: l.timestamp.timeIntervalSince1970, coord: Coord(l.coordinate),
                              speed: max(0, l.speed), heading: l.course >= 0 ? l.course : 0,
-                             utc: l.timestamp.timeIntervalSince1970))
+                             utc: l.timestamp.timeIntervalSince1970,
+                             alt: l.verticalAccuracy > 0 ? l.altitude : nil))
         }
     }
 

@@ -47,7 +47,7 @@ extension SourceKind {
     }
 }
 
-enum AppTab: Hashable { case live, tracks, sessions, device }
+enum AppTab: Hashable { case live, drag, tracks, sessions, device }
 
 /// What the live delta compares with.
 enum DeltaReference: String, CaseIterable, Identifiable {
@@ -75,6 +75,9 @@ final class AppModel {
     let profile: DriverProfile
     let friends = FriendLapStore()
     let group: GroupSession
+    let drag = DragEngine()
+    let drags = DragStore()
+    let demoDrag = DemoDrag()
 
     private(set) var source: SourceKind = .demo
     private(set) var selectedTrackID: UUID? = nil
@@ -89,6 +92,9 @@ final class AppModel {
     private(set) var voiceOn = true
     /// The friend's lap chased on the selected track.
     private(set) var challenge: FriendLap? = nil
+    /// The Drag tab is open: the fixes go to the drag timer too.
+    private(set) var dragOn = false
+    private(set) var dragRollout = false
 
     /// Set once the screenshot mode has opened its screen (see Showcase).
     @ObservationIgnored var showcaseStarted = false
@@ -109,6 +115,7 @@ final class AppModel {
         if let v = d.object(forKey: "deltaScale") as? Double { deltaScale = v }
         if let v = d.object(forKey: "minLapTime") as? Double { minLapTime = v }
         if let v = d.object(forKey: "voice") as? Bool { voiceOn = v }
+        dragRollout = d.bool(forKey: "dragRollout")
         deltaReference = DeltaReference(rawValue: d.string(forKey: "deltaReference") ?? "") ?? .session
         if let s = d.string(forKey: "track"), let id = UUID(uuidString: s), tracks.track(id) != nil {
             selectedTrackID = id
@@ -121,12 +128,18 @@ final class AppModel {
         ble.onSample = { [weak self] s in self?.receive(s, from: .device) }
         phone.onSample = { [weak self] s in self?.receive(s, from: .phone) }
         demo.onSample = { [weak self] s in self?.receive(s, from: .demo) }
+        demoDrag.onSample = { [weak self] s in self?.receive(s, from: .demo) }
         ble.onConnected = { [weak self] in
-            guard let self, let t = self.selectedTrack else { return }
+            guard let self else { return }
+            self.sendDragToDevice()
+            guard let t = self.selectedTrack else { return }
             self.ble.send(track: t)
             self.sendChallengeToDevice()
             self.sendGroupToDevice(force: true)
         }
+        drag.onPhase = { [weak self] _ in self?.sendDragToDevice() }
+        drag.onEvent = { [weak self] e in self?.dragResult(e) }
+        drag.onFinish = { [weak self] r in self?.drags.save(r) }
         engine.onLap = { [weak self] lap in self?.record(lap) }
         group.onStandingsChange = { [weak self] in self?.sendGroupToDevice() }
         activate(source)
@@ -144,6 +157,8 @@ final class AppModel {
         recentT = []
         gpsRate = 0
         lastFixWall = nil
+        drag.reset()
+        drag.source = k.rawValue
         activate(k)
     }
 
@@ -159,7 +174,9 @@ final class AppModel {
         switch k {
         case .device: ble.deactivate()
         case .phone: phone.stop()
-        case .demo: demo.stop()
+        case .demo:
+            demo.stop()
+            demoDrag.stop()
         }
     }
 
@@ -172,6 +189,7 @@ final class AppModel {
             gpsRate = Double(recentT.count - 1) / (l - f)
         }
         if isRunning { engine.ingest(s) } else { engine.observe(s) }
+        if dragOn && !isRunning { drag.ingest(s) }
         if group.isOn { group.report(s, lap: isRunning ? engine.lapNumber : 0, distance: engine.lapDistance) }
     }
 
@@ -340,6 +358,66 @@ final class AppModel {
         guard force || packet != sentPlace else { return }
         sentPlace = packet
         ble.setGroup(position: p?.position ?? 0, count: p?.count ?? 0, gap: p?.gap)
+    }
+
+    // MARK: - Drag
+
+    /// The Drag tab opened or closed: the drag timer starts afresh, with the records to beat, and the
+    /// ESP32 switches dashboard.
+    func setDragMode(_ on: Bool) {
+        guard on != dragOn else { return }
+        dragOn = on
+        drag.reset()
+        if on {
+            drag.bests = drags.bests()
+            drag.rollout = dragRollout
+            drag.source = source.rawValue
+            drag.vehicle = profile.displayVehicle
+            if drag.run == nil, let last = drags.summaries.first, let r = drags.load(last.id) { drag.show(r) }
+        } else {
+            demoDrag.stop()
+        }
+        sendDragToDevice()
+    }
+
+    /// A simulated run on a straight road by the selected track, for the Demo.
+    func startDemoDrag() {
+        guard source == .demo, dragOn else { return }
+        demoDrag.start(at: selectedTrack.map { $0.start?.mid ?? $0.center } ?? Coord(43.9975, 11.3719))
+    }
+
+    func setDragRollout(_ on: Bool) {
+        dragRollout = on
+        drag.rollout = on
+        UserDefaults.standard.set(on, forKey: "dragRollout")
+    }
+
+    func deleteDragRun(_ id: UUID) {
+        drags.delete(id)
+        drag.bests = drags.bests()
+        if drag.run?.id == id && !drag.inProgress {
+            drag.show(nil)
+            if let last = drags.summaries.first, let r = drags.load(last.id) { drag.show(r) }
+        }
+    }
+
+    /// The voice reads the main measures; the ESP32 shows them for a few seconds.
+    private func dragResult(_ e: DragEvent) {
+        guard e.measure.headline else { return }
+        if voiceOn { voice.announce(e) }
+        let braking = e.result.kind == .braking
+        ble.showDrag(label: e.measure.short, time: braking ? nil : e.result.time,
+                     distance: braking ? e.result.distance : nil, best: e.isBest)
+    }
+
+    /// The ESP32's drag dashboard while the Drag tab is open (not during a lap session), the lap one otherwise.
+    private func sendDragToDevice() {
+        guard dragOn && !isRunning else {
+            ble.setDrag(state: nil)
+            return
+        }
+        let state: UInt8 = drag.phase == .ready ? 1 : drag.phase == .running ? 2 : 0
+        ble.setDrag(state: state, elapsed: drag.startWall.map { Date().timeIntervalSince($0) } ?? 0)
     }
 
     // MARK: - Live group

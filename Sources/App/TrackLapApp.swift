@@ -32,6 +32,10 @@ struct RootView: View {
                 .id(model.units)
                 .tabItem { Label("Live", systemImage: "stopwatch.fill") }
                 .tag(AppTab.live)
+            DragView()
+                .id(model.units)
+                .tabItem { Label("Drag", systemImage: "speedometer") }
+                .tag(AppTab.drag)
             TracksView()
                 .id(model.units)
                 .tabItem { Label("Piste", systemImage: "map.fill") }
@@ -45,6 +49,7 @@ struct RootView: View {
                 .tag(AppTab.device)
         }
         .task { model.runShowcase() }
+        .onChange(of: model.tab) { _, tab in model.setDragMode(tab == .drag) }
         .onOpenURL(perform: open)
         .alert(L("Giro di un amico"), isPresented: Binding(get: { imported != nil }, set: { if !$0 { imported = nil } }),
                presenting: imported) { f in
