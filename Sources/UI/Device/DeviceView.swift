@@ -27,6 +27,9 @@ struct DeviceView: View {
                     SectionLabel(L("Cronometro"))
                     SettingsPanel()
 
+                    SectionLabel(L("Account"))
+                    AccountPanel()
+
                     SectionLabel(L("Tu e gli amici"))
                     FriendsPanel()
 
@@ -387,13 +390,19 @@ private struct FriendsPanel: View {
                 Toggle(isOn: Binding(get: { p.publishLaps }, set: { p.setPublish($0) })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Pubblica i miei best").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                        Text("Il giro migliore di ogni sessione va nella classifica online della sua pista. Mai i giri della Demo.")
+                        Text("Il giro migliore di ogni sessione va nella classifica online della sua pista, con il nome del tuo account e l'auto in uso. Mai i giri della Demo.")
                             .font(.caption)
                             .foregroundStyle(Theme.sub)
                     }
                 }
                 .tint(Theme.accent)
-                Text("I gruppi live e le classifiche passano dal server di TrackLap: riceve il nome, l'auto, i tempi e, solo mentre sei in un gruppo, la posizione in pista.")
+                .disabled(!model.account.isSignedIn)
+                if !model.account.isSignedIn {
+                    Text("Per pubblicare i tempi serve un account: lo crei qui sopra.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.yellow)
+                }
+                Text("I gruppi live, le classifiche e il garage pubblico passano dal server di TrackLap: riceve il nome, l'auto, i tempi, le auto che mostri con le loro foto e, solo mentre sei in un gruppo, la posizione in pista.")
                     .font(.caption)
                     .foregroundStyle(Theme.sub)
             }

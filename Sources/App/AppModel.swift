@@ -47,7 +47,7 @@ extension SourceKind {
     }
 }
 
-enum AppTab: Hashable { case live, drag, tracks, sessions, device }
+enum AppTab: Hashable { case live, drag, tracks, sessions, garage, device }
 
 /// What the live delta compares with.
 enum DeltaReference: String, CaseIterable, Identifiable {
@@ -78,6 +78,8 @@ final class AppModel {
     let drag = DragEngine()
     let drags = DragStore()
     let demoDrag = DemoDrag()
+    let account = AccountStore()
+    let garage = GarageStore()
 
     private(set) var source: SourceKind = .demo
     private(set) var selectedTrackID: UUID? = nil
@@ -95,6 +97,11 @@ final class AppModel {
     /// The Drag tab is open: the fixes go to the drag timer too.
     private(set) var dragOn = false
     private(set) var dragRollout = false
+    /// The car of your garage you are driving: sessions remember it, and your laps on the
+    /// leaderboards link to it.
+    private(set) var activeCarID: UUID? = nil
+    /// Someone's public garage opened from a link or a leaderboard.
+    var shownGarage: GarageLink? = nil
 
     /// Set once the screenshot mode has opened its screen (see Showcase).
     @ObservationIgnored var showcaseStarted = false
@@ -104,6 +111,7 @@ final class AppModel {
     @ObservationIgnored private var sentPlace: [Int] = []
 
     var selectedTrack: Track? { tracks.track(selectedTrackID) }
+    var activeCar: Car? { garage.car(activeCarID) }
     var canStart: Bool { selectedTrack?.isReady == true }
 
     init() {
@@ -122,6 +130,9 @@ final class AppModel {
         } else {
             selectedTrackID = tracks.tracks.first?.id
         }
+        if let s = d.string(forKey: "activeCar"), let id = UUID(uuidString: s), garage.car(id) != nil { activeCarID = id }
+        garage.account = account
+        account.onChange = { [weak self] in self?.accountChanged() }
         engine.minLapTime = minLapTime
         prepareEngine(selectedTrack)
 
@@ -233,8 +244,10 @@ final class AppModel {
         guard let track = selectedTrack, track.isReady else { return }
         engine.minLapTime = minLapTime
         prepareEngine(track)
-        let s = Session(trackID: track.id, trackName: track.name, date: Date(),
+        var s = Session(trackID: track.id, trackName: track.name, date: Date(),
                         source: source.title, sectorCount: track.sectorCount)
+        s.carID = activeCar?.id
+        s.carName = activeCar?.displayName
         session = s
         currentSessionID = s.id
         isRunning = true
@@ -262,10 +275,11 @@ final class AppModel {
         group.finished(lap)
         if voiceOn, let e = engine.lastEvent { voice.announce(e, place: group.isOn ? group.place : nil) }
         // The best lap of each session goes to the leaderboard, which keeps it if it is your best there.
-        if profile.publishLaps, source != .demo, engine.lastEvent?.isBest == true, let track = selectedTrack {
+        if profile.publishLaps, source != .demo, engine.lastEvent?.isBest == true, let track = selectedTrack,
+           let token = account.token {
             let kind = source
-            let me = profile
-            Task { try? await Server.submit(lap, source: kind, track: track, profile: me) }
+            let car = session?.carID
+            Task { try? await Server.submit(lap, source: kind, track: track, car: car, token: token) }
         }
     }
 
@@ -424,10 +438,42 @@ final class AppModel {
 
     /// tracklap://join/<code>, from the QR code of a group or an invitation.
     func open(_ url: URL) -> Bool {
+        if let link = GarageLink(url: url) {
+            shownGarage = link
+            return true
+        }
         guard url.scheme == "tracklap", url.host == "join" else { return false }
         group.join(url.lastPathComponent, on: selectedTrack)
         tab = .live
         return true
+    }
+
+    // MARK: - Garage
+
+    /// The car you drive from now on; its name becomes the vehicle the others see.
+    func setActiveCar(_ id: UUID?) {
+        let car = garage.car(id)
+        activeCarID = car?.id
+        UserDefaults.standard.set(car?.id.uuidString, forKey: "activeCar")
+        if let car {
+            profile.set(vehicle: String(car.displayName.prefix(DriverProfile.maxLength)))
+            group.profileChanged()
+        }
+    }
+
+    func deleteCar(_ id: UUID) {
+        if id == activeCarID { setActiveCar(nil) }
+        garage.delete(id)
+    }
+
+    /// Signed in or out: the garage follows the account, and your name for the live groups is the
+    /// account's when you had none.
+    private func accountChanged() {
+        if let name = account.name, !profile.hasName {
+            profile.set(name: String(name.prefix(DriverProfile.maxLength)))
+            group.profileChanged()
+        }
+        garage.accountChanged()
     }
 
     // MARK: - Settings

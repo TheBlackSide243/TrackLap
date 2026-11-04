@@ -58,6 +58,7 @@ struct SideTabBar: View {
         (.drag, "Drag", "speedometer"),
         (.tracks, "Piste", "map.fill"),
         (.sessions, "Sessioni", "chart.bar.xaxis"),
+        (.garage, "Garage", "car.fill"),
         (.device, "Dispositivo", "antenna.radiowaves.left.and.right"),
     ]
 
@@ -108,5 +109,46 @@ struct SideTabBar: View {
         .overlay(alignment: .leading) {
             if !layout.statusColumn { Rectangle().fill(Theme.line.opacity(0.6)).frame(width: 0.5) }
         }
+    }
+}
+
+/// The six tabs along the bottom: the system's bar shows five on an iPhone and puts the rest under
+/// "More", so the app draws its own, in the same style as the column on the right.
+struct BottomTabBar: View {
+    @Binding var tab: AppTab
+    let bottomInset: CGFloat
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(SideTabBar.tabs, id: \.tab) { item in
+                let selected = tab == item.tab
+                Button {
+                    if tab != item.tab { UISelectionFeedbackGenerator().selectionChanged() }
+                    tab = item.tab
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: item.symbol)
+                            .font(.system(size: 19, weight: selected ? .semibold : .regular))
+                            .frame(height: 24)
+                            .symbolEffect(.bounce, value: selected)
+                        Text(item.title)
+                            .font(.system(size: 10, weight: .medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                    }
+                    .foregroundStyle(selected ? Theme.accent : Theme.sub)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 7)
+                    .padding(.bottom, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.bottom, max(bottomInset, 6))
+        .background(Theme.bg.opacity(0.97))
+        .overlay(alignment: .top) { Rectangle().fill(Theme.line.opacity(0.6)).frame(height: 0.5) }
     }
 }
