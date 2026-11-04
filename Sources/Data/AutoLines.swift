@@ -556,5 +556,3 @@ enum LayoutMatch {
         return out
     }
 }
-
-}
