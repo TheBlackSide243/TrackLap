@@ -152,6 +152,8 @@ class AppModel(context: Context) {
     var importedSetup by mutableStateOf<SharedSetup?>(null)
     /** What opening a file did, or why it could not. */
     var notice by mutableStateOf<String?>(null)
+    /** A group invitation opened before signing in: Live asks you to sign in, then joins it. */
+    var pendingJoin by mutableStateOf<String?>(null)
 
     private var session: Session? = null
     private val recentT = ArrayList<Double>()
@@ -416,7 +418,10 @@ class AppModel(context: Context) {
             return true
         }
         if (uri.scheme == "tracklap" && uri.host == "join") {
-            uri.lastPathSegment?.let { group.join(it, selectedTrack) }
+            uri.lastPathSegment?.let {
+                if (account.isSignedIn) group.join(it, selectedTrack)
+                else pendingJoin = GroupSession.clean(it).ifEmpty { null }
+            }
             tab = AppTab.live
             return true
         }

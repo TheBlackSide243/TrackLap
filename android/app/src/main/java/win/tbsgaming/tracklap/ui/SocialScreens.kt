@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -252,8 +253,27 @@ fun MultiplayerCard() {
     val g = m.group
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val nav = LocalNav.current
     var dialog by remember { mutableStateOf<String?>(null) }
     var showQR by remember { mutableStateOf(false) }
+    val signedIn = m.account.isSignedIn
+    // Groups need an account: Crea or Entra first asks you to sign in, then carries on by itself.
+    var afterSignIn by rememberSaveable { mutableStateOf<String?>(null) }
+    var askSignIn by remember { mutableStateOf(false) }
+    fun start(kind: String) {
+        if (signedIn) dialog = kind else {
+            afterSignIn = kind
+            askSignIn = true
+        }
+    }
+    LaunchedEffect(signedIn) {
+        if (!signedIn) return@LaunchedEffect
+        afterSignIn?.let { dialog = it; afterSignIn = null }
+        m.pendingJoin?.let { c ->
+            m.pendingJoin = null
+            g.join(c, m.selectedTrack)
+        }
+    }
     val code = g.code
     Panel(glow = if (g.status == GroupSession.Status.live) Theme.purple else null) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -273,8 +293,8 @@ fun MultiplayerCard() {
             g.problem?.let { Text(it, fontSize = 13.sp, color = Theme.bad, modifier = Modifier.padding(top = 6.dp)) }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryButton(L("Crea"), Icons.Filled.PersonAdd, Theme.purple, modifier = Modifier.weight(1f)) { dialog = "create" }
-                SecondaryButton(L("Entra"), Icons.Filled.Groups, Theme.purple, modifier = Modifier.weight(1f)) { dialog = "join" }
+                PrimaryButton(L("Crea"), Icons.Filled.PersonAdd, Theme.purple, modifier = Modifier.weight(1f)) { start("create") }
+                SecondaryButton(L("Entra"), Icons.Filled.Groups, Theme.purple, modifier = Modifier.weight(1f)) { start("join") }
             }
         } else {
             val rows = g.standings
@@ -318,6 +338,32 @@ fun MultiplayerCard() {
         }
         "join" -> GroupDialog(create = false, done = { dialog = null }) { c -> g.join(c, m.selectedTrack) }
     }
+    val invite = m.pendingJoin
+    if (!signedIn && (askSignIn || invite != null)) {
+        val cancel = {
+            askSignIn = false
+            afterSignIn = null
+            m.pendingJoin = null
+        }
+        AlertDialog(
+            onDismissRequest = cancel, containerColor = Theme.panel,
+            title = { Text(L("Serve un account"), color = Theme.text) },
+            text = {
+                Text(
+                    if (invite != null) L("Ti hanno invitato nel gruppo %@. Accedi o crea un account e ci entri subito.", invite)
+                    else L("Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui."),
+                    fontSize = 13.sp, color = Theme.sub,
+                )
+            },
+            confirmButton = {
+                TextButton({
+                    askSignIn = false
+                    nav.push(AppTab.live, "account")
+                }) { Text(L("Accedi o crea un account"), color = Theme.purple) }
+            },
+            dismissButton = { TextButton(cancel) { Text(L("Annulla"), color = Theme.sub) } },
+        )
+    }
     if (showQR && code != null) {
         val qr = remember(code) { qrBitmap(GroupSession.inviteURL(code)) }
         AlertDialog(
@@ -344,7 +390,7 @@ fun MultiplayerCard() {
 private fun GroupDialog(create: Boolean, done: () -> Unit, go: (String) -> Unit) {
     val m = LocalModel.current
     var code by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf(m.profile.name) }
+    var name by remember { mutableStateOf(m.profile.name.ifBlank { m.account.name ?: "" }) }
     val ready = name.isNotBlank() && (create || GroupSession.clean(code).length == 5)
     AlertDialog(
         onDismissRequest = done, containerColor = Theme.panel,
