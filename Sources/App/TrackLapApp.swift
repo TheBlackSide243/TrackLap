@@ -59,6 +59,11 @@ struct RootView: View {
             PublicGarageView(link: link)
                 .environment(model)
         }
+        .sheet(isPresented: Binding(get: { model.importedSetup != nil }, set: { if !$0 { model.importedSetup = nil } })) {
+            if let shared = model.importedSetup {
+                SetupImportSheet(shared: shared).environment(model)
+            }
+        }
         .onChange(of: model.tab) { _, tab in model.setDragMode(tab == .drag) }
         .onOpenURL(perform: open)
         .alert(L("Giro di un amico"), isPresented: Binding(get: { imported != nil }, set: { if !$0 { imported = nil } }),
@@ -77,48 +82,49 @@ struct RootView: View {
         }
     }
 
-    /// The six tabs. The system's bar is always hidden: the app's own bar, at the bottom or on the
-    /// right, shows all six. Hidden, not removed, so each tab keeps its place and navigation.
+    /// The six tabs in a TabView of five, its bar always hidden: the app draws its own. With six,
+    /// an iPhone's TabView moves the last ones into a hidden "More" tab, with a back button of its
+    /// own above them; so Garage and Device share the fifth, one above the other. The TabView keeps
+    /// each tab with its navigation and pauses the ones not shown (Live's clock among them).
     private var tabs: some View {
-        @Bindable var model = model
-        let bar: Visibility = .hidden
-        return TabView(selection: $model.tab) {
-            LiveView()
-                .id(model.units)
-                .toolbar(bar, for: .tabBar)
-                .tabItem { Label("Live", systemImage: "stopwatch.fill") }
-                .tag(AppTab.live)
-            DragView()
-                .id(model.units)
-                .toolbar(bar, for: .tabBar)
-                .tabItem { Label("Drag", systemImage: "speedometer") }
-                .tag(AppTab.drag)
-            TracksView()
-                .id(model.units)
-                .toolbar(bar, for: .tabBar)
-                .tabItem { Label("Piste", systemImage: "map.fill") }
-                .tag(AppTab.tracks)
-            SessionsView()
-                .id(model.units)
-                .toolbar(bar, for: .tabBar)
-                .tabItem { Label("Sessioni", systemImage: "chart.bar.xaxis") }
-                .tag(AppTab.sessions)
-            GarageView()
-                .id(model.units)
-                .toolbar(bar, for: .tabBar)
-                .tabItem { Label("Garage", systemImage: "car.fill") }
-                .tag(AppTab.garage)
-            DeviceView()
-                .toolbar(bar, for: .tabBar)
-                .tabItem { Label("Dispositivo", systemImage: "antenna.radiowaves.left.and.right") }
-                .tag(AppTab.device)
+        TabView(selection: Binding(get: { Self.systemTab(model.tab) }, set: { _ in })) {
+            LiveView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.live)
+            DragView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.drag)
+            TracksView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.tracks)
+            SessionsView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.sessions)
+            ZStack {
+                shared(.garage) { GarageView().id(model.units) }
+                shared(.device) { DeviceView() }
+            }
+            .toolbar(.hidden, for: .tabBar)
+            .tag(AppTab.garage)
         }
+    }
+
+    /// The TabView tab an app tab is in: Device is in Garage's.
+    private static func systemTab(_ t: AppTab) -> AppTab { t == .device ? .garage : t }
+
+    private func shared<Content: View>(_ tab: AppTab, @ViewBuilder _ content: () -> Content) -> some View {
+        let shown = model.tab == tab
+        return content()
+            .opacity(shown ? 1 : 0)
+            .allowsHitTesting(shown)
+            .accessibilityHidden(!shown)
+            .zIndex(shown ? 1 : 0)
     }
 
     /// An invitation to a group (tracklap://join/…) or a .tracklap file from a friend.
     private func open(_ url: URL) {
         if model.open(url) { return }
         guard url.isFileURL else { return }
+        if url.pathExtension.lowercased() == "tracklapsetup" {
+            do {
+                model.importedSetup = try SharedSetup.read(url)
+            } catch {
+                importError = error.localizedDescription
+            }
+            return
+        }
         do {
             imported = try model.importLap(from: url)
         } catch {

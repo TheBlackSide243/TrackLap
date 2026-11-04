@@ -18,6 +18,7 @@ struct SessionDetailView: View {
     @State private var mapMode: MapMode = .speed
     @State private var gpxURL: URL?
     @State private var csvURL: URL?
+    @State private var shownSetup: SessionSetup?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -42,6 +43,21 @@ struct SessionDetailView: View {
         .scrollIndicators(.hidden)
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle(session?.trackName ?? L("Sessione"))
+        .sheet(item: $shownSetup) { setup in
+            NavigationStack {
+                ScrollView {
+                    SetupValuesView(values: setup.values).padding(16)
+                }
+                .background(Theme.bg.ignoresSafeArea())
+                .navigationTitle(L("\(setup.name) · v\(setup.version)"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button(L("Fine")) { shownSetup = nil } }
+                }
+            }
+            .presentationBackground(Theme.bg)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
@@ -211,15 +227,41 @@ struct SessionDetailView: View {
     }
 
     private func header(_ s: Session) -> some View {
-        HStack(spacing: 12) {
-            AppGlyph(symbol: "flag.checkered")
-            VStack(alignment: .leading, spacing: 2) {
-                Text(Fmt.day.string(from: s.date)).font(.headline).foregroundStyle(Theme.text)
-                Text(s.source).font(.caption).foregroundStyle(Theme.sub)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                AppGlyph(symbol: "flag.checkered")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Fmt.day.string(from: s.date)).font(.headline).foregroundStyle(Theme.text)
+                    Text(s.source).font(.caption).foregroundStyle(Theme.sub)
+                }
+                Spacer()
+                if isTrackRecord { Badge(text: L("Record pista"), color: Theme.yellow) }
             }
-            Spacer()
-            if isTrackRecord { Badge(text: L("Record pista"), color: Theme.yellow) }
+            // What it was driven with: the car and its setup as it was that day.
+            if s.carName != nil || s.setup != nil {
+                HStack(spacing: 8) {
+                    if let car = s.carName, !car.isEmpty { tag(Label(car, systemImage: "car.fill")) }
+                    if let setup = s.setup {
+                        Button { shownSetup = setup } label: {
+                            tag(Label(L("\(setup.name) · v\(setup.version)"), systemImage: setup.weather.symbol))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
         }
+    }
+
+    private func tag(_ label: some View) -> some View {
+        label
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Theme.text)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Theme.panel, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
     }
 
     /// This lap against the reference, which can be any other lap here or the best of another session.

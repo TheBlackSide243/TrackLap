@@ -13,6 +13,9 @@ final class GarageStore {
     }
 
     private(set) var cars: [Car] = []
+    /// The setups of every car. They stay on this phone: never sent anywhere, only to a file you
+    /// export yourself.
+    private(set) var setups: [CarSetup] = []
     /// Shown to everyone at the garage's link and next to your laps on the leaderboards.
     private(set) var isPublic: Bool
     private(set) var sync: SyncState = .idle
@@ -23,6 +26,7 @@ final class GarageStore {
 
     private var dir: URL { Files.docs.appendingPathComponent("garage", isDirectory: true) }
     private var indexURL: URL { Files.docs.appendingPathComponent("garage.json") }
+    private var setupsURL: URL { Files.docs.appendingPathComponent("setups.json") }
 
     /// The longest side of a stored photo, in pixels, and the most the server takes.
     static let photoSide: CGFloat = 1600
@@ -32,7 +36,9 @@ final class GarageStore {
         isPublic = UserDefaults.standard.bool(forKey: "garagePublic")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         cars = Files.read([Car].self, from: indexURL) ?? []
-        sweep()
+        setups = Files.read([CarSetup].self, from: setupsURL) ?? []
+        // In screenshot mode the photos come before their cars.
+        if Showcase.screen == nil { sweep() }
     }
 
     func car(_ id: UUID?) -> Car? {
@@ -58,6 +64,8 @@ final class GarageStore {
     func delete(_ id: UUID) {
         guard let car = car(id) else { return }
         cars.removeAll { $0.id == id }
+        setups.removeAll { $0.carID == id }
+        Files.write(setups, to: setupsURL)
         if let photo = car.photo { discardPhoto(photo) }
         changed()
     }
@@ -69,6 +77,67 @@ final class GarageStore {
         let car = cars.remove(at: i)
         cars.insert(car, at: j)
         changed()
+    }
+
+    // MARK: - Setups
+
+    /// A car's setups, the last changed first.
+    func setups(of car: UUID?) -> [CarSetup] {
+        setups.filter { $0.carID == car }.sorted { $0.updated > $1.updated }
+    }
+
+    func setup(_ id: UUID?) -> CarSetup? {
+        guard let id else { return nil }
+        return setups.first { $0.id == id }
+    }
+
+    /// A new setup, or a change to one: when its values change, the ones it had are kept as a
+    /// revision first. Nothing is ever overwritten.
+    func save(setup new: CarSetup) {
+        var s = new
+        if let i = setups.firstIndex(where: { $0.id == s.id }) {
+            let old = setups[i]
+            s.history = old.history
+            if old.values != s.values {
+                s.history.insert(SetupRevision(date: Date(), version: old.version, values: old.values), at: 0)
+                s.updated = Date()
+            } else if old.name != s.name || old.weather != s.weather || old.track != s.track {
+                s.updated = Date()
+            }
+            setups[i] = s
+        } else {
+            s.created = Date()
+            s.updated = Date()
+            setups.insert(s, at: 0)
+        }
+        Files.write(setups, to: setupsURL)
+    }
+
+    /// A copy to start another setup from, with no history of its own.
+    func duplicate(setup id: UUID) -> CarSetup? {
+        guard let s = setup(id) else { return nil }
+        var copy = s
+        copy.id = UUID()
+        copy.name = L("\(s.displayName) (copia)")
+        copy.history = []
+        save(setup: copy)
+        return setup(copy.id)
+    }
+
+    func delete(setup id: UUID) {
+        setups.removeAll { $0.id == id }
+        Files.write(setups, to: setupsURL)
+    }
+
+    /// A setup from a file, for one of your cars: a new setup, its history included.
+    @discardableResult
+    func importSetup(_ shared: SharedSetup, for car: UUID) -> CarSetup {
+        var s = shared.setup
+        s.id = UUID()
+        s.carID = car
+        setups.insert(s, at: 0)
+        Files.write(setups, to: setupsURL)
+        return s
     }
 
     // MARK: - Photos
@@ -169,6 +238,10 @@ final class GarageStore {
     /// server, so the link shows nothing, but it stays yours for when you show it again.
     @MainActor
     func publish() async {
+        if Showcase.screen != nil {
+            sync = .done(Date())
+            return
+        }
         guard let account, account.isSignedIn, let token = account.token else {
             sync = .idle
             return

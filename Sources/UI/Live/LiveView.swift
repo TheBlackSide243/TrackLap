@@ -39,6 +39,7 @@ struct LiveView: View {
     private var tall: some View {
         VStack(spacing: 14) {
             LiveHeader()
+            WeatherHint()
             if ready {
                 LapTimerCard()
                 DeltaCard()
@@ -58,6 +59,7 @@ struct LiveView: View {
     private var wide: some View {
         VStack(spacing: 14) {
             LiveHeader()
+            WeatherHint()
             if ready {
                 HStack(alignment: .top, spacing: 14) {
                     VStack(spacing: 14) {
@@ -108,6 +110,7 @@ private struct LiveHeader: View {
                 HStack(spacing: 8) {
                     pills
                     ActiveCarChip()
+                    ActiveSetupChip()
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -115,7 +118,11 @@ private struct LiveHeader: View {
                         pills
                         Spacer(minLength: 0)
                     }
-                    ActiveCarChip()
+                    HStack(spacing: 8) {
+                        ActiveCarChip()
+                        ActiveSetupChip()
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }
@@ -553,5 +560,67 @@ private struct LapBanner: View {
         .background(.ultraThinMaterial, in: shape)
         .overlay(shape.strokeBorder(color.opacity(0.8), lineWidth: 1.5))
         .shadow(color: color.opacity(0.4), radius: 24)
+    }
+}
+
+/// Rain at the track and a setup for the wet in your garage (or sun and one for the dry): Live
+/// offers to switch before the session starts.
+private struct WeatherHint: View {
+    @Environment(AppModel.self) private var model
+    @State private var now: TrackWeather.Now?
+    @State private var dismissed: String?
+
+    var body: some View {
+        Group {
+            if let pick = suggestion, !model.isRunning, dismissed != pick.0.id.uuidString + pick.1.rawValue {
+                let setup = pick.0
+                let wanted = pick.1
+                Panel(padding: 14, glow: wanted == .wet ? Color(rgb: 96, 165, 250) : Theme.yellow) {
+                    HStack(spacing: 12) {
+                        WeatherGlyph(weather: wanted, size: 44)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title(wanted)).font(.subheadline.weight(.bold)).foregroundStyle(Theme.text)
+                            Text(L("Usare l'assetto \(setup.displayName)?")).font(.caption).foregroundStyle(Theme.sub).lineLimit(2)
+                        }
+                        Spacer(minLength: 0)
+                        Button(L("Usa")) {
+                            withAnimation { model.setActiveSetup(setup.id) }
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        }
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.black)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Theme.accent, in: Capsule())
+                        Button { withAnimation { dismissed = setup.id.uuidString + wanted.rawValue } } label: {
+                            Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                        }
+                        .accessibilityLabel(L("Chiudi"))
+                    }
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .task(id: model.selectedTrackID) {
+            guard let t = model.selectedTrack, !t.isDemo else { return }
+            now = await TrackWeather.now(at: t.start?.mid ?? t.center)
+        }
+    }
+
+    /// A setup of the car in use for the weather now, when the one in use is for other conditions.
+    private var suggestion: (CarSetup, SetupWeather)? {
+        guard let now, let car = model.activeCar else { return nil }
+        let wanted: SetupWeather = now.wet ? .wet : .dry
+        if model.activeSetup?.weather == wanted { return nil }
+        let list = model.garage.setups(of: car.id).filter { $0.weather == wanted }
+        let track = model.selectedTrack?.name ?? ""
+        guard let s = list.first(where: { !$0.track.isEmpty && track.localizedCaseInsensitiveContains($0.track) }) ?? list.first else { return nil }
+        return (s, wanted)
+    }
+
+    private func title(_ w: SetupWeather) -> String {
+        let place = model.selectedTrack?.name ?? ""
+        let temp = now?.temperature.map { " · \(Int($0.rounded()))°" } ?? ""
+        return (w == .wet ? L("Piove a \(place)") : L("Asciutto a \(place)")) + temp
     }
 }

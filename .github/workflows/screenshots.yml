@@ -1,7 +1,7 @@
 # Screenshots for the README (and later the store pages): builds the app for the simulator, puts
 # three real circuits in its tracks (screenshots/tracks.json) and photographs each screen in Italian
 # and English with the app's screenshot mode (-showcase <screen>, Sources/App/Showcase.swift), the
-# four pages of the intro, the screens with friends and the drag ones included.
+# four pages of the intro, the screens with friends, the drag ones and the garage ones included.
 name: Screenshots
 
 on:
@@ -84,6 +84,9 @@ jobs:
             rm -rf "$DATA/Documents"
             mkdir -p "$DATA/Documents"
             cp screenshots/tracks.json "$DATA/Documents/tracks.json"
+            # The photos of the demo garage (screenshots/garage/CREDITS.md): the app makes the cars.
+            mkdir -p "$DATA/Documents/garage"
+            cp screenshots/garage/*.jpg "$DATA/Documents/garage/"
             xcrun simctl launch "$UDID" "$B" -showcase "$2" -units metric \
               -track 5E0C2C61-7D0B-4E8F-9A3B-6A3C1D1F0001 -AppleLanguages "($1)" -AppleLocale "$1" "${@:4}"
             sleep "$3"
@@ -92,7 +95,7 @@ jobs:
           # The editor goes after the screens with a map, with more time: the first satellite
           # tiles of a fresh simulator take a while.
           for l in it en; do
-            for s in tracks sessions session analysis device friends share dragRun; do shot "$l" "$s" 14; done
+            for s in tracks sessions session analysis device friends share dragRun garage car setup; do shot "$l" "$s" 14; done
             # The demo drag run caught at full speed, about 12 s after the launch.
             shot "$l" drag 17
             shot "$l" editor 30

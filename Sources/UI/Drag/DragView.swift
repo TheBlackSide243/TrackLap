@@ -76,6 +76,9 @@ private struct DragHeader: View {
                     Toggle(isOn: Binding(get: { model.dragRollout }, set: { model.setDragRollout($0) })) {
                         Label("Rollout di 1 ft", systemImage: "ruler")
                     }
+                    Toggle(isOn: Binding(get: { !model.dragManualStart }, set: { model.setDragManualStart(!$0) })) {
+                        Label("Partenza automatica da fermo", systemImage: "wand.and.stars")
+                    }
                 } label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 17, weight: .bold))
@@ -89,6 +92,7 @@ private struct DragHeader: View {
                 HStack(spacing: 8) {
                     pills
                     ActiveCarChip()
+                    ActiveSetupChip()
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -96,7 +100,11 @@ private struct DragHeader: View {
                         pills
                         Spacer(minLength: 0)
                     }
-                    ActiveCarChip()
+                    HStack(spacing: 8) {
+                        ActiveCarChip()
+                        ActiveSetupChip()
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }
@@ -173,6 +181,7 @@ private struct SpeedCard: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.sub)
                     .fixedSize(horizontal: false, vertical: true)
+                startButton
                 HStack(spacing: 10) {
                     StatTile(title: L("Accelerazione"), value: String(format: "%.2f", drag.accel / 9.80665), unit: "g",
                              color: drag.accel > 0.5 ? Theme.good : drag.accel < -0.5 ? Theme.bad : Theme.text)
@@ -182,8 +191,35 @@ private struct SpeedCard: View {
         }
     }
 
+    /// The start button: press it, then go. Pressed again before going, it lets go.
+    @ViewBuilder
+    private var startButton: some View {
+        let drag = model.drag
+        if model.dragManualStart && !drag.inProgress {
+            if drag.armed {
+                Button {
+                    drag.disarm()
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    Label(drag.phase == .ready ? L("Pronto: parti quando vuoi") : L("Fermati: poi parti"),
+                          systemImage: "flag.checkered")
+                }
+                .buttonStyle(SecondaryButtonStyle(color: Theme.good))
+            } else {
+                Button {
+                    drag.arm()
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                } label: {
+                    Label("Pronto al via", systemImage: "flag.checkered")
+                }
+                .buttonStyle(PrimaryButtonStyle(color: Theme.good))
+            }
+        }
+    }
+
     private var title: String {
         switch model.drag.phase {
+        case .moving where model.dragManualStart && !model.drag.armed: L("PREMI PER PARTIRE")
         case .moving: L("FERMATI PER PARTIRE")
         case .ready: L("PRONTO")
         case .running: model.drag.run?.standing == false ? L("RIPRESA") : L("IN CORSA")
@@ -192,6 +228,8 @@ private struct SpeedCard: View {
 
     private var hint: String {
         switch model.drag.phase {
+        case .moving where model.dragManualStart && !model.drag.armed:
+            L("Da fermo premi Pronto al via, poi parti: il tempo parte appena ti muovi. Riprese e frenate si misurano anche in movimento.")
         case .moving: L("Da fermo il tempo parte da solo appena ti muovi. Riprese e frenate si misurano anche in movimento.")
         case .ready: L("Via quando vuoi: il tempo parte appena l'auto si muove.")
         case .running: L("Fermati o togli gas per chiudere la corsa.")

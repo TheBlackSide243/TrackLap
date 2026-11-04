@@ -97,11 +97,17 @@ final class AppModel {
     /// The Drag tab is open: the fixes go to the drag timer too.
     private(set) var dragOn = false
     private(set) var dragRollout = false
+    /// Runs from a standstill start with the button (the default); off, by themselves.
+    private(set) var dragManualStart = true
     /// The car of your garage you are driving: sessions remember it, and your laps on the
     /// leaderboards link to it.
     private(set) var activeCarID: UUID? = nil
     /// Someone's public garage opened from a link or a leaderboard.
     var shownGarage: GarageLink? = nil
+    /// The setup of the active car you drive with: sessions keep it as it was that day.
+    private(set) var activeSetupID: UUID? = nil
+    /// A setup file opened from Messages or Files, waiting for you to pick its car.
+    var importedSetup: SharedSetup? = nil
 
     /// Set once the screenshot mode has opened its screen (see Showcase).
     @ObservationIgnored var showcaseStarted = false
@@ -112,6 +118,7 @@ final class AppModel {
 
     var selectedTrack: Track? { tracks.track(selectedTrackID) }
     var activeCar: Car? { garage.car(activeCarID) }
+    var activeSetup: CarSetup? { garage.setup(activeSetupID).flatMap { $0.carID == activeCarID ? $0 : nil } }
     var canStart: Bool { selectedTrack?.isReady == true }
 
     init() {
@@ -124,6 +131,7 @@ final class AppModel {
         if let v = d.object(forKey: "minLapTime") as? Double { minLapTime = v }
         if let v = d.object(forKey: "voice") as? Bool { voiceOn = v }
         dragRollout = d.bool(forKey: "dragRollout")
+        if let v = d.object(forKey: "dragManualStart") as? Bool { dragManualStart = v }
         deltaReference = DeltaReference(rawValue: d.string(forKey: "deltaReference") ?? "") ?? .session
         if let s = d.string(forKey: "track"), let id = UUID(uuidString: s), tracks.track(id) != nil {
             selectedTrackID = id
@@ -131,6 +139,7 @@ final class AppModel {
             selectedTrackID = tracks.tracks.first?.id
         }
         if let s = d.string(forKey: "activeCar"), let id = UUID(uuidString: s), garage.car(id) != nil { activeCarID = id }
+        if let s = d.string(forKey: "activeSetup"), let id = UUID(uuidString: s), garage.setup(id)?.carID == activeCarID { activeSetupID = id }
         garage.account = account
         account.onChange = { [weak self] in self?.accountChanged() }
         engine.minLapTime = minLapTime
@@ -249,6 +258,7 @@ final class AppModel {
         s.carID = activeCar?.id
         s.carName = activeCar?.displayName
         s.layout = track.layout?.key
+        s.setup = activeSetup?.snapshot
         session = s
         currentSessionID = s.id
         isRunning = true
@@ -311,6 +321,7 @@ final class AppModel {
                                sectorCount: track.sectorCount)
             next.carID = s.carID
             next.carName = s.carName
+            next.setup = s.setup
             next.layout = found.key
             session = next
             currentSessionID = next.id
@@ -421,6 +432,7 @@ final class AppModel {
         if on {
             drag.bests = drags.bests(car: activeCarID)
             drag.rollout = dragRollout
+            drag.needsArming = dragManualStart
             drag.source = source.rawValue
             drag.vehicle = profile.displayVehicle
             drag.carID = activeCarID
@@ -434,7 +446,16 @@ final class AppModel {
     /// A simulated run on a straight road by the selected track, for the Demo.
     func startDemoDrag() {
         guard source == .demo, dragOn else { return }
+        // The demo car presses the button for you.
+        drag.arm()
         demoDrag.start(at: selectedTrack.map { $0.start?.mid ?? $0.center } ?? Coord(43.9975, 11.3719))
+    }
+
+    func setDragManualStart(_ on: Bool) {
+        dragManualStart = on
+        drag.needsArming = on
+        if !on { drag.disarm() }
+        UserDefaults.standard.set(on, forKey: "dragManualStart")
     }
 
     func setDragRollout(_ on: Bool) {
@@ -490,6 +511,11 @@ final class AppModel {
     /// The car you drive from now on; its name becomes the vehicle the others see.
     func setActiveCar(_ id: UUID?) {
         let car = garage.car(id)
+        if car?.id != activeCarID {
+            // Another car: the setup it was last driven with, if any.
+            let last = sessions.summaries.first { $0.carID == car?.id && $0.setupID != nil }?.setupID
+            setActiveSetup(garage.setup(last)?.carID == car?.id ? last : nil)
+        }
         activeCarID = car?.id
         UserDefaults.standard.set(car?.id.uuidString, forKey: "activeCar")
         if let car {
@@ -502,6 +528,23 @@ final class AppModel {
             drag.carID = car?.id
             drag.bests = drags.bests(car: car?.id)
         }
+    }
+
+    /// The setup you drive with from now on: the next sessions keep it as it is when they start.
+    func setActiveSetup(_ id: UUID?) {
+        activeSetupID = garage.setup(id)?.id
+        UserDefaults.standard.set(activeSetupID?.uuidString, forKey: "activeSetup")
+    }
+
+    /// The setup you drive with, and the car it is for.
+    func drive(setup: CarSetup) {
+        setActiveCar(setup.carID)
+        setActiveSetup(setup.id)
+    }
+
+    func deleteSetup(_ id: UUID) {
+        if id == activeSetupID { setActiveSetup(nil) }
+        garage.delete(setup: id)
     }
 
     func deleteCar(_ id: UUID) {

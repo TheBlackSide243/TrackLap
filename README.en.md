@@ -103,8 +103,9 @@ are in a group.
 
 ## Drag
 
-The **Drag** tab turns TrackLap into a performance meter. Stop, *READY* comes up, and the clock
-starts by itself as soon as the car moves: no button to press. Times come from the GPS speed
+The **Drag** tab turns TrackLap into a performance meter. Stopped, press **Ready to go**, *READY*
+comes up, and the clock starts as soon as the car moves: one press, one run (in the Drag menu the
+start can also be automatic, after a second standing still). Times come from the GPS speed
 (steadier than the positions) and the distance from adding it up, each threshold interpolated
 between two fixes: at 10 Hz or more they are good to a few hundredths.
 
@@ -131,6 +132,36 @@ between two fixes: at 10 Hz or more they are good to a few hundredths.
 </table>
 
 Only ever test where the road is closed to traffic.
+
+## Garage and setups
+
+The **Garage** holds the cars you drive on track: each with a photo, the year, the power, the
+weight and every modification. The one you drive in Live sits on top, and every session, drag run
+and leaderboard time remembers the car it was set with.
+
+- **Public garage**: with a TrackLap account the garage gets a link that opens without the app too,
+  and on the track leaderboards every time leads to the car it was set with.
+- **Setups**: for every car as many setups as you like, one for the wet, one for the dry, one per
+  track, with pressures, geometry, dampers, springs, anti-roll bars, wing and brakes. Changing one
+  deletes nothing: the version before stays in the history, with what changed.
+- Every session keeps the setup **as it was that day**, and when it rains at the track Live offers
+  your setup for the wet.
+- Setups **never go online**: they leave the phone only as a `.tracklapsetup` file you export.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/en-garage.webp" alt="The garage with the car in use and the others"></td>
+    <td width="33%"><img src="docs/readme/en-car.webp" alt="A car's page with its numbers, modifications and setups"></td>
+    <td width="33%"><img src="docs/readme/en-setup.webp" alt="A setup with its values and earlier versions"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The garage</sub></td>
+    <td align="center"><sub>A car, its modifications and its setups</sub></td>
+    <td align="center"><sub>A setup, with its version history</sub></td>
+  </tr>
+</table>
+
+<sub>Car photos from Wikimedia Commons, CC0: [list](screenshots/garage/CREDITS.md).</sub>
 
 ## The hardware
 
