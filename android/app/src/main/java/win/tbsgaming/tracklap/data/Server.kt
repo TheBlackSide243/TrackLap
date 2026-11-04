@@ -161,7 +161,7 @@ object Server {
         }
 
     suspend fun signOut(token: String) {
-        runCatching { send("v1/sessions", "DELETE", null, token = token) }
+        runCatching { send<Unit>("v1/sessions", "DELETE", null, token = token) }
     }
 
     suspend fun me(token: String): Account = send("v1/me", "GET", Account.serializer(), token = token)
@@ -176,7 +176,7 @@ object Server {
         }
 
     suspend fun deleteAccount(token: String, password: String) {
-        send("v1/me", "DELETE", null, buildJsonObject { put("password", password) }, token) { if (it == 403) ServerFailure.Kind.wrongPassword else null }
+        send<Unit>("v1/me", "DELETE", null, buildJsonObject { put("password", password) }, token) { if (it == 403) ServerFailure.Kind.wrongPassword else null }
     }
 
     fun isValidName(name: String) = Regex("^[A-Za-z0-9_.-]{3,20}$").matches(name)
@@ -199,7 +199,7 @@ object Server {
         send("v1/garages/$code", "GET", PublicGarage.serializer(), token = token) { if (it == 404) ServerFailure.Kind.notFound else null }
 
     suspend fun report(code: String, car: String?, reason: String) {
-        send("v1/garages/$code/report", "POST", null, buildJsonObject { put("reason", reason); if (car != null) put("car", car) })
+        send<Unit>("v1/garages/$code/report", "POST", null, buildJsonObject { put("reason", reason); if (car != null) put("car", car) })
     }
 
     fun photoURL(code: String, photo: String) = "$BASE/v1/garages/$code/photos/$photo"
