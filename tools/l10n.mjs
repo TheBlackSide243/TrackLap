@@ -1075,6 +1075,13 @@ const android = [
     'Position refusée : activez-la dans Paramètres → Applications → TrackLap → Autorisations → Position.',
     'Standort verweigert: in Einstellungen → Apps → TrackLap → Berechtigungen → Standort aktivieren.',
     'Localização negada: ative em Configurações → Apps → TrackLap → Permissões → Localização.'],
+  ['Scrivi il codice di cinque caratteri di chi ha creato il gruppo, oppure inquadra il suo QR con la Fotocamera.',
+    'Scrivi il codice di cinque caratteri di chi ha creato il gruppo, oppure inquadra il suo QR con la fotocamera del telefono.',
+    "Type the five-character code of whoever made the group, or scan their QR code with the phone's camera.",
+    'Escribe el código de cinco caracteres de quien creó el grupo, o escanea su QR con la cámara del teléfono.',
+    "Saisissez le code à cinq caractères de celui qui a créé le groupe, ou scannez son QR code avec l'appareil photo du téléphone.",
+    'Gib den fünfstelligen Code dessen ein, der die Gruppe erstellt hat, oder scanne seinen QR-Code mit der Handykamera.',
+    'Digite o código de cinco caracteres de quem criou o grupo, ou escaneie o QR com a câmera do telefone.'],
   // Only on Android.
   ['Telefono', 'Telefono', 'Phone', 'Teléfono', 'Téléphone', 'Handy', 'Telefone'],
   ['Consenti il Bluetooth', 'Consenti il Bluetooth', 'Allow Bluetooth', 'Permitir Bluetooth', 'Autoriser le Bluetooth', 'Bluetooth erlauben', 'Permitir Bluetooth'],

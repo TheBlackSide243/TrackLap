@@ -53,7 +53,7 @@ class LapVoice(context: Context) {
         maximumFractionDigits = digits
     }
 
-    fun announce(e: LapEvent) {
+    fun announce(e: LapEvent, place: win.tbsgaming.tracklap.multiplayer.Place? = null) {
         val parts = ArrayList<String>()
         if (e.isRecord) parts.add(L("Nuovo record della pista")) else if (e.isBest) parts.add(L("Nuovo best"))
         // "1 32.4" is read as one, thirty-two point four.
@@ -63,6 +63,18 @@ class LapVoice(context: Context) {
         e.gap?.let { gap ->
             val value = numbers(if (abs(gap) < 1) 2 else 1).format(abs(gap))
             parts.add(if (gap < 0) L("meno %@", value) else L("più %@", value))
+        }
+        val rival = e.rival
+        val rivalGap = e.rivalGap
+        if (rival != null && rivalGap != null) {
+            val value = numbers(if (abs(rivalGap) < 1) 2 else 1).format(abs(rivalGap))
+            parts.add(if (rivalGap < 0) L("%@: meno %@", rival, value) else L("%@: più %@", rival, value))
+        }
+        if (place != null) {
+            parts.add(
+                if (place.position == 1) L("primo nel gruppo")
+                else L("posizione %lld, a %@ da %@", place.position, numbers(if (abs(place.gap) < 1) 2 else 1).format(abs(place.gap)), place.rival),
+            )
         }
         say(parts.joinToString(", "))
     }

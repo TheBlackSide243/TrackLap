@@ -122,7 +122,7 @@ private fun DragHeader() {
     val m = LocalModel.current
     var menu by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ScreenHeader(Icons.Filled.Speed, "Drag", m.driverVehicle.trim().ifEmpty { L("Accelerazione e frenata") }) {
+        ScreenHeader(Icons.Filled.Speed, "Drag", m.profile.displayVehicle.ifEmpty { L("Accelerazione e frenata") }) {
             Box {
                 RoundIconButton(Icons.Filled.Tune) { menu = true }
                 DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Theme.panel) {
@@ -135,6 +135,7 @@ private fun DragHeader() {
             GpsPill()
             StatusPill(m.source.icon, m.source.short)
             if (m.dragRollout) StatusPill(Icons.Filled.Straighten, "Rollout", Theme.yellow)
+            ActiveCarChip()
         }
     }
 }
@@ -339,11 +340,14 @@ fun DragChart(run: DragRun, modifier: Modifier) {
 @Composable
 private fun RecordsCard() {
     val m = LocalModel.current
-    val records = m.drags.records()
-    if (records.isEmpty()) return
+    val car = m.activeCar
+    var allCars by remember { mutableStateOf(false) }
+    val records = m.drags.records(if (car != null && !allCars) car.id else null)
+    if (records.isEmpty() && m.drags.summaries.isEmpty()) return
     val measures = DragMeasure.all().filter { records[it.name] != null }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel(L("I tuoi record"))
+        SectionLabel(if (car != null && !allCars) L("I tuoi record con %@", car.displayName) else L("I tuoi record"))
+        if (car != null) Segmented(listOf(L("Quest'auto") to false, L("Tutte") to true), allCars) { allCars = it }
         Panel(padding = 4.dp) {
             for ((i, mm) in measures.withIndex()) {
                 val rec = records.getValue(mm.name)

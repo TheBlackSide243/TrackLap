@@ -51,6 +51,9 @@ data class LapEvent(
     val isRecord: Boolean = false,
     /** Against the best before this lap: negative is faster. */
     val gap: Double?,
+    /** The friend whose lap you are chasing, and this lap against theirs. */
+    val rival: String? = null,
+    val rivalGap: Double? = null,
 )
 
 /**
@@ -77,6 +80,9 @@ class LapEngine {
     @set:JvmName("assignRecord") var record by mutableStateOf<Lap?>(null); private set
     /** Compare with the track record instead of the best lap of this session. */
     var compareWithRecord by mutableStateOf(false)
+    /** A friend's lap to chase: while set, the delta is against it, whatever else is faster. */
+    var ghost by mutableStateOf<Lap?>(null); private set
+    var ghostName by mutableStateOf<String?>(null); private set
 
     var minLapTime = 20.0
     var onLap: ((Lap) -> Unit)? = null
@@ -85,12 +91,13 @@ class LapEngine {
     /** The lap the delta is measured against. */
     val referenceLap: Lap?
         get() {
+            ghost?.let { return it }
             val rec = record
             if (!compareWithRecord || rec == null) return bestLap
             val best = bestLap
             return if (best != null && best.time < rec.time) best else rec
         }
-    val comparesWithRecord: Boolean get() = compareWithRecord && record != null
+    val comparesWithRecord: Boolean get() = ghost == null && compareWithRecord && record != null
     val lastLap: Lap? get() = laps.lastOrNull()
     val isTiming: Boolean get() = lapStartWall != null
 
@@ -118,6 +125,8 @@ class LapEngine {
             splitGates = track.sectors.map { f.xy(it.a) to f.xy(it.b) }
         }
         record = null
+        ghost = null
+        ghostName = null
         reset()
     }
 
@@ -151,6 +160,12 @@ class LapEngine {
 
     fun setRecord(lap: Lap?) {
         record = lap
+    }
+
+    /** The friend's lap to chase on this track, null for none; like the record, until another track. */
+    fun setGhost(lap: Lap?, name: String?) {
+        ghost = lap
+        ghostName = if (lap == null) null else name
     }
 
     fun reset() {
@@ -251,7 +266,8 @@ class LapEngine {
         val isBest = previousBest?.let { time < it } ?: true
         val isRecord = record?.let { time < minOf(it.time, previousBest ?: Double.POSITIVE_INFINITY) } ?: false
         laps = laps + lap
-        lastEvent = LapEvent(number = lap.number, time = time, isBest = isBest, isRecord = isRecord, gap = previousBest?.let { time - it })
+        lastEvent = LapEvent(number = lap.number, time = time, isBest = isBest, isRecord = isRecord, gap = previousBest?.let { time - it },
+            rival = ghostName, rivalGap = ghost?.let { time - it.time })
         onLap?.invoke(lap)
     }
 

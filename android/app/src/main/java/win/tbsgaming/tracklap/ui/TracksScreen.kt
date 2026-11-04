@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocationCity
@@ -172,7 +173,8 @@ fun TracksScreen() {
             }
             SectionLabel(L("Le tue piste"))
             for (t in m.tracks.tracks) {
-                TrackCard(t, selected = t.id == m.selectedTrackID, onUse = { m.select(t.id) }, onEdit = { nav.push(AppTab.tracks, "editor:${t.id}") }, onDelete = { confirmDelete = t })
+                TrackCard(t, selected = t.id == m.selectedTrackID, onUse = { m.select(t.id) }, onEdit = { nav.push(AppTab.tracks, "editor:${t.id}") },
+                    onBoard = { nav.push(AppTab.tracks, "board:${t.id}") }, onDelete = { confirmDelete = t })
             }
         }
         if (busy) ProgressOverlay(L("Cerco la pista qui intorno…"))
@@ -196,7 +198,7 @@ fun TracksScreen() {
 }
 
 @Composable
-private fun TrackCard(track: Track, selected: Boolean, onUse: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TrackCard(track: Track, selected: Boolean, onUse: () -> Unit, onEdit: () -> Unit, onBoard: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(22.dp)
     Row(
@@ -222,6 +224,9 @@ private fun TrackCard(track: Track, selected: Boolean, onUse: () -> Unit, onEdit
             RoundIconButton(Icons.Filled.MoreVert, Theme.sub) { menu = true }
             DropdownMenu(menu, { menu = false }, containerColor = Theme.panel) {
                 DropdownMenuItem({ Text(L("Modifica"), color = Theme.text) }, { menu = false; onEdit() }, leadingIcon = { Icon(Icons.Filled.Edit, null, tint = Theme.accent) })
+                if (track.isReady && !track.isDemo) {
+                    DropdownMenuItem({ Text(L("Classifica online"), color = Theme.text) }, { menu = false; onBoard() }, leadingIcon = { Icon(Icons.Filled.EmojiEvents, null, tint = Theme.yellow) })
+                }
                 DropdownMenuItem({ Text(L("Elimina"), color = Theme.bad) }, { menu = false; onDelete() }, leadingIcon = { Icon(Icons.Filled.Delete, null, tint = Theme.bad) })
             }
         }

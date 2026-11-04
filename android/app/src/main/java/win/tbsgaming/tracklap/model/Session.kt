@@ -57,6 +57,8 @@ data class Session(
     val carName: String? = null,
     /** The layout of the track it was driven on (TrackLayout.key). */
     val layout: String? = null,
+    /** The car's setup, as it was that day. */
+    val setup: SessionSetup? = null,
 ) {
     val best: Lap? get() = laps.minByOrNull { it.time }
 
@@ -73,7 +75,8 @@ data class Session(
     val averageTime: Double? get() = if (laps.isEmpty()) null else laps.sumOf { it.time } / laps.size
 
     val summary: SessionSummary
-        get() = SessionSummary(id, trackID, trackName, date, source, laps.size, best?.time, idealTime, carID, carName, layout)
+        get() = SessionSummary(id, trackID, trackName, date, source, laps.size, best?.time, idealTime, carID, carName, layout,
+            setup?.id, setup?.name, setup?.weather, setup?.version)
 }
 
 /** What the session list needs, kept apart so the full traces load only when a session opens. */
@@ -90,6 +93,10 @@ data class SessionSummary(
     val carID: String? = null,
     val carName: String? = null,
     val layout: String? = null,
+    val setupID: String? = null,
+    val setupName: String? = null,
+    val setupWeather: SetupWeather? = null,
+    val setupVersion: Int? = null,
 ) {
     /** The layout's name, when it has one. */
     val layoutName: String? get() = layout?.split("|")?.firstOrNull()?.takeIf { it.isNotEmpty() }

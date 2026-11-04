@@ -297,6 +297,14 @@ class BleManager(private val context: Context) {
         write(out.toByteArray(), TrackLapBle.control)
     }
 
+    /** Your place in the live group for the ESP32's screen: position 0 for none, the gap in seconds to the one ahead. */
+    fun setGroup(position: Int, count: Int, gap: Double?) {
+        val out = ByteArrayOutputStream()
+        out.write(0x04); out.write(position.coerceIn(0, 255)); out.write(count.coerceIn(0, 255))
+        out.le32(gap?.let { (it * 1000).roundToInt().coerceIn(Int.MIN_VALUE + 1, Int.MAX_VALUE - 1) } ?: Int.MAX_VALUE)
+        write(out.toByteArray(), TrackLapBle.control)
+    }
+
     /** The drag dashboard: null puts the lap one back; otherwise 0 waiting for a stop, 1 ready, 2 a run in progress. */
     fun setDrag(state: Int?, elapsed: Double = 0.0) {
         if (state == null) {

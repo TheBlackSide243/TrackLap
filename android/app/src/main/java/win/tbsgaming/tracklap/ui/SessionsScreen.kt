@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
@@ -82,6 +83,7 @@ fun SessionsScreen() {
     val list = m.sessions.summaries
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ScreenHeader(Icons.Filled.BarChart, L("Sessioni"), if (list.size == 1) L("1 sessione") else L("%lld sessioni", list.size))
+        FriendsRow()
         if (list.isEmpty()) {
             Panel(padding = 24.dp) {
                 Text(L("Ancora nessuna sessione"), fontSize = 20.sp, fontWeight = FontWeight.Black, color = Theme.text)
@@ -103,6 +105,19 @@ fun SessionsScreen() {
     }
 }
 
+/** The laps friends sent, above the sessions. */
+@Composable
+private fun FriendsRow() {
+    val m = LocalModel.current
+    val nav = LocalNav.current
+    val n = m.friends.laps.size
+    ListRow(
+        Icons.Filled.Groups, L("Giri degli amici"),
+        if (n == 0) L("Apri con TrackLap i file .tracklap che ti mandano") else if (n == 1) L("1 giro da sfidare") else L("%lld giri da sfidare", n),
+        Theme.yellow,
+    ) { nav.push(AppTab.sessions, "friends") }
+}
+
 @Composable
 private fun SessionCard(s: SessionSummary, live: Boolean, onOpen: () -> Unit, onDelete: () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
@@ -118,6 +133,7 @@ private fun SessionCard(s: SessionSummary, live: Boolean, onOpen: () -> Unit, on
             }
             Text(Fmt.day(s.date), fontSize = 12.sp, color = Theme.sub)
             s.layoutName?.let { Text(it, fontSize = 12.sp, color = Theme.sub, maxLines = 1) }
+            s.carName?.let { Text(it + (s.setupName?.let { n -> " · " + n + (s.setupVersion?.let { v -> " " + L("v%lld", v) } ?: "") } ?: ""), fontSize = 12.sp, color = Theme.accent, maxLines = 1) }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Badge(if (s.lapCount == 1) L("1 giro") else L("%lld giri", s.lapCount))
                 Badge(s.source, Theme.sub)
@@ -150,12 +166,17 @@ fun SessionDetailScreen(id: String) {
     val session = remember(id, m.sessions.summaries) { m.sessions.load(id) }
     var share by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf<Lap?>(null) }
     Column(Modifier.fillMaxSize()) {
         TopBar(session?.trackName ?: L("Sessione"), onBack = { nav.pop(AppTab.sessions) }) {
             Box {
                 RoundIconButton(Icons.Filled.Share) { share = true }
                 DropdownMenu(share, { share = false }, containerColor = Theme.panel) {
                     if (session != null) {
+                        session.best?.let { b ->
+                            DropdownMenuItem({ Text(L("Condividi il giro migliore"), color = Theme.text) }, { share = false; sharing = b },
+                                leadingIcon = { Icon(Icons.Filled.Groups, null, tint = Theme.accent) })
+                        }
                         DropdownMenuItem({ Text(L("Esporta GPX"), color = Theme.text) }, { share = false; shareFile(context, Export.gpx(context, session), "application/gpx+xml") },
                             leadingIcon = { Icon(Icons.Filled.Map, null, tint = Theme.accent) })
                         DropdownMenuItem({ Text(L("Esporta CSV"), color = Theme.text) }, { share = false; shareFile(context, Export.csv(context, session), "text/csv") },
@@ -167,8 +188,9 @@ fun SessionDetailScreen(id: String) {
             }
         }
         if (session == null || session.laps.isEmpty()) return@Column
-        SessionBody(session)
+        SessionBody(session) { sharing = it }
     }
+    sharing?.let { lap -> if (session != null) ShareLapDialog(session, lap) { sharing = null } }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false }, containerColor = Theme.panel,
@@ -196,7 +218,7 @@ private fun shareFile(context: Context, file: File, type: String) {
 }
 
 @Composable
-private fun SessionBody(s: Session) {
+private fun SessionBody(s: Session, share: (Lap) -> Unit) {
     val m = LocalModel.current
     val best = s.best!!
     var lapID by remember { mutableStateOf(best.id) }
@@ -204,7 +226,8 @@ private fun SessionBody(s: Session) {
     val record = remember(s.id) { m.sessions.record(s.trackID, s.layout) }
     val refs = remember(s.id) {
         s.laps.map { Ref(it, L("Giro %lld", it.number) + " · " + Fmt.lap(it.time), it.id) } +
-            others.map { Ref(it.lap, Fmt.dayShort(it.session.date) + " · " + Fmt.lap(it.lap.time), "other-" + it.lap.id) }
+            others.map { Ref(it.lap, Fmt.dayShort(it.session.date) + " · " + Fmt.lap(it.lap.time), "other-" + it.lap.id) } +
+            m.friends.laps(s.trackID).mapNotNull { f -> m.friends.lap(f.id)?.let { Ref(it, f.title, "friend-" + f.id) } }
     }
     val lap = s.laps.firstOrNull { it.id == lapID } ?: best
     var refID by remember { mutableStateOf<String?>(null) }
@@ -226,6 +249,20 @@ private fun SessionBody(s: Session) {
                 Badge(s.source, Theme.sub)
                 s.summary.layoutName?.let { Badge(it, Theme.accent) }
                 if (isTrackRecord) Badge(L("Record pista"), Theme.yellow)
+            }
+            s.carName?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.accent)
+            }
+            s.setup?.let { st ->
+                var open by remember { mutableStateOf(false) }
+                Text(L("%@ · v%lld", st.name, st.version), fontSize = 13.sp, color = Theme.yellow, modifier = Modifier.padding(top = 4.dp).clickable { open = true })
+                if (open) AlertDialog(
+                    onDismissRequest = { open = false }, containerColor = Theme.panel,
+                    title = { Text(L("%@ · v%lld", st.name, st.version), color = Theme.text) },
+                    text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) { SetupValuesView(st.values) } },
+                    confirmButton = { TextButton({ open = false }) { Text(L("Fine"), color = Theme.accent) } },
+                )
             }
         }
         val stats = listOf(
@@ -327,7 +364,7 @@ private fun SessionBody(s: Session) {
         SectionLabel(L("Giri"))
         Panel(padding = 4.dp) {
             for ((i, l) in s.laps.withIndex()) {
-                LapRow(l, best.time, l.id == lap.id) { lapID = l.id; cursor = null }
+                LapRow(l, best.time, l.id == lap.id, onShare = { share(l) }) { lapID = l.id; cursor = null }
                 if (i < s.laps.size - 1) Hairline()
             }
         }
@@ -445,7 +482,7 @@ private fun GGDiagram(lap: Lap) {
 }
 
 @Composable
-private fun LapRow(lap: Lap, bestTime: Double, selected: Boolean, onClick: () -> Unit) {
+private fun LapRow(lap: Lap, bestTime: Double, selected: Boolean, onShare: () -> Unit, onClick: () -> Unit) {
     val isBest = lap.time == bestTime
     Row(
         Modifier.fillMaxWidth().background(if (selected) Theme.accent.copy(alpha = 0.08f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
@@ -464,5 +501,6 @@ private fun LapRow(lap: Lap, bestTime: Double, selected: Boolean, onClick: () ->
         }
         Text(if (isBest) L("BEST") else Fmt.delta(lap.time - bestTime), style = Theme.numStyle(14.sp, FontWeight.Black, if (isBest) Theme.purple else Theme.bad))
         if (selected) Icon(Icons.Filled.Check, null, tint = Theme.accent, modifier = Modifier.size(18.dp))
+        Icon(Icons.Filled.Share, L("Condividi questo giro"), tint = Theme.sub, modifier = Modifier.size(18.dp).clickable(onClick = onShare))
     }
 }

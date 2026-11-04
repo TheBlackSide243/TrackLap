@@ -78,6 +78,10 @@ fun DeviceScreen() {
         }
         SectionLabel(L("Cronometro"))
         SettingsPanel()
+        SectionLabel(L("Account"))
+        AccountPanel()
+        SectionLabel(L("Tu e gli amici"))
+        FriendsPanel()
         SectionLabel(L("Informazioni"))
         AboutPanel()
     }
@@ -290,11 +294,6 @@ private fun SettingsPanel() {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(L("Unità"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.text)
                 Segmented(Units.entries.map { it.title to it }, m.units) { m.setUnits(it) }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(L("Veicolo"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.text)
-                OutlinedTextField(m.driverVehicle, { m.setVehicle(it) }, Modifier.fillMaxWidth(), singleLine = true,
-                    placeholder = { Text(L("Il tuo veicolo"), color = Theme.sub) }, colors = fieldColors(), shape = RoundedCornerShape(14.dp))
             }
         }
     }

@@ -1,6 +1,21 @@
 package win.tbsgaming.tracklap
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import win.tbsgaming.tracklap.ui.CarDetailScreen
+import win.tbsgaming.tracklap.ui.CarEditorScreen
+import win.tbsgaming.tracklap.ui.FriendLapsScreen
+import win.tbsgaming.tracklap.ui.GarageScreen
+import win.tbsgaming.tracklap.ui.LeaderboardScreen
+import win.tbsgaming.tracklap.ui.PublicGarageScreen
+import win.tbsgaming.tracklap.ui.SetupDetailScreen
+import win.tbsgaming.tracklap.ui.SetupEditorScreen
+import win.tbsgaming.tracklap.ui.SetupImportDialog
+import win.tbsgaming.tracklap.ui.SignInScreen
 import android.os.Build
 import android.os.Bundle
 import android.view.HapticFeedbackConstants
@@ -117,6 +132,33 @@ class MainActivity : ComponentActivity() {
                 Root()
             }
         }
+        handle(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handle(intent)
+    }
+
+    /** A tracklap:// link (a group's QR, a garage page), or a .tracklap / .tracklapsetup file from another app. */
+    private fun handle(intent: Intent?) {
+        intent ?: return
+        val uri: Uri? = when (intent.action) {
+            Intent.ACTION_VIEW -> intent.data
+            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            else @Suppress("DEPRECATION") intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            else -> null
+        }
+        uri ?: return
+        if (uri.scheme == "tracklap") {
+            model.openLink(uri)
+            return
+        }
+        val text = runCatching {
+            contentResolver.openInputStream(uri)?.use { it.readBytes().takeIf { b -> b.size < 20_000_000 }?.toString(Charsets.UTF_8) }
+        }.getOrNull()
+        if (text != null) model.openFile(text) else model.notice = L("Questo file non è un giro di TrackLap.")
+        setIntent(Intent())
     }
 
     override fun onResume() {
@@ -141,6 +183,18 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(m.tab) { m.setDragMode(m.tab == AppTab.drag) }
         Box(Modifier.fillMaxSize().background(Theme.bg)) {
             if (!m.introSeen) IntroScreen { m.setIntroSeen(true) } else Tabs()
+            m.shownGarage?.let { link ->
+                BackHandler { m.shownGarage = null }
+                Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) { PublicGarageScreen(link) { m.shownGarage = null } }
+            }
+        }
+        m.importedSetup?.let { SetupImportDialog(it) { m.importedSetup = null } }
+        m.notice?.let { text ->
+            AlertDialog(
+                onDismissRequest = { m.notice = null }, containerColor = Theme.panel,
+                text = { Text(text, color = Theme.text) },
+                confirmButton = { TextButton({ m.notice = null }) { Text("OK", color = Theme.accent) } },
+            )
         }
     }
 
@@ -157,6 +211,7 @@ private fun tabItems() = listOf(
     TabItem(AppTab.drag, "Drag", Icons.Filled.Speed),
     TabItem(AppTab.tracks, L("Piste"), Icons.Filled.Map),
     TabItem(AppTab.sessions, L("Sessioni"), Icons.Filled.BarChart),
+    TabItem(AppTab.garage, L("Garage"), Icons.Filled.DirectionsCar),
     TabItem(AppTab.device, L("Dispositivo"), Icons.Filled.Sensors),
 )
 
@@ -194,14 +249,22 @@ private fun Tabs() {
 @Composable
 private fun Page(tab: AppTab, route: String?) {
     when {
+        route == "account" -> SignInScreen(tab)
         tab == AppTab.live -> LiveScreen()
         tab == AppTab.drag && route?.startsWith("run:") == true -> DragRunScreen(route.removePrefix("run:"))
         tab == AppTab.drag -> DragScreen()
         tab == AppTab.tracks && route == "search" -> TrackSearchScreen()
         tab == AppTab.tracks && route?.startsWith("editor:") == true -> TrackEditorScreen(route.removePrefix("editor:"))
+        tab == AppTab.tracks && route?.startsWith("board:") == true -> LeaderboardScreen(route.removePrefix("board:"))
         tab == AppTab.tracks -> TracksScreen()
         tab == AppTab.sessions && route?.startsWith("session:") == true -> SessionDetailScreen(route.removePrefix("session:"))
+        tab == AppTab.sessions && route == "friends" -> FriendLapsScreen()
         tab == AppTab.sessions -> SessionsScreen()
+        tab == AppTab.garage && route?.startsWith("car:") == true -> CarDetailScreen(route.removePrefix("car:"))
+        tab == AppTab.garage && route?.startsWith("editor:") == true -> CarEditorScreen(route.removePrefix("editor:"))
+        tab == AppTab.garage && route?.startsWith("setup:") == true -> SetupDetailScreen(route.removePrefix("setup:"))
+        tab == AppTab.garage && route?.startsWith("setupEdit:") == true -> route.removePrefix("setupEdit:").split(":").let { SetupEditorScreen(it[0], it.getOrElse(1) { "new" }) }
+        tab == AppTab.garage -> GarageScreen()
         else -> DeviceScreen()
     }
 }

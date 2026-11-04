@@ -8,6 +8,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import win.tbsgaming.tracklap.data.TrackWeather
+import win.tbsgaming.tracklap.model.SetupWeather
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,6 +94,7 @@ fun LiveScreen() {
         val wide = maxWidth > maxHeight
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             LiveHeader()
+            WeatherHint()
             if (!ready) {
                 NoTrackCard()
             } else if (wide) {
@@ -99,6 +108,7 @@ fun LiveScreen() {
                         LiveStatsRow()
                         MiniMapCard(150)
                         SessionButton()
+                        MultiplayerCard()
                     }
                 }
             } else {
@@ -108,6 +118,7 @@ fun LiveScreen() {
                 LiveStatsRow()
                 MiniMapCard(210)
                 SessionButton()
+                MultiplayerCard()
             }
         }
         AnimatedVisibility(
@@ -130,6 +141,9 @@ private fun LiveHeader() {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             GpsPill()
             StatusPill(m.source.icon, m.source.short)
+            m.group.place?.let { StatusPill(Icons.Filled.Groups, "P${it.position}/${it.count}", Theme.yellow) }
+            ActiveCarChip()
+            ActiveSetupChip()
         }
     }
 }
@@ -219,7 +233,9 @@ private fun DeltaCard() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("DELTA", fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp, color = Theme.sub)
+                    val ghost = e.ghost
                     val caption = when {
+                        ghost != null -> L("sul giro di %@ (%@)", e.ghostName ?: "", Fmt.lap(ghost.time))
                         e.comparesWithRecord -> L("sul record della pista (%@)", Fmt.lap(e.referenceLap?.time))
                         d == null -> L("Completa un giro per il confronto")
                         else -> L("sul tuo giro migliore")
@@ -229,6 +245,64 @@ private fun DeltaCard() {
                 BigText(Fmt.delta(d), 46.sp, color)
             }
             DeltaBar(d, m.deltaScale)
+            ChallengeMenu()
+        }
+    }
+}
+
+/** The friend's lap to chase, picked from the laps friends sent for this track. */
+@Composable
+private fun ChallengeMenu() {
+    val m = LocalModel.current
+    val laps = m.friends.laps(m.selectedTrackID)
+    if (laps.isEmpty()) return
+    var open by remember { mutableStateOf(false) }
+    val c = m.challenge
+    Box {
+        Row(
+            Modifier.clip(CircleShape).background(if (c == null) Theme.input else Theme.yellow.copy(alpha = 0.14f)).clickable { open = true }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(Icons.Filled.Flag, null, tint = if (c == null) Theme.sub else Theme.yellow, modifier = Modifier.size(14.dp))
+            Text(c?.let { L("Sfida: %@", it.driver) } ?: L("Sfida un amico"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (c == null) Theme.sub else Theme.yellow)
+        }
+        DropdownMenu(open, { open = false }, containerColor = Theme.panel) {
+            DropdownMenuItem({ Text(L("Nessuna sfida"), color = Theme.text) }, { open = false; m.setChallenge(null) })
+            for (f in laps) DropdownMenuItem({ Text(f.title, color = if (f.id == c?.id) Theme.yellow else Theme.text) }, { open = false; m.setChallenge(f) })
+        }
+    }
+}
+
+/** Rain at the track and a setup for the wet in your garage (or sun and one for the dry): Live offers to switch before the session starts. */
+@Composable
+private fun WeatherHint() {
+    val m = LocalModel.current
+    val t = m.selectedTrack
+    val now by produceState<TrackWeather.Now?>(null, t?.id) {
+        value = if (t == null || t.isDemo) null else TrackWeather.now(t.start?.mid ?: t.center)
+    }
+    var dismissed by remember { mutableStateOf<String?>(null) }
+    val n = now ?: return
+    val car = m.activeCar ?: return
+    if (m.isRunning) return
+    val wanted = if (n.wet) SetupWeather.wet else SetupWeather.dry
+    if (m.activeSetup?.weather == wanted) return
+    val list = m.garage.setups(car.id).filter { it.weather == wanted }
+    val name = t?.name ?: ""
+    val setup = list.firstOrNull { it.track.isNotEmpty() && name.contains(it.track, ignoreCase = true) } ?: list.firstOrNull() ?: return
+    if (dismissed == setup.id + wanted.name) return
+    Panel(padding = 14.dp, glow = if (wanted == SetupWeather.wet) Theme.blue else Theme.yellow) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            WeatherGlyph(wanted, 36.dp)
+            Column(Modifier.weight(1f)) {
+                val temp = n.temperature?.let { " · " + Math.round(it) + "°" } ?: ""
+                Text((if (n.wet) L("Piove a %@", name) else L("Asciutto a %@", name)) + temp, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Theme.text)
+                Text(L("Usare l'assetto %@?", setup.displayName), fontSize = 12.sp, color = Theme.sub, maxLines = 2)
+            }
+            Text(L("Usa"), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black,
+                modifier = Modifier.clip(CircleShape).background(Theme.accent).clickable { m.setActiveSetup(setup.id) }.padding(horizontal = 14.dp, vertical = 8.dp))
+            Icon(Icons.Filled.Close, L("Chiudi"), tint = Theme.sub, modifier = Modifier.size(18.dp).clickable { dismissed = setup.id + wanted.name })
         }
     }
 }
@@ -296,13 +370,25 @@ private fun MiniMapCard(height: Int) {
         Box(Modifier.fillMaxWidth().height(height.dp).clip(RoundedCornerShape(16.dp))) {
             SatelliteMap(
                 Modifier.fillMaxSize(), frame = track.allPoints, frameKey = track.id, lines = lines,
-                dots = listOfNotNull(e.position?.let { MapDot(it, Theme.accent) }),
+                dots = friendDots() + listOfNotNull(e.position?.let { MapDot(it, Theme.accent) }),
             )
             Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Badge(L("Giri: %lld", e.laps.size))
                 track.length?.let { Badge(Fmt.distance(it), Theme.sub) }
             }
         }
+    }
+}
+
+/** The cars of the live group on this track, as their latest position put them. */
+@Composable
+private fun friendDots(): List<MapDot> {
+    val g = LocalModel.current.group
+    val now = System.currentTimeMillis()
+    return g.members.mapNotNull { mm ->
+        val p = mm.position ?: return@mapNotNull null
+        if (!mm.online || now - p.received > 10_000 || g.mine.track?.isSame(mm.track) != true) return@mapNotNull null
+        MapDot(p.coord, GroupColors.color(mm.color), 6f, label = mm.name.take(1).uppercase())
     }
 }
 
@@ -381,8 +467,15 @@ private fun LapBanner(event: LapEvent) {
             )
             BigText(Fmt.lap(event.time), 32.sp)
         }
-        event.gap?.let {
-            Text(Fmt.delta(it), style = Theme.numStyle(20.sp, FontWeight.Black, if (it <= 0) Theme.good else Theme.bad))
+        Column(horizontalAlignment = Alignment.End) {
+            event.gap?.let {
+                Text(Fmt.delta(it), style = Theme.numStyle(20.sp, FontWeight.Black, if (it <= 0) Theme.good else Theme.bad))
+            }
+            val rival = event.rival
+            val rg = event.rivalGap
+            if (rival != null && rg != null) {
+                Text(L("vs %@ %@", rival, Fmt.delta(rg)), style = Theme.numStyle(12.sp, FontWeight.Black, if (rg <= 0) Theme.good else Theme.bad), maxLines = 1)
+            }
         }
     }
 }
