@@ -1,6 +1,7 @@
 // Translations of TrackLap. The Italian text is the key used in the code (Text("…"), L("…"));
 // %@ stands for a text and %lld for a number, exactly as Swift builds the key from \(…).
-// Run `node tools/l10n.mjs` after changing this table: it writes Resources/<language>.lproj.
+// Run `node tools/l10n.mjs` after changing this table: it writes Resources/<language>.lproj, and
+// android/app/src/main/assets/l10n.json for the Android app.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1011,6 +1012,88 @@ const infoPlist = {
     'Para encontrar pistas próximas, marcar a linha de largada e cronometrar com o GPS do iPhone.'],
 };
 
+// Android (android/): the same keys and the same table, with the phone where the iPhone is named,
+// Android's settings where iOS's are, and the few texts only the Android app has.
+// [key (Italian), Italian on Android, English, Spanish, French, German, Portuguese]
+const android = [
+  ["GPS dell'iPhone", 'GPS del telefono', 'Phone GPS', 'GPS del teléfono', 'GPS du téléphone', 'Handy-GPS', 'GPS do telefone'],
+  ["GPS dell'iPhone, circa 1 Hz: per tempi precisi usa l'ESP32.",
+    "GPS del telefono, circa 1 Hz: per tempi precisi usa l'ESP32.",
+    'Phone GPS, about 1 Hz: use the ESP32 for precise times.',
+    'GPS del teléfono, aprox. 1 Hz: para tiempos precisos usa el ESP32.',
+    "GPS du téléphone, environ 1 Hz : pour des temps précis, utilisez l'ESP32.",
+    'Handy-GPS, etwa 1 Hz: für genaue Zeiten das ESP32 nutzen.',
+    'GPS do telefone, cerca de 1 Hz: para tempos precisos use o ESP32.'],
+  ["Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative.",
+    "Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS del telefono solo indicative.",
+    'Worked out from GPS: reliable with the ESP32 at 10 Hz, only a rough guide with the phone GPS.',
+    'Calculadas con el GPS: fiables con el ESP32 a 10 Hz, solo orientativas con el GPS del teléfono.',
+    "Calculées à partir du GPS : fiables avec l'ESP32 à 10 Hz, seulement indicatives avec le GPS du téléphone.",
+    'Aus dem GPS berechnet: mit dem ESP32 bei 10 Hz zuverlässig, mit dem Handy-GPS nur ungefähr.',
+    'Calculadas pelo GPS: confiáveis com o ESP32 a 10 Hz, apenas indicativas com o GPS do telefone.'],
+  ['Con lo schermo della Waveshare i tempi li vedi anche senza iPhone.',
+    'Con lo schermo della Waveshare i tempi li vedi anche senza telefono.',
+    'With the Waveshare screen you see the times even without the phone.',
+    'Con la pantalla de la Waveshare ves los tiempos incluso sin el teléfono.',
+    "Avec l'écran de la Waveshare, vous voyez les temps même sans le téléphone.",
+    'Mit dem Waveshare-Display sind die Zeiten auch ohne Handy zu sehen.',
+    'Com a tela da Waveshare você vê os tempos mesmo sem o telefone.'],
+  ["Gli amici inquadrano il QR con la Fotocamera dell'iPhone, oppure aprono TrackLap e scrivono il codice.",
+    'Gli amici inquadrano il QR con la fotocamera del telefono, oppure aprono TrackLap e scrivono il codice.',
+    "Friends scan the QR code with their phone's camera, or open TrackLap and type the code.",
+    'Tus amigos escanean el QR con la cámara del teléfono, o abren TrackLap y escriben el código.',
+    "Vos amis scannent le QR code avec l'appareil photo du téléphone, ou ouvrent TrackLap et saisissent le code.",
+    'Freunde scannen den QR-Code mit der Handykamera oder öffnen TrackLap und geben den Code ein.',
+    'Os amigos escaneiam o QR com a câmera do telefone, ou abrem o TrackLap e digitam o código.'],
+  ["Il GPS dell'iPhone dà circa un fix al secondo: i tempi sono indicativi, mezzo secondo in più o in meno. Per misure vere serve l'ESP32 a 10 Hz o più.",
+    "Il GPS del telefono dà circa un fix al secondo: i tempi sono indicativi, mezzo secondo in più o in meno. Per misure vere serve l'ESP32 a 10 Hz o più.",
+    "The phone's GPS gives about one fix a second: times are rough, half a second either way. For real measures you need the ESP32 at 10 Hz or more.",
+    'El GPS del teléfono da más o menos una posición por segundo: los tiempos son orientativos, medio segundo arriba o abajo. Para medidas reales hace falta el ESP32 a 10 Hz o más.',
+    "Le GPS du téléphone donne environ une position par seconde : les temps sont indicatifs, à une demi-seconde près. Pour de vraies mesures, il faut l'ESP32 à 10 Hz ou plus.",
+    'Das Handy-GPS liefert etwa eine Position pro Sekunde: Die Zeiten sind Richtwerte, eine halbe Sekunde mehr oder weniger. Für echte Messungen braucht es das ESP32 mit 10 Hz oder mehr.',
+    'O GPS do telefone dá cerca de uma posição por segundo: os tempos são aproximados, meio segundo para mais ou para menos. Para medidas reais é preciso o ESP32 a 10 Hz ou mais.'],
+  ["Il GPS esterno a 10 Hz misura al centesimo, quello dell'iPhone a 1 Hz è meno preciso: per questo ogni tempo dice con quale è stato fatto.",
+    'Il GPS esterno a 10 Hz misura al centesimo, quello del telefono a 1 Hz è meno preciso: per questo ogni tempo dice con quale è stato fatto.',
+    "The external GPS at 10 Hz times to the hundredth, the phone's at 1 Hz is less precise: that is why each time says which one set it.",
+    'El GPS externo a 10 Hz mide a la centésima, el del teléfono a 1 Hz es menos preciso: por eso cada tiempo dice con cuál se hizo.',
+    'Le GPS externe à 10 Hz mesure au centième, celui du téléphone à 1 Hz est moins précis : c\'est pourquoi chaque temps indique avec lequel il a été fait.',
+    'Das externe GPS mit 10 Hz misst auf die Hundertstel, das des Handys mit 1 Hz ist ungenauer: Deshalb steht bei jeder Zeit, womit sie gefahren wurde.',
+    'O GPS externo a 10 Hz mede ao centésimo, o do telefone a 1 Hz é menos preciso: por isso cada tempo diz com qual foi feito.'],
+  ['Accendilo dal Centro di Controllo.', 'Accendilo dalle impostazioni rapide.', 'Turn it on in Quick Settings.', 'Actívalo en los ajustes rápidos.',
+    'Activez-le dans les réglages rapides.', 'In den Schnelleinstellungen einschalten.', 'Ative-o nas configurações rápidas.'],
+  ['Consentilo in Impostazioni → TrackLap → Bluetooth.',
+    'Consentilo in Impostazioni → App → TrackLap → Autorizzazioni → Dispositivi nelle vicinanze.',
+    'Allow it in Settings → Apps → TrackLap → Permissions → Nearby devices.',
+    'Permítelo en Ajustes → Aplicaciones → TrackLap → Permisos → Dispositivos cercanos.',
+    'Autorisez-le dans Paramètres → Applications → TrackLap → Autorisations → Appareils à proximité.',
+    'In Einstellungen → Apps → TrackLap → Berechtigungen → Geräte in der Nähe erlauben.',
+    'Permita em Configurações → Apps → TrackLap → Permissões → Dispositivos por perto.'],
+  ['Posizione negata: abilitala in Impostazioni → TrackLap → Posizione.',
+    'Posizione negata: abilitala in Impostazioni → App → TrackLap → Autorizzazioni → Posizione.',
+    'Location denied: enable it in Settings → Apps → TrackLap → Permissions → Location.',
+    'Ubicación denegada: actívala en Ajustes → Aplicaciones → TrackLap → Permisos → Ubicación.',
+    'Position refusée : activez-la dans Paramètres → Applications → TrackLap → Autorisations → Position.',
+    'Standort verweigert: in Einstellungen → Apps → TrackLap → Berechtigungen → Standort aktivieren.',
+    'Localização negada: ative em Configurações → Apps → TrackLap → Permissões → Localização.'],
+  // Only on Android.
+  ['Telefono', 'Telefono', 'Phone', 'Teléfono', 'Téléphone', 'Handy', 'Telefone'],
+  ['Consenti il Bluetooth', 'Consenti il Bluetooth', 'Allow Bluetooth', 'Permitir Bluetooth', 'Autoriser le Bluetooth', 'Bluetooth erlauben', 'Permitir Bluetooth'],
+  ['Apri le impostazioni Bluetooth', 'Apri le impostazioni Bluetooth', 'Open Bluetooth settings', 'Abrir los ajustes de Bluetooth',
+    'Ouvrir les réglages Bluetooth', 'Bluetooth-Einstellungen öffnen', 'Abrir as configurações de Bluetooth'],
+  ['Consenti la posizione', 'Consenti la posizione', 'Allow location', 'Permitir la ubicación', 'Autoriser la position', 'Standort erlauben', 'Permitir a localização'],
+  ['Apri le impostazioni', 'Apri le impostazioni', 'Open settings', 'Abrir los ajustes', 'Ouvrir les réglages', 'Einstellungen öffnen', 'Abrir as configurações'],
+  ['TrackLap tiene lo schermo acceso mentre cronometra: lascia il telefono nel supporto.',
+    'TrackLap tiene lo schermo acceso mentre cronometra: lascia il telefono nel supporto.',
+    'TrackLap keeps the screen on while timing: leave the phone in its mount.',
+    'TrackLap mantiene la pantalla encendida mientras cronometra: deja el teléfono en el soporte.',
+    "TrackLap garde l'écran allumé pendant le chronométrage : laissez le téléphone dans son support.",
+    'TrackLap lässt den Bildschirm beim Zeitnehmen an: Lass das Handy in der Halterung.',
+    'O TrackLap mantém a tela ligada enquanto cronometra: deixe o telefone no suporte.'],
+  ['Veicolo', 'Veicolo', 'Vehicle', 'Vehículo', 'Véhicule', 'Fahrzeug', 'Veículo'],
+  ['Il tuo veicolo', 'Il tuo veicolo', 'Your vehicle', 'Tu vehículo', 'Votre véhicule', 'Dein Fahrzeug', 'Seu veículo'],
+  ['Immagini satellitari', 'Immagini satellitari', 'Satellite imagery', 'Imágenes de satélite', 'Images satellite', 'Satellitenbilder', 'Imagens de satélite'],
+];
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const res = path.join(here, '..', 'Resources');
 const quote = s => '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
@@ -1032,5 +1115,35 @@ for (const [i, lang] of ['it', ...languages].entries()) {
   fs.writeFileSync(path.join(dir, 'Localizable.strings'), header + body + '\n');
   const info = Object.entries(infoPlist).map(([k, v]) => `${k} = ${quote(v[i])};`).join('\n');
   fs.writeFileSync(path.join(dir, 'InfoPlist.strings'), header + info + '\n');
+}
+// Android: one JSON with every language, the overrides above applied; every key the Kotlin code
+// uses has to be in it.
+const androidKeys = new Set(android.map(r => r[0]));
+for (const row of android) {
+  if (row.length !== languages.length + 2) throw new Error('wrong number of languages (android): ' + row[0]);
+  for (const t of row.slice(1)) if (specs(t) !== specs(row[0])) throw new Error(`placeholders differ (android): ${row[0]} → ${t}`);
+}
+const kotlin = path.join(here, '..', 'android', 'app', 'src', 'main', 'java');
+if (fs.existsSync(kotlin)) {
+  const out = {};
+  for (const [i, lang] of ['it', ...languages].entries()) {
+    out[lang] = {};
+    for (const r of strings) if (!androidKeys.has(r[0])) out[lang][r[0]] = r[i] ?? r[0];
+    for (const r of android) out[lang][r[0]] = r[i + 1];
+  }
+  const used = new Set();
+  (function walk(d) {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f);
+      if (fs.statSync(p).isDirectory()) walk(p);
+      else if (p.endsWith('.kt')) for (const m of fs.readFileSync(p, 'utf8').matchAll(/\bL\(\s*"((?:[^"\\]|\\.)*)"/g)) used.add(m[1].replace(/\\"/g, '"'));
+    }
+  })(kotlin);
+  const missing = [...used].filter(k => !(k in out.it));
+  if (missing.length) throw new Error('not translated (android): ' + missing.join(' | '));
+  const assets = path.join(here, '..', 'android', 'app', 'src', 'main', 'assets');
+  fs.mkdirSync(assets, { recursive: true });
+  fs.writeFileSync(path.join(assets, 'l10n.json'), JSON.stringify(out) + '\n');
+  console.log(`android: ${Object.keys(out.it).length} strings, ${used.size} used by the app`);
 }
 console.log(`${strings.length} strings in ${languages.length + 1} languages`);

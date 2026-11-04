@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The circuit of icon.svg, scaled into the safe zone of an adaptive icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:pivotX="512"
+        android:pivotY="512"
+        android:scaleX="0.62"
+        android:scaleY="0.62">
+        <path
+            android:pathData="M300,770 C170,770 150,610 250,545 L420,432 C482,392 470,300 545,266 C650,220 830,250 846,384 C862,505 760,525 700,565 C640,605 705,705 640,752 C600,782 520,770 470,770 Z"
+            android:strokeColor="#FF2A2A31"
+            android:strokeWidth="118"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M300,770 C170,770 150,610 250,545 L420,432 C482,392 470,300 545,266 C650,220 830,250 846,384 C862,505 760,525 700,565 C640,605 705,705 640,752 C600,782 520,770 470,770 Z"
+            android:strokeColor="#FF22D3EE"
+            android:strokeWidth="46"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#FFF2F2F6"
+            android:pathData="M370,700 h40 v140 h-40 Z" />
+        <path
+            android:fillColor="#FF0F0F11"
+            android:pathData="M370,700 h20 v20 h-20 Z M390,720 h20 v20 h-20 Z M370,740 h20 v20 h-20 Z M390,760 h20 v20 h-20 Z M370,780 h20 v20 h-20 Z M390,800 h20 v20 h-20 Z M370,820 h20 v20 h-20 Z" />
+        <path
+            android:fillColor="#4722D3EE"
+            android:pathData="M792,384 a54,54 0 1,0 108,0 a54,54 0 1,0 -108,0 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M816,384 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 Z" />
+        <path
+            android:fillColor="#FF22D3EE"
+            android:pathData="M830,384 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0 Z" />
+    </group>
+</vector>
