@@ -27,6 +27,10 @@ online.
   you are just stopped somewhere. One press, one run. The automatic start is still there, in the
   Drag menu.
 
+**Fixed**
+- Garage and Device no longer show an extra back arrow above them: with six tabs the iPhone put the
+  last two under a hidden "More" tab, with its own arrow.
+
 **Firmware 0.9.0**
 - Same as 0.7.0, only the version number changes.
 
@@ -51,6 +55,10 @@ online.
 - **Tasto di partenza nel Drag**: da fermo premi **Pronto al via** e poi parti: finché sei solo
   fermo da qualche parte non parte niente. Una pressione, una corsa. La partenza automatica c'è
   ancora, nel menu del Drag.
+
+**Correzioni**
+- Garage e Dispositivo non hanno più una freccia indietro in più sopra: con sei schede l'iPhone
+  metteva le ultime due sotto una scheda "Altro" nascosta, con la sua freccia.
 
 **Firmware 0.9.0**
 - Uguale alla 0.7.0, cambia solo il numero di versione.
