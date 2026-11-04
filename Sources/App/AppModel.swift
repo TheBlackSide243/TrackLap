@@ -108,6 +108,8 @@ final class AppModel {
     private(set) var activeSetupID: UUID? = nil
     /// A setup file opened from Messages or Files, waiting for you to pick its car.
     var importedSetup: SharedSetup? = nil
+    /// A group invitation opened before signing in: Live asks you to sign in, then joins it.
+    var pendingJoin: String? = nil
 
     /// Set once the screenshot mode has opened its screen (see Showcase).
     @ObservationIgnored var showcaseStarted = false
@@ -501,9 +503,22 @@ final class AppModel {
             return true
         }
         guard url.scheme == "tracklap", url.host == "join" else { return false }
-        group.join(url.lastPathComponent, on: selectedTrack)
+        if account.isSignedIn {
+            group.join(url.lastPathComponent, on: selectedTrack)
+        } else {
+            let code = GroupSession.clean(url.lastPathComponent)
+            pendingJoin = code.isEmpty ? nil : code
+        }
         tab = .live
         return true
+    }
+
+    /// The invitation that waited for you to sign in.
+    func joinPending() {
+        guard let code = pendingJoin, account.isSignedIn else { return }
+        pendingJoin = nil
+        group.join(code, on: selectedTrack)
+        tab = .live
     }
 
     // MARK: - Garage
