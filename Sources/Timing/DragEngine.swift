@@ -45,6 +45,11 @@ final class DragEngine {
     var vehicle = ""
     /// The car of your garage the run is driven with.
     var carID: UUID? = nil
+    /// A run from a standstill needs the start button first (the Drag tab's default): stopped
+    /// somewhere, nothing starts until you say so. Off, a second still is enough to be ready.
+    var needsArming = false
+    /// The start button was pressed: ready as soon as the car is still, until a run gets going.
+    private(set) var armed = false
 
     @ObservationIgnored var onEvent: ((DragEvent) -> Void)? = nil
     @ObservationIgnored var onFinish: ((DragRun) -> Void)? = nil
@@ -117,7 +122,21 @@ final class DragEngine {
     @ObservationIgnored private var live: Live? = nil
     @ObservationIgnored private var shownBefore: DragRun? = nil
 
+    /// The start button: ready at once if the car is still, else as soon as it stops.
+    func arm() {
+        guard live == nil || !inProgress else { return }
+        armed = true
+        if speed < Self.stillSpeed && live == nil { setPhase(.ready) }
+    }
+
+    /// The start button again, before going: not ready any more.
+    func disarm() {
+        armed = false
+        if phase == .ready { setPhase(.moving) }
+    }
+
     func reset() {
+        armed = false
         live = nil
         prev = nil
         recent = []
@@ -167,8 +186,8 @@ final class DragEngine {
 
         if f.v < Self.stillSpeed {
             if stillSince == nil { stillSince = f.t }
-            // A second still, give or take a fix of the iPhone's.
-            if live == nil, let s = stillSince, f.t - s >= 0.9 { setPhase(.ready) }
+            // A second still, give or take a fix of the iPhone's; at once after the start button.
+            if live == nil, armed || (!needsArming && stillSince.map { f.t - $0 >= 0.9 } == true) { setPhase(.ready) }
         } else {
             stillSince = nil
             if live == nil && (phase != .ready || f.v >= Self.launchSpeed) { setPhase(.moving) }
@@ -210,6 +229,8 @@ final class DragEngine {
 
     private func confirm(_ r: Live) {
         r.confirmed = true
+        // One press, one run: the next one from a standstill needs the button again.
+        armed = false
         shownBefore = run
         inProgress = true
         startWall = r.wall

@@ -614,3 +614,9 @@
 "Mugello bagnato" = "Mugello nass";
 "Morbida" = "Weich";
 "Più morbido e pressioni più alte: con l'acqua le gomme scaldano poco." = "Weicher und mehr Luftdruck: Bei Nässe werden die Reifen kaum warm.";
+"Partenza automatica da fermo" = "Automatischer Start aus dem Stand";
+"Pronto: parti quando vuoi" = "Bereit: fahr los, wann du willst";
+"Fermati: poi parti" = "Anhalten, dann losfahren";
+"Pronto al via" = "Startbereit";
+"PREMI PER PARTIRE" = "ZUM START DRÜCKEN";
+"Da fermo premi Pronto al via, poi parti: il tempo parte appena ti muovi. Riprese e frenate si misurano anche in movimento." = "Im Stand auf Startbereit tippen, dann losfahren: Die Zeit läuft, sobald du rollst. Durchzug und Bremsen werden auch während der Fahrt gemessen.";

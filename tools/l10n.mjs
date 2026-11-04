@@ -979,6 +979,18 @@ const strings = [
   ['Mugello bagnato', 'Mugello wet', 'Mugello mojado', 'Mugello pluie', 'Mugello nass', 'Mugello molhado'],
   ['Morbida', 'Soft', 'Blanda', 'Souple', 'Weich', 'Macia'],
   ["Più morbido e pressioni più alte: con l'acqua le gomme scaldano poco.", 'Softer and higher pressures: in the wet the tyres barely warm up.', 'Más blando y presiones más altas: con agua los neumáticos se calientan poco.', "Plus souple et pressions plus hautes : sous la pluie les pneus chauffent peu.", 'Weicher und mehr Luftdruck: Bei Nässe werden die Reifen kaum warm.', 'Mais macio e pressões mais altas: na chuva os pneus esquentam pouco.'],
+  // 0.9.1: the drag start button
+  ['Partenza automatica da fermo', 'Automatic standing start', 'Salida automática parado', "Départ arrêté automatique", 'Automatischer Start aus dem Stand', 'Largada automática parado'],
+  ['Pronto: parti quando vuoi', 'Ready: go when you like', 'Listo: sal cuando quieras', 'Prêt : partez quand vous voulez', 'Bereit: fahr los, wann du willst', 'Pronto: saia quando quiser'],
+  ['Fermati: poi parti', 'Stop, then go', 'Para y luego sal', 'Arrêtez-vous, puis partez', 'Anhalten, dann losfahren', 'Pare e depois saia'],
+  ['Pronto al via', 'Ready to go', 'Listo para salir', 'Prêt au départ', 'Startbereit', 'Pronto para largar'],
+  ['PREMI PER PARTIRE', 'PRESS TO START', 'PULSA PARA SALIR', 'APPUYEZ POUR PARTIR', 'ZUM START DRÜCKEN', 'TOQUE PARA LARGAR'],
+  ['Da fermo premi Pronto al via, poi parti: il tempo parte appena ti muovi. Riprese e frenate si misurano anche in movimento.',
+    'Stopped, press Ready to go, then go: the clock starts as soon as you move. Rolling runs and braking are timed on the move too.',
+    'Parado, pulsa Listo para salir y luego sal: el tiempo empieza en cuanto te mueves. Recuperaciones y frenadas se miden también en marcha.',
+    "À l'arrêt, touchez Prêt au départ, puis partez : le chrono démarre dès que vous bougez. Reprises et freinages se mesurent aussi en roulant.",
+    'Im Stand auf Startbereit tippen, dann losfahren: Die Zeit läuft, sobald du rollst. Durchzug und Bremsen werden auch während der Fahrt gemessen.',
+    'Parado, toque em Pronto para largar e saia: o tempo começa assim que você se move. Retomadas e frenagens também são medidas em movimento.'],
 ];
 
 // The permission prompts, in Info.plist.

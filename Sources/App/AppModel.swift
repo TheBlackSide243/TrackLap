@@ -97,6 +97,8 @@ final class AppModel {
     /// The Drag tab is open: the fixes go to the drag timer too.
     private(set) var dragOn = false
     private(set) var dragRollout = false
+    /// Runs from a standstill start with the button (the default); off, by themselves.
+    private(set) var dragManualStart = true
     /// The car of your garage you are driving: sessions remember it, and your laps on the
     /// leaderboards link to it.
     private(set) var activeCarID: UUID? = nil
@@ -129,6 +131,7 @@ final class AppModel {
         if let v = d.object(forKey: "minLapTime") as? Double { minLapTime = v }
         if let v = d.object(forKey: "voice") as? Bool { voiceOn = v }
         dragRollout = d.bool(forKey: "dragRollout")
+        if let v = d.object(forKey: "dragManualStart") as? Bool { dragManualStart = v }
         deltaReference = DeltaReference(rawValue: d.string(forKey: "deltaReference") ?? "") ?? .session
         if let s = d.string(forKey: "track"), let id = UUID(uuidString: s), tracks.track(id) != nil {
             selectedTrackID = id
@@ -429,6 +432,7 @@ final class AppModel {
         if on {
             drag.bests = drags.bests(car: activeCarID)
             drag.rollout = dragRollout
+            drag.needsArming = dragManualStart
             drag.source = source.rawValue
             drag.vehicle = profile.displayVehicle
             drag.carID = activeCarID
@@ -442,7 +446,16 @@ final class AppModel {
     /// A simulated run on a straight road by the selected track, for the Demo.
     func startDemoDrag() {
         guard source == .demo, dragOn else { return }
+        // The demo car presses the button for you.
+        drag.arm()
         demoDrag.start(at: selectedTrack.map { $0.start?.mid ?? $0.center } ?? Coord(43.9975, 11.3719))
+    }
+
+    func setDragManualStart(_ on: Bool) {
+        dragManualStart = on
+        drag.needsArming = on
+        if !on { drag.disarm() }
+        UserDefaults.standard.set(on, forKey: "dragManualStart")
     }
 
     func setDragRollout(_ on: Bool) {

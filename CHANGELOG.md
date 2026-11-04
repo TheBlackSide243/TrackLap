@@ -23,6 +23,9 @@ online.
   and the same for the dry.
 - **Private**: setups never go online, neither in the public garage nor on the leaderboards. They
   leave the phone only as a .tracklapsetup file you export, and open into any of your cars.
+- **Drag start button**: from a standstill, press **Ready to go** and then go: nothing starts while
+  you are just stopped somewhere. One press, one run. The automatic start is still there, in the
+  Drag menu.
 
 **Firmware 0.9.0**
 - Same as 0.7.0, only the version number changes.
@@ -45,6 +48,9 @@ online.
   lo stesso per l'asciutto.
 - **Privati**: gli assetti non vanno mai online, né nel garage pubblico né in classifica. Escono dal
   telefono solo come file .tracklapsetup che esporti tu, e si aprono in una qualsiasi delle tue auto.
+- **Tasto di partenza nel Drag**: da fermo premi **Pronto al via** e poi parti: finché sei solo
+  fermo da qualche parte non parte niente. Una pressione, una corsa. La partenza automatica c'è
+  ancora, nel menu del Drag.
 
 **Firmware 0.9.0**
 - Uguale alla 0.7.0, cambia solo il numero di versione.
