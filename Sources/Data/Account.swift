@@ -58,7 +58,7 @@ final class AccountStore {
     /// garage made from another phone.
     @MainActor
     func refresh() async {
-        guard let token else { return }
+        guard let token, Showcase.screen == nil else { return }
         do {
             let me = try await Server.me(token: token)
             name = me.name
@@ -76,6 +76,13 @@ final class AccountStore {
         let code = try await Server.openGarage(token: token)
         setGarage(code)
         return code
+    }
+
+    /// Screenshot mode: signed in as someone, with nothing saved and nothing sent.
+    func showcase(name: String, garage: String) {
+        token = "showcase"
+        self.name = name
+        self.garage = garage
     }
 
     /// A request came back refused for the token: signed out here too.

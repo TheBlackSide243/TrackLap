@@ -59,6 +59,11 @@ struct RootView: View {
             PublicGarageView(link: link)
                 .environment(model)
         }
+        .sheet(isPresented: Binding(get: { model.importedSetup != nil }, set: { if !$0 { model.importedSetup = nil } })) {
+            if let shared = model.importedSetup {
+                SetupImportSheet(shared: shared).environment(model)
+            }
+        }
         .onChange(of: model.tab) { _, tab in model.setDragMode(tab == .drag) }
         .onOpenURL(perform: open)
         .alert(L("Giro di un amico"), isPresented: Binding(get: { imported != nil }, set: { if !$0 { imported = nil } }),
@@ -119,6 +124,14 @@ struct RootView: View {
     private func open(_ url: URL) {
         if model.open(url) { return }
         guard url.isFileURL else { return }
+        if url.pathExtension.lowercased() == "tracklapsetup" {
+            do {
+                model.importedSetup = try SharedSetup.read(url)
+            } catch {
+                importError = error.localizedDescription
+            }
+            return
+        }
         do {
             imported = try model.importLap(from: url)
         } catch {

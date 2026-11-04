@@ -2,6 +2,53 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.9.0 (2026-11-04)
+
+Setups for every car, kept apart and never online. / Gli assetti di ogni auto, separati e mai
+online.
+
+### English
+
+**New**
+- **Setups**: each car keeps as many setups as you like, one for the wet, one for the dry, one per
+  track. Each has tyre pressures cold and hot, camber, toe, ride height, bump and rebound, springs,
+  anti-roll bars, wing and brake bias, any other item you add, and notes.
+- **Nothing is overwritten**: changing a setup keeps the values it had as an earlier version, with
+  what changed and when. Any version can be brought back, and the one it replaces stays too.
+- **Sessions remember the setup**: Live has the setup next to the car; every session keeps the
+  setup and its version as they were that day, and shows them. A setup's page lists the sessions
+  and the best laps driven with it.
+- **Rain at the track**: before a session Live checks the weather at the track (Open-Meteo, only
+  the track's position is sent). When it rains and you have a setup for the wet, it offers to use it,
+  and the same for the dry.
+- **Private**: setups never go online, neither in the public garage nor on the leaderboards. They
+  leave the phone only as a .tracklapsetup file you export, and open into any of your cars.
+
+**Firmware 0.9.0**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Novità**
+- **Assetti**: ogni auto tiene tutti gli assetti che vuoi, uno per il bagnato, uno per l'asciutto,
+  uno per pista. Ognuno ha pressioni delle gomme a freddo e a caldo, campanatura, convergenza,
+  altezze, compressione ed estensione, molle, barre, ala e ripartizione di frenata, qualsiasi altra
+  voce aggiungi, e le note.
+- **Niente si sovrascrive**: modificando un assetto, i valori che aveva restano come versione
+  precedente, con cosa è cambiato e quando. Ogni versione si può riprendere, e anche quella che
+  sostituisce resta.
+- **Le sessioni si ricordano l'assetto**: in Live l'assetto sta accanto all'auto; ogni sessione
+  tiene l'assetto e la sua versione com'erano quel giorno, e li mostra. La pagina dell'assetto
+  elenca le sessioni e i migliori giri fatti con lui.
+- **Pioggia in pista**: prima di una sessione Live guarda il meteo della pista (Open-Meteo, viene
+  inviata solo la posizione della pista). Se piove e hai un assetto da bagnato, propone di usarlo, e
+  lo stesso per l'asciutto.
+- **Privati**: gli assetti non vanno mai online, né nel garage pubblico né in classifica. Escono dal
+  telefono solo come file .tracklapsetup che esporti tu, e si aprono in una qualsiasi delle tue auto.
+
+**Firmware 0.9.0**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.8.2 (2026-11-04)
 
 Every layout of a track, and TrackLap follows the one you drive. / Tutti i tracciati di una pista, e

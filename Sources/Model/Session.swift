@@ -35,6 +35,8 @@ struct Session: Codable, Identifiable {
     var carName: String? = nil
     /// The layout of the track it was driven on (TrackLayout.key, 0.8.2).
     var layout: String? = nil
+    /// The car's setup, as it was that day (0.9.0).
+    var setup: SessionSetup? = nil
 
     var best: Lap? { laps.min { $0.time < $1.time } }
 
@@ -58,7 +60,8 @@ struct Session: Codable, Identifiable {
     var summary: SessionSummary {
         SessionSummary(id: id, trackID: trackID, trackName: trackName, date: date, source: source,
                        lapCount: laps.count, best: best?.time, ideal: idealTime, carID: carID, carName: carName,
-                       layout: layout)
+                       layout: layout, setupID: setup?.id, setupName: setup?.name, setupWeather: setup?.weather,
+                       setupVersion: setup?.version)
     }
 }
 
@@ -76,6 +79,10 @@ struct SessionSummary: Codable, Identifiable, Hashable {
     var carID: UUID? = nil
     var carName: String? = nil
     var layout: String? = nil
+    var setupID: UUID? = nil
+    var setupName: String? = nil
+    var setupWeather: SetupWeather? = nil
+    var setupVersion: Int? = nil
 
     /// The layout's name, when it has one.
     var layoutName: String? {

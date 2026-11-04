@@ -4,7 +4,7 @@ import SwiftUI
 /// them to everyone at a link of their own.
 struct GarageView: View {
     @Environment(AppModel.self) private var model
-    @State private var path: [UUID] = []
+    @State private var path = NavigationPath()
     @State private var editing: EditorTarget?
     @State private var signingIn = false
 
@@ -40,6 +40,14 @@ struct GarageView: View {
             .background(Theme.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: UUID.self) { CarDetailView(carID: $0) }
+            .task {
+                // Screenshot mode: the car in use, and then its setup for the dry.
+                guard Showcase.screen == .car || Showcase.screen == .setup, path.isEmpty, let car = model.activeCarID else { return }
+                path.append(car)
+                guard Showcase.screen == .setup, let setup = model.activeSetupID else { return }
+                try? await Task.sleep(for: .milliseconds(700))
+                path.append(SetupRef(id: setup))
+            }
             .sheet(item: $editing) { target in
                 CarEditorView(car: target.car(in: model.garage)) { saved in
                     if case .new = target, model.garage.cars.count == 1 { model.setActiveCar(saved.id) }

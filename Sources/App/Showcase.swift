@@ -2,12 +2,13 @@ import Foundation
 
 /// Screenshot mode, for the README and the store pages. Launched with `-showcase <screen>`, the app
 /// fills itself with demo sessions on the selected track (the screenshot workflow puts real circuits
-/// in tracks.json first) and opens that screen; `-introPage <n>` picks the page of the intro.
-/// Without the argument nothing here runs.
+/// in tracks.json first, and the photos of the demo garage in Documents/garage) and opens that
+/// screen; `-introPage <n>` picks the page of the intro. Without the argument nothing here runs.
 enum Showcase: String {
     case live, tracks, editor, sessions, session, analysis, device, intro
     case challenge, group, friends, share
     case drag, dragRun
+    case garage, car, setup
 
     static let screen: Showcase? = {
         let args = ProcessInfo.processInfo.arguments
@@ -25,6 +26,11 @@ extension AppModel {
     func runShowcase() {
         guard let screen = Showcase.screen, !showcaseStarted else { return }
         showcaseStarted = true
+        fillDemoGarage()
+        if [.garage, .car, .setup].contains(screen) {
+            account.showcase(name: "Luca", garage: "K7P2QX9M")
+            garage.setPublic(true)
+        }
         if sessions.summaries.isEmpty, let track = selectedTrack, track.isReady {
             fillDemoSessions(on: track)
             select(track: track.id)
@@ -64,7 +70,49 @@ extension AppModel {
             setDragMode(true)
             startDemoDrag()
         case .dragRun: tab = .drag
+        case .garage, .car, .setup: tab = .garage
         }
+    }
+
+    /// Four cars with the photos the workflow put in the garage folder, the first in use, and two
+    /// setups for it: one for the dry, changed once, and one for the wet.
+    private func fillDemoGarage() {
+        guard garage.cars.isEmpty, garage.image("civic") != nil else { return }
+        let cars = [
+            Car(id: UUID(uuidString: "C1A1C000-0000-4000-8000-000000000001")!, name: "Honda Civic Type R", year: 2016, power: 310, weight: 1382,
+                mods: [L("Scarico Milltek"), L("Centralina Hondata"), L("Pastiglie Ferodo DS2500"), L("Tubi freno in treccia"),
+                       L("Gomme Michelin Pilot Sport Cup 2"), L("Assetto KW V3")],
+                notes: L("Solo pista: Mugello, Misano e Imola. Su strada torna con le gomme di serie."), photo: "civic"),
+            Car(id: UUID(uuidString: "C1A1C000-0000-4000-8000-000000000002")!, name: "Toyota GR Yaris Circuit", year: 2022, power: 261, weight: 1280,
+                mods: [L("Freni Brembo GT"), L("Intercooler maggiorato"), L("Sedili Recaro")], photo: "yaris"),
+            Car(id: UUID(uuidString: "C1A1C000-0000-4000-8000-000000000003")!, name: "Porsche 911 GT3", year: 2018, power: 500, weight: 1413,
+                mods: [L("Pacchetto Clubsport"), L("Gomme Michelin Pilot Sport Cup 2 R")], photo: "gt3"),
+            Car(id: UUID(uuidString: "C1A1C000-0000-4000-8000-000000000004")!, name: "Mazda MX-5 NA", year: 1989, power: 115, weight: 960,
+                mods: [L("Roll-bar"), L("Assetto regolabile"), L("Differenziale autobloccante")], photo: "mx5"),
+        ]
+        for car in cars.reversed() { garage.save(car) }
+        let civic = cars[0].id
+        var dry = CarSetup(carID: civic, name: L("Mugello asciutto"), weather: .dry, track: "Mugello")
+        dry.values = SetupValues(tyres: "Michelin Pilot Sport Cup 2", pressureFrontCold: 2.0, pressureRearCold: 1.9,
+                                 pressureFrontHot: 2.4, pressureRearHot: 2.3, camberFront: -2.2, camberRear: -1.8,
+                                 toeFront: 0, toeRear: 1.5, heightFront: 120, heightRear: 125, bumpFront: 8, bumpRear: 10,
+                                 reboundFront: 12, reboundRear: 14, springFront: 120, springRear: 100,
+                                 barFront: L("Rigida"), barRear: L("Intermedia"), brakeBias: 62)
+        garage.save(setup: dry)
+        // Changed after a day on track: the first version stays in the history.
+        dry.values.pressureFrontCold = 1.9
+        dry.values.pressureRearCold = 1.8
+        dry.values.camberFront = -2.5
+        dry.values.notes = L("Sottosterzo all'Arrabbiata: -0,1 bar e più campanatura davanti. Ora gira bene.")
+        garage.save(setup: dry)
+        var wet = CarSetup(carID: civic, name: L("Mugello bagnato"), weather: .wet, track: "Mugello")
+        wet.values = SetupValues(tyres: "Michelin Pilot Sport 4S", pressureFrontCold: 2.1, pressureRearCold: 2.0,
+                                 camberFront: -1.8, camberRear: -1.2, bumpFront: 4, bumpRear: 5, reboundFront: 8, reboundRear: 9,
+                                 barFront: L("Morbida"), barRear: L("Morbida"), brakeBias: 58,
+                                 notes: L("Più morbido e pressioni più alte: con l'acqua le gomme scaldano poco."))
+        garage.save(setup: wet)
+        setActiveCar(civic)
+        setActiveSetup(dry.id)
     }
 
     /// Three runs from a standstill a few days apart, the car a little quicker every time.
@@ -88,6 +136,9 @@ extension AppModel {
             let t0 = now - Double(3 - k) * 4 * 86_400
             var session = Session(trackID: track.id, trackName: track.name, date: Date(timeIntervalSince1970: t0),
                                   source: SourceKind.demo.title, sectorCount: track.sectorCount)
+            session.carID = activeCar?.id
+            session.carName = activeCar?.displayName
+            session.setup = activeSetup?.snapshot
             for lap in demoLaps(on: track, pace: pace, laps: 6.6, from: t0) { session.laps.append(lap) }
             if !session.laps.isEmpty { sessions.save(session) }
         }

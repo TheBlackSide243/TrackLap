@@ -89,6 +89,7 @@ private struct DragHeader: View {
                 HStack(spacing: 8) {
                     pills
                     ActiveCarChip()
+                    ActiveSetupChip()
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -96,7 +97,11 @@ private struct DragHeader: View {
                         pills
                         Spacer(minLength: 0)
                     }
-                    ActiveCarChip()
+                    HStack(spacing: 8) {
+                        ActiveCarChip()
+                        ActiveSetupChip()
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }

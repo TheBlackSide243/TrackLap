@@ -9,12 +9,14 @@ struct CarDetailView: View {
     let carID: UUID
     @State private var editing = false
     @State private var confirmDelete = false
+    @State private var newSetup = false
 
     var body: some View {
         if let car = model.garage.car(carID) {
             let active = car.id == model.activeCarID
             CarDetailContent(info: car.info, badge: active ? L("In uso in Live") : nil) {
                 drive(car, active: active)
+                setups(car)
                 times(car)
                 drags(car)
                 share(car)
@@ -39,6 +41,10 @@ struct CarDetailView: View {
             .sheet(isPresented: $editing) {
                 CarEditorView(car: car).environment(model)
             }
+            .sheet(isPresented: $newSetup) {
+                SetupEditorView(setup: nil, carID: car.id).environment(model)
+            }
+            .navigationDestination(for: SetupRef.self) { SetupDetailView(setupID: $0.id) }
             .confirmationDialog(L("Eliminare \(car.displayName)?"), isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button(L("Elimina l'auto"), role: .destructive) {
                     dismiss()
@@ -75,6 +81,39 @@ struct CarDetailView: View {
                 Label("Usa quest'auto in Live", systemImage: "steeringwheel")
             }
             .buttonStyle(PrimaryButtonStyle())
+        }
+    }
+
+    /// The car's setups, each kept apart: the one for the wet stays when you make one for the dry.
+    @ViewBuilder
+    private func setups(_ car: Car) -> some View {
+        let list = model.garage.setups(of: car.id)
+        HStack {
+            SectionLabel(list.isEmpty ? L("Assetti") : L("Assetti (\(list.count))"))
+            Button { newSetup = true } label: {
+                Label("Nuovo", systemImage: "plus").font(.caption.weight(.bold))
+            }
+            .foregroundStyle(Theme.accent)
+        }
+        if list.isEmpty {
+            Panel {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Salva qui i tuoi assetti", systemImage: "slider.horizontal.3")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.text)
+                    Text("Uno per il bagnato, uno per l'asciutto, uno per pista: pressioni, campanature, ammortizzatori e tutto il resto. Ogni modifica tiene la versione di prima, e ogni sessione si ricorda l'assetto con cui l'hai fatta. Restano solo sul telefono.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.sub)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        } else {
+            VStack(spacing: 8) {
+                ForEach(list) { s in
+                    NavigationLink(value: SetupRef(id: s.id)) { SetupRow(setup: s) }
+                        .buttonStyle(PressableStyle())
+                }
+            }
         }
     }
 

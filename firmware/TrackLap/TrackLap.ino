@@ -15,7 +15,7 @@
 #include "Gps.h"
 #include "Laps.h"
 
-#define FW_VERSION "0.8.2"
+#define FW_VERSION "0.9.0"
 
 static Preferences prefs;
 static Gps gps;
