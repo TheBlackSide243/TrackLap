@@ -385,6 +385,10 @@
 "Elimina l'account" = "Delete account";
 "Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto." = "With an account you show your garage to everyone, and your times go on the track leaderboards with your name and your car.";
 "Accedi o crea un account" = "Sign in or create an account";
+"Serve un account" = "You need an account";
+"Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui." = "To create a live group or join one, sign in first. Then you come back here and carry on.";
+"Ti hanno invitato nel gruppo %@. Accedi o crea un account e ci entri subito." = "You've been invited to group %@. Sign in or create an account and you're in straight away.";
+"Telefono" = "Phone";
 "Uscire dall'account?" = "Sign out?";
 "Il garage resta sul telefono e online. Per pubblicare di nuovo basta accedere." = "The garage stays on the phone and online. To publish again, just sign in.";
 "Non si torna indietro" = "There is no going back";

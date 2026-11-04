@@ -5,6 +5,10 @@ struct MultiplayerCard: View {
     @Environment(AppModel.self) private var model
     @State private var sheet: GroupSheet.Mode?
     @State private var leaderboard: Track?
+    // Groups need an account: Crea or Entra first ask you to sign in, then carry on by themselves.
+    @State private var askSignIn = false
+    @State private var signingIn = false
+    @State private var afterSignIn: GroupSheet.Mode?
 
     var body: some View {
         VStack(spacing: 10) {
@@ -22,6 +26,41 @@ struct MultiplayerCard: View {
         }
         .sheet(item: $sheet) { GroupSheet(mode: $0) }
         .sheet(item: $leaderboard) { LeaderboardView(track: $0) }
+        .sheet(isPresented: $signingIn, onDismiss: signedInOrNot) { AccountSheet().environment(model) }
+        .alert(L("Serve un account"), isPresented: asking) {
+            Button(L("Accedi o crea un account")) {
+                askSignIn = false
+                signingIn = true
+            }
+            Button(L("Annulla"), role: .cancel) { forget() }
+        } message: {
+            Text("Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui.")
+        }
+    }
+
+    /// The alert shows while you asked for a group without an account; its buttons close it.
+    private var asking: Binding<Bool> {
+        Binding(get: { askSignIn && !model.account.isSignedIn && !signingIn }, set: { _ in })
+    }
+
+    private func start(_ mode: GroupSheet.Mode) {
+        if model.account.isSignedIn {
+            sheet = mode
+        } else {
+            afterSignIn = mode
+            askSignIn = true
+        }
+    }
+
+    /// Back from signing in: on with what you were doing, or nothing if you did not sign in.
+    private func signedInOrNot() {
+        if model.account.isSignedIn { sheet = afterSignIn }
+        afterSignIn = nil
+    }
+
+    private func forget() {
+        askSignIn = false
+        afterSignIn = nil
     }
 
     private var entry: some View {
@@ -43,9 +82,9 @@ struct MultiplayerCard: View {
                         .foregroundStyle(Theme.yellow)
                 }
                 HStack(spacing: 10) {
-                    Button { sheet = .create } label: { Label("Crea", systemImage: "plus") }
+                    Button { start(.create) } label: { Label("Crea", systemImage: "plus") }
                         .buttonStyle(SecondaryButtonStyle(color: Theme.yellow))
-                    Button { sheet = .join } label: { Label("Entra", systemImage: "person.badge.plus") }
+                    Button { start(.join) } label: { Label("Entra", systemImage: "person.badge.plus") }
                         .buttonStyle(SecondaryButtonStyle(color: Theme.yellow))
                 }
             }
@@ -238,6 +277,10 @@ struct GroupSheet: View {
         .scrollIndicators(.hidden)
         .presentationDetents([.large])
         .presentationBackground(Theme.bg)
+        .onAppear {
+            // The name in the group starts from the account's.
+            if !model.profile.hasName, let name = model.account.name { model.profile.set(name: name) }
+        }
         .onDisappear { model.group.profileChanged() }
     }
 

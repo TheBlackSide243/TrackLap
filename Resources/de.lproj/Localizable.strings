@@ -385,6 +385,10 @@
 "Elimina l'account" = "Konto löschen";
 "Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto." = "Mit einem Konto zeigst du deine Garage allen, und deine Zeiten kommen mit deinem Namen und deinem Auto in die Bestenlisten der Strecken.";
 "Accedi o crea un account" = "Anmelden oder Konto erstellen";
+"Serve un account" = "Du brauchst ein Konto";
+"Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui." = "Um eine Live-Gruppe zu erstellen oder ihr beizutreten, melde dich zuerst an. Danach geht es hier weiter.";
+"Ti hanno invitato nel gruppo %@. Accedi o crea un account e ci entri subito." = "Du wurdest in die Gruppe %@ eingeladen. Melde dich an oder erstelle ein Konto, dann bist du sofort drin.";
+"Telefono" = "Handy";
 "Uscire dall'account?" = "Abmelden?";
 "Il garage resta sul telefono e online. Per pubblicare di nuovo basta accedere." = "Die Garage bleibt auf dem Telefon und online. Um wieder zu veröffentlichen, melde dich einfach an.";
 "Non si torna indietro" = "Das lässt sich nicht rückgängig machen";

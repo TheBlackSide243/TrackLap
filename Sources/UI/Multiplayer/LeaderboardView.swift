@@ -31,7 +31,7 @@ struct LeaderboardView: View {
                     Picker("GPS", selection: $filter) {
                         Text("Tutti").tag(BoardFilter.all)
                         Text("GPS esterno").tag(BoardFilter.device)
-                        Text(verbatim: "iPhone").tag(BoardFilter.phone)
+                        Text("Telefono").tag(BoardFilter.phone)
                     }
                     .pickerStyle(.segmented)
 
@@ -197,7 +197,7 @@ struct LeaderboardView: View {
         let kind = SourceKind(sessionSource: record.session.source)
         do {
             let r = try await Server.submit(record.lap, source: kind, track: track, car: record.session.carID, token: token)
-            note = L("Sei \(r.rank)° su \(r.of) con \(kind == .device ? L("GPS esterno") : "iPhone").")
+            note = L("Sei \(r.rank)° su \(r.of) con \(kind == .device ? L("GPS esterno") : L("Telefono")).")
             await load()
         } catch Server.Failure.signedOut {
             model.account.signedOutElsewhere()
@@ -281,7 +281,7 @@ struct GPSBadge: View {
     var body: some View {
         switch source {
         case .device: Badge(text: L("GPS esterno"), color: Theme.good)
-        case .phone: Badge(text: "iPhone", color: Theme.yellow)
+        case .phone: Badge(text: L("Telefono"), color: Theme.yellow)
         default: EmptyView()
         }
     }

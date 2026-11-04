@@ -22,6 +22,8 @@ struct RootView: View {
     @State private var importError: String?
     @AppStorage(TabbarPlace.key) private var tabbarPlace: TabbarPlace = .auto
     @State private var keyboardUp = false
+    /// Signing in for a group invitation that came in without an account.
+    @State private var inviteSignIn = false
 
     /// Once, on the first launch, and again from Device; in screenshot mode only for its own screen.
     private var showIntro: Bool {
@@ -75,6 +77,20 @@ struct RootView: View {
         }
         .alert(importError ?? "", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
             Button("OK", role: .cancel) {}
+        }
+        // Groups need an account: an invitation opened while signed out asks first, then joins.
+        .alert(L("Serve un account"),
+               isPresented: Binding(get: { model.pendingJoin != nil && !model.account.isSignedIn && !inviteSignIn }, set: { _ in })) {
+            Button(L("Accedi o crea un account")) { inviteSignIn = true }
+            Button(L("Annulla"), role: .cancel) { model.pendingJoin = nil }
+        } message: {
+            Text(L("Ti hanno invitato nel gruppo \(model.pendingJoin ?? ""). Accedi o crea un account e ci entri subito."))
+        }
+        .sheet(isPresented: $inviteSignIn, onDismiss: { if !model.account.isSignedIn { model.pendingJoin = nil } }) {
+            AccountSheet().environment(model)
+        }
+        .onChange(of: model.account.isSignedIn) { _, on in
+            if on { model.joinPending() }
         }
         .fullScreenCover(isPresented: Binding(get: { showIntro }, set: { if !$0 { introSeen = true } })) {
             IntroView { introSeen = true }

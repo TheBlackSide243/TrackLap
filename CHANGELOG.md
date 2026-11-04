@@ -2,6 +2,36 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.9.1 (2026-11-04)
+
+Live groups with your account, and leaderboards that say Phone. / I gruppi live con il tuo
+account, e le classifiche che dicono Telefono.
+
+### English
+
+**Changed**
+- **Live groups need an account**: Create or Join first asks you to sign in or create an account,
+  then carries on by itself. A group invitation opened while signed out says which group it is,
+  asks you to sign in, and joins it right after. The name in the group starts from your account's.
+- **Phone on the leaderboards**: the GPS filter and each time's badge say **Phone** instead of
+  iPhone, because the laps there also come from TrackLap for Android.
+
+**Firmware 0.9.1**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Modifiche**
+- **I gruppi live vogliono un account**: Crea o Entra ti chiede prima di accedere o di creare un
+  account, poi continua da solo. Un invito a un gruppo aperto senza accesso dice di che gruppo si
+  tratta, ti chiede di accedere e ti fa entrare subito dopo. Il nome nel gruppo parte da quello
+  dell'account.
+- **Telefono nelle classifiche**: il filtro del GPS e l'etichetta di ogni tempo dicono **Telefono**
+  invece di iPhone, perché lì ci sono anche i giri di TrackLap per Android.
+
+**Firmware 0.9.1**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.9.0 (2026-11-04)
 
 Setups for every car, kept apart and never online. / Gli assetti di ogni auto, separati e mai

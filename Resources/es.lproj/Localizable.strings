@@ -385,6 +385,10 @@
 "Elimina l'account" = "Eliminar la cuenta";
 "Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto." = "Con una cuenta muestras tu garaje a todos y tus tiempos entran en las clasificaciones de los circuitos con tu nombre y tu coche.";
 "Accedi o crea un account" = "Inicia sesión o crea una cuenta";
+"Serve un account" = "Necesitas una cuenta";
+"Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui." = "Para crear un grupo en directo o unirte a uno, primero inicia sesión. Después vuelves aquí y sigues.";
+"Ti hanno invitato nel gruppo %@. Accedi o crea un account e ci entri subito." = "Te han invitado al grupo %@. Inicia sesión o crea una cuenta y entras enseguida.";
+"Telefono" = "Teléfono";
 "Uscire dall'account?" = "¿Cerrar sesión?";
 "Il garage resta sul telefono e online. Per pubblicare di nuovo basta accedere." = "El garaje se queda en el teléfono y en línea. Para publicar de nuevo basta con iniciar sesión.";
 "Non si torna indietro" = "No se puede deshacer";

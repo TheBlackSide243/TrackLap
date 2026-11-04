@@ -385,6 +385,10 @@
 "Elimina l'account" = "Elimina l'account";
 "Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto." = "Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto.";
 "Accedi o crea un account" = "Accedi o crea un account";
+"Serve un account" = "Serve un account";
+"Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui." = "Per creare un gruppo live o entrarci devi prima accedere. Dopo l'accesso torni qui e continui.";
+"Ti hanno invitato nel gruppo %@. Accedi o crea un account e ci entri subito." = "Ti hanno invitato nel gruppo %@. Accedi o crea un account e ci entri subito.";
+"Telefono" = "Telefono";
 "Uscire dall'account?" = "Uscire dall'account?";
 "Il garage resta sul telefono e online. Per pubblicare di nuovo basta accedere." = "Il garage resta sul telefono e online. Per pubblicare di nuovo basta accedere.";
 "Non si torna indietro" = "Non si torna indietro";
