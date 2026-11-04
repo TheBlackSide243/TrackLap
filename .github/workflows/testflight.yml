@@ -1,9 +1,11 @@
 # TrackLap on TestFlight: archive, sign in the cloud with an App Store Connect API key, upload.
-# No certificates or Macs anywhere: with -allowProvisioningUpdates Xcode registers the bundle ID,
-# makes the profiles and signs with Apple's cloud-managed distribution certificate.
+# No certificates or Macs anywhere. The archive is built unsigned: signing it for development would
+# need an iPhone registered on the account. The export then signs it for the App Store with Apple's
+# cloud-managed distribution certificate (-allowProvisioningUpdates makes the profile) and uploads.
 #
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's text, Admin key) and APPLE_TEAM_ID.
-# The app on the Store has its own bundle ID, apart from the Feather build (com.local.tracklap).
+# The app on the Store has its own bundle ID, win.shadowbyte.tracklap, apart from the Feather
+# build (com.local.tracklap).
 name: TestFlight
 
 on:
@@ -13,7 +15,7 @@ on:
     inputs:
       bundle:
         description: Bundle ID on App Store Connect
-        default: win.tbsgaming.tracklap
+        default: win.shadowbyte.tracklap
 
 permissions:
   contents: read
@@ -23,7 +25,7 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 60
     env:
-      BUNDLE: ${{ inputs.bundle || 'win.tbsgaming.tracklap' }}
+      BUNDLE: ${{ inputs.bundle || 'win.shadowbyte.tracklap' }}
       TEAM: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -80,15 +82,14 @@ jobs:
           echo "BUILD=$BASE.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           echo "Build $BASE.$GITHUB_RUN_NUMBER"
 
+      # Unsigned: the export below signs it for the App Store.
       - name: Archive
         run: |
           set -o pipefail
           xcodebuild -project TrackLap.xcodeproj -scheme TrackLap -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$PWD/build/TrackLap.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE" DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION="$BUILD" \
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
           test -d build/TrackLap.xcarchive/Products/Applications/TrackLap.app || { grep -E "error" build.log | head -60; exit 1; }
