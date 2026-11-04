@@ -305,3 +305,7 @@ changes.
    boards with a display.
 
 Maps and layouts © OpenStreetMap contributors.
+
+## Licence
+
+Proprietary software, all rights reserved: see [LICENSE](LICENSE).

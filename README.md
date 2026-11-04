@@ -306,3 +306,7 @@ frequenza o la pista.
    altre schede con display.
 
 Mappe e tracciati © OpenStreetMap contributors.
+
+## Licenza
+
+Software proprietario, tutti i diritti riservati: vedi [LICENSE](LICENSE).
