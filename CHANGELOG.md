@@ -2,6 +2,145 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.8.0 (2026-11-04)
+
+The Garage, accounts, and leaderboards that show the car of every time. / Il Garage, gli account e
+le classifiche che mostrano l'auto di ogni tempo.
+
+### English
+
+**New**
+- **Garage** tab: the cars you drive on track, each with a photo, the year, the power, the weight
+  and every modification, one per line. The car you drive sits on top, the others in a grid.
+- **A car's page**: the photo across the top (pull it down, tap it to see it full screen and zoom),
+  power, weight, power-to-weight and year, the numbered modifications, the notes and your best
+  time with that car on each track.
+- **Car editor**: photo from the library (made smaller on the phone), numbers in CV and kg or hp
+  and lb as the settings say, and one tap for the usual modifications (exhaust, ECU tune,
+  suspension, brakes…).
+- **Accounts**: a username and a password, in Device → Account. Change the password, sign out, or
+  delete the account together with its garage and its laps.
+- **Public garage**: one switch shows it to everyone at a link of its own, which opens without the
+  app too and previews the first photo in chats. It updates on its own after every change. Other
+  people's garages can be reported or hidden.
+- **Live**: pick the car you drive; every session remembers it.
+- **Leaderboards**: publishing needs an account, and the name is the account's. Every time says
+  whether it came from an external GPS or the iPhone, the board can show both together, and the
+  car of a lap opens with a tap.
+
+**Changed**
+- Six tabs, so the app draws its own bottom bar (iOS shows five): all of them always in view.
+
+**Firmware 0.8.0**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Novità**
+- Scheda **Garage**: le auto con cui giri in pista, ognuna con una foto, l'anno, la potenza, il
+  peso e tutte le modifiche, una per riga. Quella che usi sta in cima, le altre in una griglia.
+- **La pagina dell'auto**: la foto in alto (si allunga tirandola giù, si apre a tutto schermo con lo
+  zoom), potenza, peso, rapporto peso/potenza e anno, le modifiche numerate, le note e il tuo
+  miglior tempo con quell'auto su ogni pista.
+- **Editor dell'auto**: foto dalla libreria (rimpicciolita sul telefono), numeri in CV e kg o in hp
+  e lb secondo le impostazioni, e un tocco per le modifiche più comuni (scarico, centralina,
+  assetto, freni…).
+- **Account**: nome utente e password, in Dispositivo → Account. Si può cambiare la password,
+  uscire, o eliminare l'account insieme al garage e ai tempi.
+- **Garage pubblico**: con un interruttore lo vedono tutti a un link suo, che si apre anche senza
+  l'app e nelle chat mostra la prima foto. Si aggiorna da solo dopo ogni modifica. I garage degli
+  altri si possono segnalare o nascondere.
+- **Live**: scegli l'auto che usi; ogni sessione se la ricorda.
+- **Classifiche**: per pubblicare serve un account, e il nome è quello dell'account. Ogni tempo
+  dice se viene da un GPS esterno o dall'iPhone, la classifica può mostrarli insieme e l'auto di un
+  giro si apre con un tocco.
+
+**Modificato**
+- Sei schede, quindi l'app disegna la sua barra in basso (iOS ne mostra cinque): si vedono sempre
+  tutte.
+
+**Firmware 0.8.0**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
+## 0.7.3 (2026-11-03)
+
+The closed iPhone Duo's tabs at the bottom of the column, clear of the island. / Le schede del Duo
+chiuso in fondo alla colonna, lontane dall'isola.
+
+### English
+
+**Changed**
+- **iPhone Duo closed**: the tabs stand at the bottom of the right column, like the Home screen's
+  dock. When another app shows something in the island (navigation, a timer) the time and the
+  battery move down, and iOS does not tell an app: from the bottom the tabs stay clear of them
+  whatever the island shows.
+
+**Firmware 0.7.3**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Modificato**
+- **iPhone Duo chiuso**: le schede stanno in fondo alla colonna di destra, come il dock della Home.
+  Quando un'altra app mostra qualcosa nell'isola (navigazione, un timer) ora e batteria scendono, e
+  iOS non lo dice alle app: partendo dal basso le schede restano libere qualunque cosa mostri
+  l'isola.
+
+**Firmware 0.7.3**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
+## 0.7.2 (2026-11-03)
+
+The closed iPhone Duo's tabs below the camera. / Le schede del Duo chiuso sotto la fotocamera.
+
+### English
+
+**Fixed**
+- **iPhone Duo closed**: the first tab covered the bottom of the front camera; the tabs now start
+  below it.
+
+**Firmware 0.7.2**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Corretto**
+- **iPhone Duo chiuso**: la prima scheda copriva la parte bassa della fotocamera; ora le schede
+  partono sotto.
+
+**Firmware 0.7.2**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
+## 0.7.1 (2026-11-03)
+
+Tabs on the right, for the iPhone Duo and the iPhone on its side. / Schede a destra, per l'iPhone
+Duo e l'iPhone in orizzontale.
+
+### English
+
+**New**
+- **Tabs on the right** when the screen is wider than it is tall: the iPhone Duo opened, or the
+  iPhone on its side in the car mount. The page keeps its whole height.
+- **iPhone Duo closed**: the tabs are the column on the right where iOS writes the time and the
+  battery, below them, and move lower while a call or a screen recording makes the island taller.
+- **Device → Tab bar**: Automatic (the default), Bottom or Right.
+
+**Firmware 0.7.1**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Novità**
+- **Schede a destra** quando lo schermo è più largo che alto: l'iPhone Duo aperto, o l'iPhone in
+  orizzontale sul supporto in auto. La pagina tiene tutta la sua altezza.
+- **iPhone Duo chiuso**: le schede sono la colonna a destra dove iOS scrive ora e batteria, sotto di
+  esse, e scendono più in basso quando una chiamata o una registrazione dello schermo allunga
+  l'isola.
+- **Dispositivo → Barra delle schede**: Automatica (predefinita), In basso o A destra.
+
+**Firmware 0.7.1**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.7.0 (2026-11-03)
 
 Drag: acceleration and braking like a performance meter, on the iPhone and the ESP32 dashboard. /

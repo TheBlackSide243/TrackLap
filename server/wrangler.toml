@@ -14,10 +14,23 @@ class_name = "Room"
 name = "BOARDS"
 class_name = "Boards"
 
+[[durable_objects.bindings]]
+name = "ACCOUNTS"
+class_name = "Accounts"
+
+[[durable_objects.bindings]]
+name = "GARAGES"
+class_name = "Garage"
+
 # SQLite-backed objects, the kind the Workers free plan has.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room", "Boards"]
+
+# 0.8.0: accounts and garages. ADMIN_KEY, a secret set in the dashboard, is the moderator's key.
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Accounts", "Garage"]
 
 [observability]
 enabled = true

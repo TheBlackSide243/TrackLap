@@ -10,7 +10,7 @@ globalThis.WebSocketRequestResponsePair = class {
   }
 };
 
-const { default: worker, Room, Boards } = await import('../src/index.js');
+const { default: worker, Room, Boards, Accounts, Garage } = await import('../src/index.js');
 
 function fakeState() {
   const data = new Map();
@@ -25,6 +25,9 @@ function fakeState() {
       async put(k, v) {
         if (typeof k === 'object') for (const [a, b] of Object.entries(k)) data.set(a, structuredClone(b));
         else data.set(k, structuredClone(v));
+      },
+      async delete(k) {
+        for (const key of Array.isArray(k) ? k : [k]) data.delete(key);
       },
       async deleteAll() {
         data.clear();
@@ -162,12 +165,11 @@ test('an empty group is deleted a day later, an active one is kept', async () =>
   assert.equal(await state.storage.get('created'), undefined);
 });
 
-function lapRequest(driver, body) {
-  return new Request('https://x/v1/laps', {
-    method: 'POST',
-    headers: { 'X-TrackLap-Driver': driver, 'CF-Connecting-IP': '1.2.3.4' },
-    body: JSON.stringify(body),
-  });
+// What the worker sets once it has checked the token: the account and its name.
+function lapRequest(account, body, name = body.name) {
+  const headers = { 'CF-Connecting-IP': '1.2.3.4' };
+  if (account) Object.assign(headers, { 'X-TrackLap-Account': account, 'X-TrackLap-Name': name });
+  return new Request('https://x/v1/laps', { method: 'POST', headers, body: JSON.stringify(body) });
 }
 
 const lap = (time, extra = {}) => ({ name: 'Marco', vehicle: 'Clio', source: 'device', time, distance: 5240, sectors: [40, 35, 37.3], date: 1798000000000, track: mugello, ...extra });
@@ -188,7 +190,7 @@ test('leaderboards: best per driver and source, matched by start line and length
   await b.fetch(lapRequest(D1, lap(111.5)));
   await b.fetch(lapRequest(D1, lap(118, { source: 'phone' })));
 
-  const board = await (await b.fetch(new Request(`https://x/v1/boards?lat=${mugello.lat}&lon=${mugello.lon}&len=5200`, { headers: { 'X-TrackLap-Driver': D2 } }))).json();
+  const board = await (await b.fetch(new Request(`https://x/v1/boards?lat=${mugello.lat}&lon=${mugello.lon}&len=5200`, { headers: { 'X-TrackLap-Account': D2 } }))).json();
   assert.deepEqual(board.laps.map(l => [l.name, l.source, l.rank, l.time, l.mine]), [
     ['Marco', 'device', 1, 111.5, false],
     ['Luca', 'device', 2, 111.9, true],
@@ -209,7 +211,7 @@ test('leaderboards refuse demo laps, nonsense and floods', async () => {
   assert.equal((await b.fetch(lapRequest(D, lap(100, { source: 'demo' })))).status, 400);
   assert.equal((await b.fetch(lapRequest(D, lap(1)))).status, 400);
   assert.equal((await b.fetch(lapRequest(D, lap(100, { distance: 5 })))).status, 400);
-  assert.equal((await b.fetch(lapRequest('x', lap(100)))).status, 400);
+  assert.equal((await b.fetch(lapRequest(null, lap(100)))).status, 401);
   for (let i = 0; i < 60; i++) assert.equal((await b.fetch(lapRequest(D, lap(100 + i)))).status, 200);
   assert.equal((await b.fetch(lapRequest(D, lap(99)))).status, 429);
 });
@@ -225,7 +227,12 @@ test('the worker: new group codes, routing', async () => {
       return { fetch: (input, init) => object.fetch(input instanceof Request ? input : new Request(input, init)) };
     },
   });
-  const env = { ROOMS: ns(() => new Room(fakeState())), BOARDS: ns(() => new Boards(fakeState())) };
+  const env = {
+    ROOMS: ns(() => new Room(fakeState())),
+    BOARDS: ns(() => new Boards(fakeState())),
+    ACCOUNTS: ns(() => new Accounts(fakeState())),
+    GARAGES: ns(() => new Garage(fakeState())),
+  };
   const res = await worker.fetch(new Request('https://x/v1/rooms', { method: 'POST' }), env);
   assert.equal(res.status, 201);
   const { code } = await res.json();

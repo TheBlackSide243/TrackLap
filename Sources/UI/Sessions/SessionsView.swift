@@ -98,6 +98,12 @@ private struct SessionCard: View {
                     if live { Badge(text: L("In corso"), color: Theme.bad) }
                 }
                 Text(Fmt.day.string(from: summary.date)).font(.caption).foregroundStyle(Theme.sub)
+                if let car = summary.carName, !car.isEmpty {
+                    Label(car, systemImage: "car.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.text)
+                        .lineLimit(1)
+                }
                 HStack(spacing: 6) {
                     Badge(text: summary.lapCount == 1 ? L("1 giro") : L("\(summary.lapCount) giri"), color: Theme.accent)
                     Badge(text: summary.source, color: Theme.sub)
