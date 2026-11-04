@@ -102,8 +102,9 @@ Worker con Durable Objects: riceve nome, auto e tempi, e la posizione solo mentr
 
 ## Drag
 
-Nella scheda **Drag** TrackLap diventa un misuratore di prestazioni. Ti fermi, compare *PRONTO*, e
-il tempo parte da solo appena l'auto si muove: niente pulsanti da premere. I tempi vengono dalla
+Nella scheda **Drag** TrackLap diventa un misuratore di prestazioni. Da fermo premi **Pronto al
+via**, compare *PRONTO*, e il tempo parte appena l'auto si muove: una pressione, una corsa (dal menu
+del Drag la partenza può anche essere automatica, dopo un secondo da fermo). I tempi vengono dalla
 velocità del GPS (più stabile delle posizioni) e la distanza dalla sua somma, con ogni soglia
 interpolata tra due fix: a 10 Hz o più sono precisi a pochi centesimi.
 
@@ -132,6 +133,36 @@ interpolata tra due fix: a 10 Hz o più sono precisi a pochi centesimi.
 </table>
 
 Le prove si fanno solo dove la strada è chiusa al traffico.
+
+## Garage e assetti
+
+Nel **Garage** stanno le auto con cui giri: ognuna con una foto, l'anno, la potenza, il peso e tutte
+le modifiche. Quella che usi in Live sta in cima, e ogni sessione, ogni corsa drag e ogni tempo in
+classifica si ricorda con quale auto l'hai fatto.
+
+- **Garage pubblico**: con un account TrackLap il garage ha un link che si apre anche senza l'app,
+  e nelle classifiche delle piste ogni tempo porta all'auto con cui è stato fatto.
+- **Assetti**: per ogni auto tutti gli assetti che vuoi, uno per il bagnato, uno per l'asciutto,
+  uno per pista, con pressioni, geometria, ammortizzatori, molle, barre, ala e frenata. Modificarne
+  uno non cancella niente: la versione di prima resta nello storico, con cosa è cambiato.
+- Ogni sessione tiene l'assetto **com'era quel giorno**, e se alla pista piove Live propone
+  l'assetto da bagnato.
+- Gli assetti **non vanno mai online**: si passano solo esportandoli in un file `.tracklapsetup`.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/it-garage.webp" alt="Il garage con l'auto in uso e le altre"></td>
+    <td width="33%"><img src="docs/readme/it-car.webp" alt="La pagina di un'auto con dati, modifiche e assetti"></td>
+    <td width="33%"><img src="docs/readme/it-setup.webp" alt="Un assetto con i suoi valori e le versioni precedenti"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Il garage</sub></td>
+    <td align="center"><sub>Un'auto, le sue modifiche e i suoi assetti</sub></td>
+    <td align="center"><sub>Un assetto, con lo storico delle versioni</sub></td>
+  </tr>
+</table>
+
+<sub>Foto delle auto da Wikimedia Commons, CC0: [elenco](screenshots/garage/CREDITS.md).</sub>
 
 ## L'hardware
 
