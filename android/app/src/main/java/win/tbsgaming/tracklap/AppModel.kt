@@ -99,23 +99,23 @@ class AppModel(context: Context) {
     val demoDrag = DemoDrag()
     private val voice: LapVoice
 
-    var source by mutableStateOf(SourceKind.demo); private set
+    @set:JvmName("assignSource") var source by mutableStateOf(SourceKind.demo); private set
     var selectedTrackID by mutableStateOf<String?>(null); private set
     var isRunning by mutableStateOf(false); private set
     var gpsRate by mutableStateOf(0.0); private set
     var lastFixWall by mutableStateOf<Double?>(null); private set
-    var minLapTime by mutableStateOf(20.0); private set
-    var deltaScale by mutableStateOf(2.0); private set
-    var units by mutableStateOf(Units.metric); private set
-    var deltaReference by mutableStateOf(DeltaReference.session); private set
+    @set:JvmName("assignMinLapTime") var minLapTime by mutableStateOf(20.0); private set
+    @set:JvmName("assignDeltaScale") var deltaScale by mutableStateOf(2.0); private set
+    @set:JvmName("assignUnits") var units by mutableStateOf(Units.metric); private set
+    @set:JvmName("assignDeltaReference") var deltaReference by mutableStateOf(DeltaReference.session); private set
     var voiceOn by mutableStateOf(true); private set
     /** The Drag tab is open: the fixes go to the drag timer too. */
     var dragOn by mutableStateOf(false); private set
-    var dragRollout by mutableStateOf(false); private set
+    @set:JvmName("assignDragRollout") var dragRollout by mutableStateOf(false); private set
     /** Runs from a standstill start with the button (the default); off, by themselves. */
-    var dragManualStart by mutableStateOf(true); private set
+    @set:JvmName("assignDragManualStart") var dragManualStart by mutableStateOf(true); private set
     var driverVehicle by mutableStateOf(""); private set
-    var introSeen by mutableStateOf(true); private set
+    @set:JvmName("assignIntroSeen") var introSeen by mutableStateOf(true); private set
 
     private var session: Session? = null
     private val recentT = ArrayList<Double>()

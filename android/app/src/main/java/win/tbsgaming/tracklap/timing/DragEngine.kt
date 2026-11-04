@@ -34,7 +34,7 @@ data class DragEvent(
 class DragEngine {
     enum class Phase { moving, ready, running }
 
-    var phase by mutableStateOf(Phase.moving); private set
+    @set:JvmName("assignPhase") var phase by mutableStateOf(Phase.moving); private set
     var speed by mutableStateOf(0.0); private set
     /** m/s² over the last half second. */
     var accel by mutableStateOf(0.0); private set

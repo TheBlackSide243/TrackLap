@@ -74,7 +74,7 @@ class LapEngine {
     var lapDistance by mutableStateOf(0.0); private set
 
     /** The fastest lap on this track from earlier sessions, if any. */
-    var record by mutableStateOf<Lap?>(null); private set
+    @set:JvmName("assignRecord") var record by mutableStateOf<Lap?>(null); private set
     /** Compare with the track record instead of the best lap of this session. */
     var compareWithRecord by mutableStateOf(false)
 
