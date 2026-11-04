@@ -868,6 +868,10 @@ const strings = [
     "OpenStreetMap n'a pas de tour fermé ici : placez le départ en touchant la carte.",
     'OpenStreetMap hat hier keine geschlossene Runde: setze den Start durch Tippen auf die Karte.',
     'O OpenStreetMap não tem uma volta fechada aqui: coloque a largada tocando no mapa.'],
+  // 0.8.2: layouts found from where you drive, map buttons in the editor
+  ['Variante %lld', 'Variant %lld', 'Variante %lld', 'Variante %lld', 'Variante %lld', 'Variante %lld'],
+  ['Indietro', 'Back', 'Atrás', 'Retour', 'Zurück', 'Voltar'],
+  ['Scarica il tracciato', 'Download the layout', 'Descargar el trazado', 'Télécharger le tracé', 'Streckenverlauf laden', 'Baixar o traçado'],
 ];
 
 // The permission prompts, in Info.plist.

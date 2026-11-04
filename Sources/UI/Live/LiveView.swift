@@ -101,7 +101,7 @@ private struct LiveHeader: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            ScreenHeader(icon: "flag.checkered", title: "TrackLap", subtitle: model.selectedTrack?.name ?? L("Nessuna pista")) {
+            ScreenHeader(icon: "flag.checkered", title: "TrackLap", subtitle: trackTitle) {
                 if model.isRunning { RecordingBadge() }
             }
             ViewThatFits(in: .horizontal) {
@@ -119,6 +119,14 @@ private struct LiveHeader: View {
                 }
             }
         }
+    }
+
+    /// The track, and the layout it is on when it has several: it follows the one you drive.
+    private var trackTitle: String {
+        guard let t = model.selectedTrack else { return L("Nessuna pista") }
+        guard let layouts = t.layouts, layouts.count > 1, let i = layouts.firstIndex(where: { $0.key == t.activeLayout }) else { return t.name }
+        let l = layouts[i]
+        return t.name + " · " + (l.name.isEmpty ? (i == 0 ? L("Giro completo") : L("Variante \(i)")) : l.name)
     }
 
     @ViewBuilder

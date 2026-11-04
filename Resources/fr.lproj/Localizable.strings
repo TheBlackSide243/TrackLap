@@ -515,3 +515,6 @@
 "Tracciato" = "Tracé";
 "Giro completo" = "Tour complet";
 "Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "OpenStreetMap n'a pas de tour fermé ici : placez le départ en touchant la carte.";
+"Variante %lld" = "Variante %lld";
+"Indietro" = "Retour";
+"Scarica il tracciato" = "Télécharger le tracé";

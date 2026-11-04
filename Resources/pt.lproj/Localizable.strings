@@ -515,3 +515,6 @@
 "Tracciato" = "Traçado";
 "Giro completo" = "Volta completa";
 "Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "O OpenStreetMap não tem uma volta fechada aqui: coloque a largada tocando no mapa.";
+"Variante %lld" = "Variante %lld";
+"Indietro" = "Voltar";
+"Scarica il tracciato" = "Baixar o traçado";

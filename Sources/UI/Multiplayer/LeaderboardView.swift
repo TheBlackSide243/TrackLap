@@ -133,7 +133,7 @@ struct LeaderboardView: View {
                     }
                     .tint(Theme.yellow)
                     carLine
-                    if let record = model.sessions.record(on: track.id), SourceKind(sessionSource: record.session.source) != .demo {
+                    if let record = model.sessions.record(on: track), SourceKind(sessionSource: record.session.source) != .demo {
                         Button { Task { await send(record) } } label: {
                             if sending { ProgressView() } else {
                                 Label(L("Invia il mio record: \(Fmt.lap(record.lap.time))"), systemImage: "paperplane.fill")
@@ -183,7 +183,7 @@ struct LeaderboardView: View {
     private func load() async {
         error = nil
         do {
-            let length = model.sessions.record(on: track.id)?.lap.distance ?? track.length
+            let length = model.sessions.record(on: track)?.lap.distance ?? track.layout?.length ?? track.length
             board = try await Server.board(for: track, length: length, token: model.account.token)
         } catch {
             self.error = error.localizedDescription

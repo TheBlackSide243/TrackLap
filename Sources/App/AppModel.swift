@@ -248,6 +248,7 @@ final class AppModel {
                         source: source.title, sectorCount: track.sectorCount)
         s.carID = activeCar?.id
         s.carName = activeCar?.displayName
+        s.layout = track.layout?.key
         session = s
         currentSessionID = s.id
         isRunning = true
@@ -269,6 +270,7 @@ final class AppModel {
     }
 
     private func record(_ lap: Lap) {
+        let lap = layoutSwitch(after: lap) ?? lap
         session?.laps.append(lap)
         // Saved after every lap, so nothing is lost if the app is closed mid-session.
         if let s = session { sessions.save(s) }
@@ -288,8 +290,42 @@ final class AppModel {
     private func prepareEngine(_ track: Track?) {
         engine.load(track: track)
         engine.compareWithRecord = deltaReference == .record
-        engine.setRecord(sessions.record(on: track?.id)?.lap)
+        engine.setRecord(sessions.record(on: track)?.lap)
         applyChallenge(savedChallenge(for: track))
+    }
+
+    /// A lap on another layout of the track (the Junior at Monza instead of the full circuit): the
+    /// track takes that layout's lines, the session so far is closed and a new one goes on for this
+    /// layout, and the timer compares with its laps and its record. The lap comes back with its
+    /// sectors on the new lines; nil when the layout has not changed.
+    private func layoutSwitch(after lap: Lap) -> Lap? {
+        guard var track = selectedTrack, let layouts = track.layouts, layouts.count > 1,
+              let found = LayoutMatch.best(lap.trace, among: layouts), found.key != track.activeLayout else { return nil }
+        track.use(found)
+        tracks.upsert(track)
+        var moved = lap
+        moved.sectors = LayoutMatch.sectors(of: lap, on: found.sectors)
+        if let s = session, !s.laps.isEmpty {
+            sessions.save(s)
+            var next = Session(trackID: track.id, trackName: track.name, date: Date(), source: s.source,
+                               sectorCount: track.sectorCount)
+            next.carID = s.carID
+            next.carName = s.carName
+            next.layout = found.key
+            session = next
+            currentSessionID = next.id
+        } else {
+            session?.layout = found.key
+            session?.sectorCount = track.sectorCount
+        }
+        let record = sessions.record(on: track)?.lap
+        // After the timer has finished with this crossing: it is still inside it now.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.engine.switchLayout(start: found.start, sectors: found.sectors, record: record, laps: [moved])
+            self.ble.send(track: track)
+        }
+        return moved
     }
 
     // MARK: - Friends' laps

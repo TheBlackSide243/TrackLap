@@ -31,6 +31,8 @@ struct Track: Codable, Identifiable, Equatable {
     var layouts: [TrackLayout]? = nil
     /// How the lines were placed when they were put there automatically; nil once moved by hand.
     var autoLines: TrackLayout.Source? = nil
+    /// The key of the layout the lines come from (0.8.2): it changes by itself when you drive another.
+    var activeLayout: String? = nil
 
     var isReady: Bool { start != nil }
     var sectorCount: Int { sectors.isEmpty ? 0 : sectors.count + 1 }

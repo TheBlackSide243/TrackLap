@@ -98,6 +98,12 @@ private struct SessionCard: View {
                     if live { Badge(text: L("In corso"), color: Theme.bad) }
                 }
                 Text(Fmt.day.string(from: summary.date)).font(.caption).foregroundStyle(Theme.sub)
+                if let layout = summary.layoutName {
+                    Label(layout, systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.sub)
+                        .lineLimit(1)
+                }
                 if let car = summary.carName, !car.isEmpty {
                     Label(car, systemImage: "car.fill")
                         .font(.caption.weight(.semibold))
