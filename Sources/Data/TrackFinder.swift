@@ -132,11 +132,11 @@ enum TrackFinder {
             .sorted { ($0.distanceKm ?? 0) < ($1.distanceKm ?? 0) }
     }
 
-    /// The raceway ways of a venue, longest first. Overpass and the OpenStreetMap API race each
-    /// other (the API a moment later, to leave it alone when Overpass is quick); the first answer
-    /// wins. Empty when neither answers or there is no raceway mapped.
-    static func outline(in box: GeoBox) async -> [[Coord]] {
-        let ways = await withTaskGroup(of: [[Coord]]?.self, returning: [[Coord]].self) { group in
+    /// The raceways of a venue with its circuit relations. Overpass and the OpenStreetMap API race
+    /// each other (the API a moment later, to leave it alone when Overpass is quick); the first
+    /// answer wins. Empty when neither answers or there is no raceway mapped.
+    static func raceways(in box: GeoBox) async -> RacewayData {
+        await withTaskGroup(of: RacewayData?.self, returning: RacewayData.self) { group in
             group.addTask { try? await Overpass.raceways(in: box) }
             group.addTask {
                 try? await Task.sleep(for: .seconds(1.5))
@@ -149,8 +149,16 @@ enum TrackFinder {
                     return answer
                 }
             }
-            return []
+            return RacewayData()
         }
-        return ways.sorted { Geo.length($0) > Geo.length($1) }
+    }
+
+    /// A new track from what OpenStreetMap has in the box: the outline, and the start line and
+    /// sectors put in place when a lap can be found.
+    static func track(name: String, place: String, center: Coord, box: GeoBox, karting: Bool) async -> Track {
+        let data = await raceways(in: box)
+        var t = Track(name: name, place: place, center: center, outline: data.outline)
+        t.applyAuto(AutoLines.layouts(data, width: karting ? 14 : 24))
+        return t
     }
 }

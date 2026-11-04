@@ -107,7 +107,7 @@ private struct LiveHeader: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
                     pills
-                    CarChip()
+                    ActiveCarChip()
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -115,7 +115,7 @@ private struct LiveHeader: View {
                         pills
                         Spacer(minLength: 0)
                     }
-                    CarChip()
+                    ActiveCarChip()
                 }
             }
         }
@@ -128,51 +128,6 @@ private struct LiveHeader: View {
         if let p = model.group.place {
             StatusPill(icon: "person.3.fill", text: "P\(p.position)/\(p.count)", color: Theme.yellow)
         }
-    }
-}
-
-/// The car you drive, from your garage: the next sessions remember it and your laps on the
-/// leaderboards link to it.
-private struct CarChip: View {
-    @Environment(AppModel.self) private var model
-
-    var body: some View {
-        Menu {
-            if model.garage.cars.isEmpty {
-                Button { model.tab = .garage } label: { Label("Aggiungi un'auto al garage", systemImage: "plus") }
-            } else {
-                Picker(L("Auto in uso"), selection: Binding(get: { model.activeCarID }, set: { model.setActiveCar($0) })) {
-                    Text("Nessuna").tag(UUID?.none)
-                    ForEach(model.garage.cars) { car in
-                        Text(car.displayName).tag(UUID?.some(car.id))
-                    }
-                }
-                Divider()
-                Button { model.tab = .garage } label: { Label("Apri il garage", systemImage: "car.fill") }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                if let car = model.activeCar {
-                    CarPhotoView(photo: car.info.photo)
-                        .frame(width: 20, height: 20)
-                        .clipShape(Circle())
-                    Text(car.displayName).lineLimit(1)
-                } else {
-                    Image(systemName: "car.fill").font(.caption2.weight(.bold)).foregroundStyle(Theme.sub)
-                    Text("Scegli l'auto")
-                }
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.sub)
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Theme.text)
-            .frame(maxWidth: 190, alignment: .leading)
-            .padding(.leading, model.activeCar == nil ? 10 : 4)
-            .padding(.trailing, 10)
-            .padding(.vertical, model.activeCar == nil ? 6 : 3)
-            .background(Theme.panel, in: Capsule())
-            .overlay(Capsule().strokeBorder(model.activeCar == nil ? Theme.line : Theme.accent.opacity(0.6), lineWidth: 1))
-        }
-        .accessibilityLabel(L("Auto in uso"))
     }
 }
 

@@ -43,6 +43,8 @@ final class DragEngine {
     var rollout = false
     var source = SourceKind.demo.rawValue
     var vehicle = ""
+    /// The car of your garage the run is driven with.
+    var carID: UUID? = nil
 
     @ObservationIgnored var onEvent: ((DragEvent) -> Void)? = nil
     @ObservationIgnored var onFinish: ((DragRun) -> Void)? = nil
@@ -383,7 +385,7 @@ final class DragEngine {
         let span = r.lastT - r.t0
         return DragRun(id: r.id, date: r.wall, source: source, vehicle: vehicle, standing: r.standing,
                        rollout: r.standing && r.rollout, results: r.results, trace: r.trace, maxSpeed: r.maxSpeed,
-                       peakG: r.peakG, rate: span > 0 ? Double(r.fixes - 1) / span : 0, start: r.start)
+                       peakG: r.peakG, rate: span > 0 ? Double(r.fixes - 1) / span : 0, start: r.start, carID: carID)
     }
 
     // MARK: - Helpers

@@ -76,8 +76,8 @@ struct TracksView: View {
         do {
             let loc = try await model.phone.currentLocation()
             let c = Coord(loc.coordinate)
-            let ways = await TrackFinder.outline(in: GeoBox(around: c, meters: 900))
-            let t = Track(name: L("Nuova pista"), place: L("Creata sul posto"), center: c, outline: ways)
+            let t = await TrackFinder.track(name: L("Nuova pista"), place: L("Creata sul posto"), center: c,
+                                            box: GeoBox(around: c, meters: 900), karting: false)
             model.save(track: t)
             path.append(t.id)
         } catch {

@@ -501,3 +501,17 @@
 "I tuoi tempi portano a quest'auto del garage" = "Seus tempos levam a este carro da garagem";
 "Rendi pubblico il garage perché i tempi portino all'auto" = "Deixe a garagem pública para os tempos levarem ao carro";
 "Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei." = "Escolha no Ao vivo o carro que você usa: seus tempos levarão a ele.";
+"Dal tuo garage" = "Da sua garagem";
+"I tuoi record con %@" = "Seus recordes com o %@";
+"Quest'auto" = "Este carro";
+"Tutte" = "Todos";
+"I tuoi migliori Drag con quest'auto" = "Seus melhores drag com este carro";
+"Via e intermedi automatici" = "Largada e parciais automáticas";
+"Cerco il traguardo su OpenStreetMap…" = "Procurando a linha de chegada no OpenStreetMap…";
+"Via sul traguardo segnato su OpenStreetMap, intermedi a un terzo e a due terzi del giro." = "Largada na linha de chegada marcada no OpenStreetMap, parciais a um terço e dois terços da volta.";
+"Via messo accanto ai box, dove di solito è il traguardo: controllalo. Intermedi a un terzo e a due terzi del giro." = "Largada ao lado dos boxes, onde costuma ficar a chegada: confira. Parciais a um terço e dois terços da volta.";
+"Via sul rettilineo di partenza: controllalo. Intermedi a un terzo e a due terzi del giro." = "Largada na reta de largada: confira. Parciais a um terço e dois terços da volta.";
+"Via sul rettilineo più lungo: spostalo se il traguardo è altrove. Intermedi a un terzo e a due terzi del giro." = "Largada na reta mais longa: mova se a chegada estiver em outro lugar. Parciais a um terço e dois terços da volta.";
+"Tracciato" = "Traçado";
+"Giro completo" = "Volta completa";
+"Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "O OpenStreetMap não tem uma volta fechada aqui: coloque a largada tocando no mapa.";

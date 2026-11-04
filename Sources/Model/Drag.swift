@@ -95,10 +95,12 @@ struct DragRun: Codable, Identifiable {
     /// Fixes per second.
     var rate: Double
     var start: Coord?
+    /// The car of your garage it was driven with (added in 0.8.1).
+    var carID: UUID? = nil
 
     var summary: DragSummary {
         DragSummary(id: id, date: date, source: source, vehicle: vehicle, standing: standing, rollout: rollout,
-                    results: results, maxSpeed: maxSpeed, peakG: peakG, rate: rate)
+                    results: results, maxSpeed: maxSpeed, peakG: peakG, rate: rate, carID: carID)
     }
 
     func result(_ name: String) -> DragResult? { results.first { $0.name == name } }
@@ -116,6 +118,7 @@ struct DragSummary: Codable, Identifiable, Hashable {
     var maxSpeed: Double
     var peakG: Double
     var rate: Double
+    var carID: UUID? = nil
 
     func result(_ name: String) -> DragResult? { results.first { $0.name == name } }
 

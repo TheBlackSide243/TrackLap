@@ -16,6 +16,7 @@ struct CarDetailView: View {
             CarDetailContent(info: car.info, badge: active ? L("In uso in Live") : nil) {
                 drive(car, active: active)
                 times(car)
+                drags(car)
                 share(car)
             }
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -109,6 +110,45 @@ struct CarDetailView: View {
                     .padding(12)
                     .background(Theme.panel, in: shape)
                     .overlay(shape.strokeBorder(Theme.line.opacity(0.8), lineWidth: 1))
+                }
+            }
+        }
+    }
+
+    /// The best of every drag measure done with this car.
+    @ViewBuilder
+    private func drags(_ car: Car) -> some View {
+        let records = model.drags.records(car: car.id)
+        let measures = DragMeasure.all().filter { records[$0.name] != nil }
+        if !measures.isEmpty {
+            SectionLabel(L("I tuoi migliori Drag con quest'auto"))
+            Panel(padding: 6) {
+                VStack(spacing: 0) {
+                    ForEach(Array(measures.enumerated()), id: \.element.id) { i, m in
+                        if let r = records[m.name] {
+                            if i > 0 { Rectangle().fill(Theme.line.opacity(0.5)).frame(height: 0.5).padding(.horizontal, 10) }
+                            HStack(spacing: 10) {
+                                Image(systemName: m.kind == .braking ? "arrow.down.to.line" : m.kind == .distance ? "flag.checkered" : "speedometer")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(Theme.accent)
+                                    .frame(width: 22)
+                                Text(verbatim: m.name)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Theme.text)
+                                Text(Fmt.dayShort.string(from: r.run.date))
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.sub)
+                                Spacer(minLength: 0)
+                                Text(r.result.kind == .braking ? "\(Fmt.shortDistance(r.result.distance)) \(Fmt.shortDistanceUnit)"
+                                     : "\(Fmt.dragTime(r.result.time)) s")
+                                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.purple)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 10)
+                        }
+                    }
                 }
             }
         }

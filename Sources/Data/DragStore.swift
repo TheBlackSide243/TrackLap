@@ -35,10 +35,11 @@ final class DragStore {
         Files.write(summaries, to: indexURL)
     }
 
-    /// The best of every measure over all runs: the shortest time, or the shortest stop for braking.
-    func records() -> [String: DragRecord] {
+    /// The best of every measure: the shortest time, or the shortest stop for braking. With a car,
+    /// only the runs driven with it; without, all of them.
+    func records(car: UUID? = nil) -> [String: DragRecord] {
         var out: [String: DragRecord] = [:]
-        for s in summaries {
+        for s in summaries where car == nil || s.carID == car {
             for r in s.results {
                 let v = r.kind == .braking ? r.distance : r.time
                 if let old = out[r.name], old.value <= v { continue }
@@ -49,7 +50,10 @@ final class DragStore {
     }
 
     /// What the timer compares with to colour a best.
-    func bests() -> [String: Double] { records().mapValues(\.value) }
+    func bests(car: UUID? = nil) -> [String: Double] { records(car: car).mapValues(\.value) }
+
+    /// Some run was driven with this car.
+    func hasRuns(car: UUID) -> Bool { summaries.contains { $0.carID == car } }
 
     private func file(_ id: UUID) -> URL { dir.appendingPathComponent(id.uuidString + ".json") }
 }

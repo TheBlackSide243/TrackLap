@@ -501,3 +501,17 @@
 "I tuoi tempi portano a quest'auto del garage" = "Vos temps mènent à cette voiture du garage";
 "Rendi pubblico il garage perché i tempi portino all'auto" = "Rendez le garage public pour que les temps mènent à la voiture";
 "Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei." = "Choisissez en Direct la voiture que vous utilisez : vos temps y mèneront.";
+"Dal tuo garage" = "De votre garage";
+"I tuoi record con %@" = "Vos records avec la %@";
+"Quest'auto" = "Cette voiture";
+"Tutte" = "Toutes";
+"I tuoi migliori Drag con quest'auto" = "Vos meilleurs runs drag avec cette voiture";
+"Via e intermedi automatici" = "Départ et intermédiaires automatiques";
+"Cerco il traguardo su OpenStreetMap…" = "Recherche de la ligne d'arrivée sur OpenStreetMap…";
+"Via sul traguardo segnato su OpenStreetMap, intermedi a un terzo e a due terzi del giro." = "Départ sur la ligne d'arrivée cartographiée sur OpenStreetMap, intermédiaires au tiers et aux deux tiers du tour.";
+"Via messo accanto ai box, dove di solito è il traguardo: controllalo. Intermedi a un terzo e a due terzi del giro." = "Départ placé à côté des stands, là où est souvent l'arrivée : vérifiez-le. Intermédiaires au tiers et aux deux tiers du tour.";
+"Via sul rettilineo di partenza: controllalo. Intermedi a un terzo e a due terzi del giro." = "Départ sur la ligne droite de départ : vérifiez-le. Intermédiaires au tiers et aux deux tiers du tour.";
+"Via sul rettilineo più lungo: spostalo se il traguardo è altrove. Intermedi a un terzo e a due terzi del giro." = "Départ sur la plus longue ligne droite : déplacez-le si l'arrivée est ailleurs. Intermédiaires au tiers et aux deux tiers du tour.";
+"Tracciato" = "Tracé";
+"Giro completo" = "Tour complet";
+"Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "OpenStreetMap n'a pas de tour fermé ici : placez le départ en touchant la carte.";
