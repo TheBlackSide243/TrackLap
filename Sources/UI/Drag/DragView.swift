@@ -85,13 +85,28 @@ private struct DragHeader: View {
                         .overlay(Circle().strokeBorder(Theme.line, lineWidth: 1))
                 }
             }
-            HStack(spacing: 8) {
-                GPSPill()
-                StatusPill(icon: model.source.icon, text: model.source.short, color: Theme.accent)
-                if model.dragRollout { StatusPill(icon: "ruler", text: "Rollout", color: Theme.yellow) }
-                Spacer(minLength: 0)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    pills
+                    ActiveCarChip()
+                    Spacer(minLength: 0)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        pills
+                        Spacer(minLength: 0)
+                    }
+                    ActiveCarChip()
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private var pills: some View {
+        GPSPill()
+        StatusPill(icon: model.source.icon, text: model.source.short, color: Theme.accent)
+        if model.dragRollout { StatusPill(icon: "ruler", text: "Rollout", color: Theme.yellow) }
     }
 
     private var subtitle: String {
@@ -267,7 +282,7 @@ private struct RunCard: View {
                         }
                     }
                 }
-                ResultGrid(results: run.results, standing: run.standing, records: model.drags.records(), pending: live)
+                ResultGrid(results: run.results, standing: run.standing, records: model.drags.records(car: run.carID), pending: live)
                 if !live && run.trace.count > 2 {
                     DragChart(run: run).frame(height: 170)
                 }
@@ -408,13 +423,26 @@ struct DragChart: View {
 /// The best of each measure ever.
 private struct RecordsCard: View {
     @Environment(AppModel.self) private var model
+    @State private var allCars = false
 
     var body: some View {
-        let records = model.drags.records()
+        // With a car in use that has runs, its own records: another car's times are not the ones to beat.
+        let car = model.activeCar.flatMap { model.drags.hasRuns(car: $0.id) ? $0 : nil }
+        let records = model.drags.records(car: allCars ? nil : car?.id)
         let measures = DragMeasure.all().filter { records[$0.name] != nil }
         if !measures.isEmpty {
             VStack(spacing: 8) {
-                SectionLabel(L("I tuoi record"))
+                HStack(spacing: 8) {
+                    SectionLabel(car != nil && !allCars ? L("I tuoi record con \(car!.displayName)") : L("I tuoi record"))
+                    if car != nil {
+                        Picker("", selection: $allCars) {
+                            Text("Quest'auto").tag(false)
+                            Text("Tutte").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
+                }
                 Panel(padding: 6) {
                     VStack(spacing: 0) {
                         ForEach(Array(measures.enumerated()), id: \.element.id) { i, m in

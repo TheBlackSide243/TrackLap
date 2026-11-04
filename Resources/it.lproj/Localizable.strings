@@ -501,3 +501,17 @@
 "I tuoi tempi portano a quest'auto del garage" = "I tuoi tempi portano a quest'auto del garage";
 "Rendi pubblico il garage perché i tempi portino all'auto" = "Rendi pubblico il garage perché i tempi portino all'auto";
 "Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei." = "Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei.";
+"Dal tuo garage" = "Dal tuo garage";
+"I tuoi record con %@" = "I tuoi record con %@";
+"Quest'auto" = "Quest'auto";
+"Tutte" = "Tutte";
+"I tuoi migliori Drag con quest'auto" = "I tuoi migliori Drag con quest'auto";
+"Via e intermedi automatici" = "Via e intermedi automatici";
+"Cerco il traguardo su OpenStreetMap…" = "Cerco il traguardo su OpenStreetMap…";
+"Via sul traguardo segnato su OpenStreetMap, intermedi a un terzo e a due terzi del giro." = "Via sul traguardo segnato su OpenStreetMap, intermedi a un terzo e a due terzi del giro.";
+"Via messo accanto ai box, dove di solito è il traguardo: controllalo. Intermedi a un terzo e a due terzi del giro." = "Via messo accanto ai box, dove di solito è il traguardo: controllalo. Intermedi a un terzo e a due terzi del giro.";
+"Via sul rettilineo di partenza: controllalo. Intermedi a un terzo e a due terzi del giro." = "Via sul rettilineo di partenza: controllalo. Intermedi a un terzo e a due terzi del giro.";
+"Via sul rettilineo più lungo: spostalo se il traguardo è altrove. Intermedi a un terzo e a due terzi del giro." = "Via sul rettilineo più lungo: spostalo se il traguardo è altrove. Intermedi a un terzo e a due terzi del giro.";
+"Tracciato" = "Tracciato";
+"Giro completo" = "Giro completo";
+"Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa.";

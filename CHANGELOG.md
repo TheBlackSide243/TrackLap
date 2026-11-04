@@ -2,6 +2,51 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.8.1 (2026-11-04)
+
+The car of every drag run, and tracks that come with the start line and the sectors. / L'auto di
+ogni corsa drag, e piste che arrivano con il via e i settori.
+
+### English
+
+**New**
+- **Drag with the car**: every run remembers the car you drive (pick it in the Drag header, as in
+  Live). Records are per car, with "All" to see every car together; a run's page opens its car,
+  and a car's page lists its best drag measures.
+- **Start line and sectors by themselves**: when you pick a track, the start line and two
+  intermediates are already there.
+  - Where OpenStreetMap has the circuit (most big tracks), the line goes on the finish it marks,
+    and the lap is that layout's: the editor lets you switch layout when there are several.
+  - Elsewhere the lap is the longest loop of the track, leaving out pit lanes and old banking, and
+    the line goes beside the pits, on the straight named for the start, or on the longest
+    straight.
+  - The three sectors are of the same length, kept off junctions and other parts of the track.
+  - The editor says how each line was placed, and **"Place start and sectors automatically"**
+    does it for tracks saved before.
+
+**Firmware 0.8.1**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Novità**
+- **Drag con l'auto**: ogni corsa ricorda l'auto che usi (si sceglie in alto nel Drag, come in
+  Live). I record sono per auto, con "Tutte" per vederle insieme; la pagina di una corsa apre la
+  sua auto, e la pagina dell'auto mostra i suoi migliori Drag.
+- **Via e settori da soli**: quando scegli una pista, la linea del via e due intermedi ci sono
+  già.
+  - Dove OpenStreetMap ha il circuito (quasi tutte le piste grandi), il via va sul traguardo che
+    segna e il giro è quello del tracciato: nell'editor si cambia tracciato quando ce ne sono più
+    di uno.
+  - Altrove il giro è l'anello più lungo della pista, senza corsia box e vecchie sopraelevate, e il
+    via va accanto ai box, sul rettilineo che si chiama di partenza o sul rettilineo più lungo.
+  - I tre settori sono lunghi uguali, lontani dagli incroci e dalle altre parti della pista.
+  - L'editor dice come è stata messa ogni linea, e **"Via e intermedi automatici"** lo fa anche
+    sulle piste salvate prima.
+
+**Firmware 0.8.1**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.8.0 (2026-11-04)
 
 The Garage, accounts, and leaderboards that show the car of every time. / Il Garage, gli account e

@@ -383,10 +383,11 @@ final class AppModel {
         dragOn = on
         drag.reset()
         if on {
-            drag.bests = drags.bests()
+            drag.bests = drags.bests(car: activeCarID)
             drag.rollout = dragRollout
             drag.source = source.rawValue
             drag.vehicle = profile.displayVehicle
+            drag.carID = activeCarID
             if drag.run == nil, let last = drags.summaries.first, let r = drags.load(last.id) { drag.show(r) }
         } else {
             demoDrag.stop()
@@ -408,7 +409,7 @@ final class AppModel {
 
     func deleteDragRun(_ id: UUID) {
         drags.delete(id)
-        drag.bests = drags.bests()
+        drag.bests = drags.bests(car: activeCarID)
         if drag.run?.id == id && !drag.inProgress {
             drag.show(nil)
             if let last = drags.summaries.first, let r = drags.load(last.id) { drag.show(r) }
@@ -458,6 +459,12 @@ final class AppModel {
         if let car {
             profile.set(vehicle: String(car.displayName.prefix(DriverProfile.maxLength)))
             group.profileChanged()
+        }
+        // The Drag tab open: the next run is with this car, and its records are the ones to beat.
+        if dragOn && !drag.inProgress {
+            drag.vehicle = profile.displayVehicle
+            drag.carID = car?.id
+            drag.bests = drags.bests(car: car?.id)
         }
     }
 

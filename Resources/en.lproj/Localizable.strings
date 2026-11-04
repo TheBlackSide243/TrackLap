@@ -501,3 +501,17 @@
 "I tuoi tempi portano a quest'auto del garage" = "Your times lead to this car of the garage";
 "Rendi pubblico il garage perché i tempi portino all'auto" = "Make the garage public so the times lead to the car";
 "Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei." = "Pick the car you drive in Live: your times will lead to it.";
+"Dal tuo garage" = "From your garage";
+"I tuoi record con %@" = "Your records with the %@";
+"Quest'auto" = "This car";
+"Tutte" = "All";
+"I tuoi migliori Drag con quest'auto" = "Your best drag runs with this car";
+"Via e intermedi automatici" = "Place start and sectors automatically";
+"Cerco il traguardo su OpenStreetMap…" = "Looking for the finish line on OpenStreetMap…";
+"Via sul traguardo segnato su OpenStreetMap, intermedi a un terzo e a due terzi del giro." = "Start on the finish line mapped on OpenStreetMap, intermediates a third and two thirds into the lap.";
+"Via messo accanto ai box, dove di solito è il traguardo: controllalo. Intermedi a un terzo e a due terzi del giro." = "Start placed beside the pits, where the finish line usually is: check it. Intermediates a third and two thirds into the lap.";
+"Via sul rettilineo di partenza: controllalo. Intermedi a un terzo e a due terzi del giro." = "Start on the start straight: check it. Intermediates a third and two thirds into the lap.";
+"Via sul rettilineo più lungo: spostalo se il traguardo è altrove. Intermedi a un terzo e a due terzi del giro." = "Start on the longest straight: move it if the finish line is elsewhere. Intermediates a third and two thirds into the lap.";
+"Tracciato" = "Layout";
+"Giro completo" = "Full lap";
+"Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "OpenStreetMap has no closed lap here: place the start by tapping the map.";

@@ -10,6 +10,7 @@ struct DragRunView: View {
     @State private var run: DragRun?
     @State private var picture: Image?
     @State private var confirmDelete = false
+    @State private var showingCar: UUID?
 
     var body: some View {
         ScrollView {
@@ -44,6 +45,7 @@ struct DragRunView: View {
                 dismiss()
             }
         }
+        .navigationDestination(item: $showingCar) { CarDetailView(carID: $0) }
         .onAppear(perform: load)
     }
 
@@ -69,6 +71,27 @@ struct DragRunView: View {
                         Badge(text: SourceKind(rawValue: r.source)?.short ?? r.source, color: Theme.sub)
                         if r.rollout { Badge(text: "Rollout 1 ft", color: Theme.yellow) }
                     }
+                    if let car = model.garage.car(r.carID) {
+                        Button { showingCar = car.id } label: {
+                            HStack(spacing: 10) {
+                                CarPhotoView(photo: car.info.photo)
+                                    .frame(width: 44, height: 33)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(car.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                                    Text(car.info.subtitle.isEmpty ? L("Dal tuo garage") : car.info.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.sub)
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.sub)
+                            }
+                            .padding(8)
+                            .background(Theme.input, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(PressableStyle())
+                        .padding(.top, 4)
+                    }
                 }
             }
 
@@ -89,7 +112,7 @@ struct DragRunView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Panel { ResultGrid(results: r.results, standing: r.standing, records: model.drags.records()) }
+            Panel { ResultGrid(results: r.results, standing: r.standing, records: model.drags.records(car: r.carID)) }
 
             Panel {
                 VStack(alignment: .leading, spacing: 10) {

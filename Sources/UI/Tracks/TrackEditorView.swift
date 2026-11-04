@@ -17,6 +17,7 @@ struct TrackEditorView: View {
     @State private var renaming = false
     @State private var newName = ""
     @State private var confirmDelete = false
+    @State private var placing = false
 
     enum Tool: String, CaseIterable, Identifiable {
         case start, sector
@@ -39,8 +40,9 @@ struct TrackEditorView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { newName = draft?.name ?? ""; renaming = true } label: { Label("Rinomina", systemImage: "pencil") }
-                    Button { update { $0.sectors = [] } } label: { Label("Togli gli intermedi", systemImage: "minus.circle") }
-                    Button { update { $0.start = nil } } label: { Label("Togli la linea del via", systemImage: "flag.slash") }
+                    Button { Task { await autoPlace() } } label: { Label("Via e intermedi automatici", systemImage: "wand.and.stars") }
+                    Button { update { $0.sectors = []; $0.autoLines = nil } } label: { Label("Togli gli intermedi", systemImage: "minus.circle") }
+                    Button { update { $0.start = nil; $0.autoLines = nil } } label: { Label("Togli la linea del via", systemImage: "flag.slash") }
                     Divider()
                     Button(role: .destructive) { confirmDelete = true } label: { Label("Elimina pista", systemImage: "trash") }
                 } label: {
@@ -113,10 +115,13 @@ struct TrackEditorView: View {
 
             controls(t)
         }
+        .overlay { if placing { ProgressOverlay(text: L("Cerco il traguardo su OpenStreetMap…")) } }
     }
 
     private func controls(_ t: Track) -> some View {
         VStack(spacing: 12) {
+            if let source = t.autoLines { autoNote(source) }
+            if let layouts = t.layouts, layouts.count > 1 { layoutMenu(t, layouts) }
             Text(hint ?? defaultHint(t))
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(Theme.text)
@@ -141,7 +146,10 @@ struct TrackEditorView: View {
                     HStack(spacing: 8) {
                         ForEach(Array(t.sectors.indices), id: \.self) { i in
                             Button {
-                                update { $0.sectors.remove(at: i) }
+                                update {
+                                    $0.sectors.remove(at: i)
+                                    $0.autoLines = nil
+                                }
                             } label: {
                                 Label("I\(i + 1)", systemImage: "xmark.circle.fill")
                                     .font(.caption.weight(.bold))
@@ -175,6 +183,96 @@ struct TrackEditorView: View {
         .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Theme.line.opacity(0.6), lineWidth: 1))
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
+    }
+
+    /// What was placed by itself, and how sure it is.
+    private func autoNote(_ source: TrackLayout.Source) -> some View {
+        let text: String = switch source {
+        case .mapped: L("Via sul traguardo segnato su OpenStreetMap, intermedi a un terzo e a due terzi del giro.")
+        case .pits: L("Via messo accanto ai box, dove di solito è il traguardo: controllalo. Intermedi a un terzo e a due terzi del giro.")
+        case .named: L("Via sul rettilineo di partenza: controllalo. Intermedi a un terzo e a due terzi del giro.")
+        case .straight: L("Via sul rettilineo più lungo: spostalo se il traguardo è altrove. Intermedi a un terzo e a due terzi del giro.")
+        }
+        return Label {
+            Text(text).fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: source == .mapped ? "checkmark.seal.fill" : "wand.and.stars")
+                .foregroundStyle(source == .mapped ? Theme.good : Theme.yellow)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(Theme.text)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Theme.panel.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// The layouts OpenStreetMap has for this venue: picking one puts its lines in place.
+    private func layoutMenu(_ t: Track, _ layouts: [TrackLayout]) -> some View {
+        let current = layouts.first { $0.start == t.start } ?? layouts[0]
+        return Menu {
+            ForEach(Array(layouts.enumerated()), id: \.offset) { _, l in
+                Button {
+                    update {
+                        $0.start = l.start
+                        $0.sectors = l.sectors
+                        $0.autoLines = l.source
+                    }
+                    width = max(8, min(60, l.start.width.rounded()))
+                } label: {
+                    Text(verbatim: layoutTitle(l))
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath").foregroundStyle(Theme.accent)
+                Text(verbatim: layoutTitle(current)).lineLimit(1)
+                Spacer(minLength: 0)
+                Text("Tracciato").foregroundStyle(Theme.sub)
+                Image(systemName: "chevron.up.chevron.down").font(.caption2.weight(.bold)).foregroundStyle(Theme.sub)
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Theme.text)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(Theme.panel.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
+    private func layoutTitle(_ l: TrackLayout) -> String {
+        (l.name.isEmpty ? L("Giro completo") : l.name) + " · " + Fmt.distance(l.length)
+    }
+
+    /// The raceways downloaded again and the lines put where they most likely go.
+    private func autoPlace() async {
+        guard let t = draft else { return }
+        placing = true
+        defer { placing = false }
+        let pts = t.outline.flatMap { $0 }
+        let box: GeoBox
+        if let minLat = pts.map(\.lat).min(), let maxLat = pts.map(\.lat).max(),
+           let minLon = pts.map(\.lon).min(), let maxLon = pts.map(\.lon).max() {
+            box = GeoBox(minLat, minLon, maxLat, maxLon).padded(meters: 150)
+        } else {
+            box = GeoBox(around: t.center, meters: 1500)
+        }
+        let data = await TrackFinder.raceways(in: box)
+        let w = width
+        // The search for the lap can take a moment on a big venue: away from the main thread.
+        let found = await Task.detached(priority: .userInitiated) { AutoLines.layouts(data, width: w) }.value
+        guard !found.isEmpty else {
+            hint = L("Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa.")
+            return
+        }
+        update { track in
+            if track.outline.isEmpty { track.outline = data.outline }
+            track.applyAuto(found)
+        }
+        hint = nil
+        tool = .sector
+        if let s = draft?.start {
+            camera = .region(TrackGeometry.region(for: draft?.allPoints ?? [], fallback: s.mid))
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     private func defaultHint(_ t: Track) -> String {
@@ -232,7 +330,10 @@ struct TrackEditorView: View {
     private func place(_ gate: GateLine) {
         switch tool {
         case .start:
-            update { $0.start = gate }
+            update {
+                $0.start = gate
+                $0.autoLines = nil
+            }
             hint = L("Linea del via messa. Ora aggiungi gli intermedi, se vuoi.")
             tool = .sector
         case .sector:
@@ -240,7 +341,10 @@ struct TrackEditorView: View {
                 hint = L("Massimo 4 intermedi.")
                 return
             }
-            update { $0.sectors.append(gate) }
+            update {
+                $0.sectors.append(gate)
+                $0.autoLines = nil
+            }
             hint = nil
         }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()

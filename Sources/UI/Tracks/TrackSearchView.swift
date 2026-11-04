@@ -211,8 +211,8 @@ struct TrackSearchView: View {
     private func pick(_ c: TrackCandidate) async {
         downloading = L("Scarico il tracciato di \(c.name)…")
         defer { downloading = nil }
-        let ways = await TrackFinder.outline(in: c.searchBox)
-        let t = Track(name: c.name, place: c.place.isEmpty ? c.kindTitle : c.place, center: c.center, outline: ways)
+        let t = await TrackFinder.track(name: c.name, place: c.place.isEmpty ? c.kindTitle : c.place, center: c.center,
+                                        box: c.searchBox, karting: c.kind == .karting)
         model.save(track: t)
         onCreated(t.id)
     }

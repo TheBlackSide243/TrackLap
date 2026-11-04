@@ -16,6 +16,18 @@ enum Overpass {
         let bounds: Bounds?
         let tags: [String: String]?
         let geometry: [Point?]?
+        /// A way's node ids, with `out geom`.
+        let nodes: [Int64]?
+        /// A relation's members, with `out geom`.
+        let members: [Member]?
+    }
+
+    struct Member: Decodable {
+        let type: String
+        let ref: Int64
+        let role: String?
+        let lat: Double?
+        let lon: Double?
     }
 
     struct Point: Decodable {
@@ -81,17 +93,35 @@ enum Overpass {
         return try await run(query, timeout: 75).compactMap(candidate)
     }
 
-    /// The raceway ways inside a box.
-    static func raceways(in box: GeoBox) async throws -> [[Coord]] {
+    /// The raceway ways inside a box, with the circuit relations they belong to (the layouts, their
+    /// pit lane and finish node).
+    static func raceways(in box: GeoBox) async throws -> RacewayData {
         let query = """
         [out:json][timeout:25];
-        way["highway"="raceway"](\(box.minLat),\(box.minLon),\(box.maxLat),\(box.maxLon));
+        way["highway"="raceway"](\(box.minLat),\(box.minLon),\(box.maxLat),\(box.maxLon))->.w;
+        rel(bw.w)["type"="circuit"]->.r;
+        (.w;.r;);
         out geom;
         """
-        return try await run(query, timeout: 30).compactMap { e -> [Coord]? in
+        let elements = try await run(query, timeout: 30)
+        var data = RacewayData()
+        for e in elements where e.type == "way" {
             let pts = (e.geometry ?? []).compactMap { $0.map { Coord($0.lat, $0.lon) } }
-            return pts.count >= 2 ? pts : nil
+            guard pts.count >= 2 else { continue }
+            let ids = e.nodes ?? []
+            data.ways.append(.init(id: e.id, nodes: ids.count == pts.count ? ids : [], coords: pts, tags: e.tags ?? [:]))
         }
+        for e in elements where e.type == "relation" {
+            let m = e.members ?? []
+            func node(_ role: String) -> Coord? {
+                m.first { $0.type == "node" && $0.role == role }.flatMap { n in n.lat.flatMap { lat in n.lon.map { Coord(lat, $0) } } }
+            }
+            data.circuits.append(.init(name: e.tags?["name"] ?? "",
+                                       lap: m.filter { $0.type == "way" && ($0.role ?? "").isEmpty }.map(\.ref),
+                                       pits: m.filter { $0.type == "way" && ["pit_lane", "pit", "pitlane"].contains($0.role ?? "") }.map(\.ref),
+                                       start: node("start"), finish: node("finish")))
+        }
+        return data
     }
 
     private static func candidate(_ e: Element) -> TrackCandidate? {
@@ -124,9 +154,9 @@ enum Overpass {
 }
 
 /// The main OpenStreetMap API: fast for a small box, used for a track layout when every Overpass
-/// server is busy. Only the raceway ways are kept from the answer.
+/// server is busy. Only the raceway ways and the circuit relations are kept from the answer.
 enum OSMMap {
-    static func raceways(in box: GeoBox) async throws -> [[Coord]] {
+    static func raceways(in box: GeoBox) async throws -> RacewayData {
         // The API refuses boxes over 0.25 square degrees; a circuit needs far less.
         guard box.area < 0.02 else { throw FinderError.busy }
         let url = URL(string: "https://api.openstreetmap.org/api/0.6/map?bbox=\(box.minLon),\(box.minLat),\(box.maxLon),\(box.maxLat)")!
@@ -138,22 +168,35 @@ enum OSMMap {
         let parser = XMLParser(data: data)
         parser.delegate = reader
         guard parser.parse() else { throw FinderError.busy }
-        return reader.ways
+        return reader.data
     }
 }
 
 private final class RacewayReader: NSObject, XMLParserDelegate {
     private var nodes: [Int64: Coord] = [:]
     private var refs: [Int64] = []
-    private var inWay = false
-    private var isRaceway = false
-    private var found: [[Int64]] = []
+    private var tags: [String: String] = [:]
+    private var members: [(type: String, ref: Int64, role: String)] = []
+    private var element = ""
+    private var elementID: Int64 = 0
+    private var found: [(id: Int64, refs: [Int64], tags: [String: String])] = []
+    private var relations: [(tags: [String: String], members: [(type: String, ref: Int64, role: String)])] = []
 
-    var ways: [[Coord]] {
-        found.compactMap { ids in
-            let pts = ids.compactMap { nodes[$0] }
-            return pts.count >= 2 ? pts : nil
+    var data: RacewayData {
+        var out = RacewayData()
+        for w in found {
+            let pts = w.refs.compactMap { nodes[$0] }
+            guard pts.count >= 2 else { continue }
+            out.ways.append(.init(id: w.id, nodes: pts.count == w.refs.count ? w.refs : [], coords: pts, tags: w.tags))
         }
+        for r in relations where r.tags["type"] == "circuit" {
+            func node(_ role: String) -> Coord? { r.members.first { $0.type == "node" && $0.role == role }.flatMap { nodes[$0.ref] } }
+            out.circuits.append(.init(name: r.tags["name"] ?? "",
+                                      lap: r.members.filter { $0.type == "way" && $0.role.isEmpty }.map(\.ref),
+                                      pits: r.members.filter { $0.type == "way" && ["pit_lane", "pit", "pitlane"].contains($0.role) }.map(\.ref),
+                                      start: node("start"), finish: node("finish")))
+        }
+        return out
     }
 
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?,
@@ -165,22 +208,28 @@ private final class RacewayReader: NSObject, XMLParserDelegate {
                let lon = attributeDict["lon"].flatMap({ Double($0) }) {
                 nodes[id] = Coord(lat, lon)
             }
-        case "way":
-            inWay = true
-            isRaceway = false
+        case "way", "relation":
+            element = elementName
+            elementID = attributeDict["id"].flatMap { Int64($0) } ?? 0
             refs = []
+            tags = [:]
+            members = []
         case "nd":
-            if inWay, let ref = attributeDict["ref"].flatMap({ Int64($0) }) { refs.append(ref) }
+            if element == "way", let ref = attributeDict["ref"].flatMap({ Int64($0) }) { refs.append(ref) }
+        case "member":
+            if element == "relation", let type = attributeDict["type"], let ref = attributeDict["ref"].flatMap({ Int64($0) }) {
+                members.append((type, ref, attributeDict["role"] ?? ""))
+            }
         case "tag":
-            if inWay, attributeDict["k"] == "highway", attributeDict["v"] == "raceway" { isRaceway = true }
+            if !element.isEmpty, let k = attributeDict["k"], let v = attributeDict["v"] { tags[k] = v }
         default:
             break
         }
     }
 
     func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
-        guard elementName == "way" else { return }
-        if isRaceway { found.append(refs) }
-        inWay = false
+        if elementName == "way", tags["highway"] == "raceway" { found.append((elementID, refs, tags)) }
+        if elementName == "relation" { relations.append((tags, members)) }
+        if elementName == "way" || elementName == "relation" { element = "" }
     }
 }
