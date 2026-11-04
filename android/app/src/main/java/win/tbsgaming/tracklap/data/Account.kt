@@ -17,9 +17,9 @@ import java.util.Locale
 class AccountStore(context: Context) {
     private val prefs = context.getSharedPreferences("account", Context.MODE_PRIVATE)
 
-    var name by mutableStateOf<String?>(null); private set
+    @set:JvmName("assignName") var name by mutableStateOf<String?>(null); private set
     /** Your public garage's code, once you have shown a car. */
-    var garage by mutableStateOf<String?>(null); private set
+    @set:JvmName("assignGarage") var garage by mutableStateOf<String?>(null); private set
     var token by mutableStateOf<String?>(null); private set
     val isSignedIn: Boolean get() = token != null && name != null
 
@@ -104,8 +104,8 @@ class AccountStore(context: Context) {
  */
 class DriverProfile(context: Context) {
     private val prefs = context.getSharedPreferences("tracklap", Context.MODE_PRIVATE)
-    var name by mutableStateOf(prefs.getString("driverName", "") ?: ""); private set
-    var vehicle by mutableStateOf(prefs.getString("driverVehicle", "") ?: ""); private set
+    @set:JvmName("assignName") var name by mutableStateOf(prefs.getString("driverName", "") ?: ""); private set
+    @set:JvmName("assignVehicle") var vehicle by mutableStateOf(prefs.getString("driverVehicle", "") ?: ""); private set
     /** Send the best lap of every session to the online leaderboard of its track. */
     var publishLaps by mutableStateOf(prefs.getBoolean("publishLaps", false)); private set
     val id: String = prefs.getString("driverID", null) ?: newID().also { prefs.edit().putString("driverID", it).apply() }

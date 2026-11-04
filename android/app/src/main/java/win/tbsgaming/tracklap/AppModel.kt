@@ -141,7 +141,7 @@ class AppModel(context: Context) {
     @set:JvmName("assignDragManualStart") var dragManualStart by mutableStateOf(true); private set
     @set:JvmName("assignIntroSeen") var introSeen by mutableStateOf(true); private set
     /** The friend's lap chased on the selected track. */
-    var challenge by mutableStateOf<FriendLap?>(null); private set
+    @set:JvmName("assignChallenge") var challenge by mutableStateOf<FriendLap?>(null); private set
     /** The car of your garage you are driving: sessions remember it, your laps on the leaderboards link to it. */
     @set:JvmName("assignActiveCarID") var activeCarID by mutableStateOf<String?>(null); private set
     /** The setup of the active car you drive with: sessions keep it as it was that day. */
