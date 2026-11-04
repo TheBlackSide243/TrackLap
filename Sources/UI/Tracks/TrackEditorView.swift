@@ -34,22 +34,11 @@ struct TrackEditorView: View {
             }
         }
         .navigationTitle(draft?.name ?? L("Pista"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button { newName = draft?.name ?? ""; renaming = true } label: { Label("Rinomina", systemImage: "pencil") }
-                    Button { Task { await autoPlace() } } label: { Label("Via e intermedi automatici", systemImage: "wand.and.stars") }
-                    Button { update { $0.sectors = []; $0.autoLines = nil } } label: { Label("Togli gli intermedi", systemImage: "minus.circle") }
-                    Button { update { $0.start = nil; $0.autoLines = nil } } label: { Label("Togli la linea del via", systemImage: "flag.slash") }
-                    Divider()
-                    Button(role: .destructive) { confirmDelete = true } label: { Label("Elimina pista", systemImage: "trash") }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
-        }
+        // The map's own buttons float over it, as in Maps: they are there on every screen, the closed
+        // iPhone Duo's included, where the system bar shows the title without its buttons.
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .safeAreaInset(edge: .top, spacing: 0) { header }
         .alert("Rinomina pista", isPresented: $renaming) {
             TextField("Nome", text: $newName)
             Button("Salva") {
@@ -65,6 +54,41 @@ struct TrackEditorView: View {
             }
         }
         .onAppear(perform: load)
+    }
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left").font(.system(size: 17, weight: .bold)).frame(width: 44, height: 44)
+            }
+            .buttonStyle(MapButtonStyle())
+            .accessibilityLabel(L("Indietro"))
+            Text(draft?.name ?? L("Pista"))
+                .font(.headline)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+                .environment(\.colorScheme, .dark)
+            Spacer(minLength: 0)
+            Menu {
+                Button { newName = draft?.name ?? ""; renaming = true } label: { Label("Rinomina", systemImage: "pencil") }
+                Button { Task { await autoPlace() } } label: { Label("Via e intermedi automatici", systemImage: "wand.and.stars") }
+                Button { update { $0.sectors = []; $0.autoLines = nil; $0.keepLinesInLayout() } } label: { Label("Togli gli intermedi", systemImage: "minus.circle") }
+                Button { update { $0.start = nil; $0.autoLines = nil } } label: { Label("Togli la linea del via", systemImage: "flag.slash") }
+                Divider()
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Elimina pista", systemImage: "trash") }
+            } label: {
+                Image(systemName: "ellipsis").font(.system(size: 17, weight: .bold)).frame(width: 44, height: 44)
+            }
+            .buttonStyle(MapButtonStyle())
+            .accessibilityLabel(L("Altro"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
     }
 
     private func editor(_ t: Track) -> some View {
@@ -120,6 +144,12 @@ struct TrackEditorView: View {
 
     private func controls(_ t: Track) -> some View {
         VStack(spacing: 12) {
+            if t.outline.isEmpty && !t.isDemo {
+                Button { Task { await autoPlace() } } label: {
+                    Label("Scarica il tracciato", systemImage: "arrow.down.circle.fill")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+            }
             if let source = t.autoLines { autoNote(source) }
             if let layouts = t.layouts, layouts.count > 1 { layoutMenu(t, layouts) }
             Text(hint ?? defaultHint(t))
@@ -149,6 +179,7 @@ struct TrackEditorView: View {
                                 update {
                                     $0.sectors.remove(at: i)
                                     $0.autoLines = nil
+                                    $0.keepLinesInLayout()
                                 }
                             } label: {
                                 Label("I\(i + 1)", systemImage: "xmark.circle.fill")
@@ -208,24 +239,24 @@ struct TrackEditorView: View {
 
     /// The layouts OpenStreetMap has for this venue: picking one puts its lines in place.
     private func layoutMenu(_ t: Track, _ layouts: [TrackLayout]) -> some View {
-        let current = layouts.first { $0.start == t.start } ?? layouts[0]
+        let index = layouts.firstIndex { $0.key == t.activeLayout } ?? 0
         return Menu {
-            ForEach(Array(layouts.enumerated()), id: \.offset) { _, l in
+            ForEach(Array(layouts.enumerated()), id: \.offset) { i, l in
                 Button {
-                    update {
-                        $0.start = l.start
-                        $0.sectors = l.sectors
-                        $0.autoLines = l.source
-                    }
+                    update { $0.use(l) }
                     width = max(8, min(60, l.start.width.rounded()))
                 } label: {
-                    Text(verbatim: layoutTitle(l))
+                    if i == index {
+                        Label(l.title(i), systemImage: "checkmark")
+                    } else {
+                        Text(verbatim: l.title(i))
+                    }
                 }
             }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "point.topleft.down.to.point.bottomright.curvepath").foregroundStyle(Theme.accent)
-                Text(verbatim: layoutTitle(current)).lineLimit(1)
+                Text(verbatim: layouts[index].title(index)).lineLimit(1)
                 Spacer(minLength: 0)
                 Text("Tracciato").foregroundStyle(Theme.sub)
                 Image(systemName: "chevron.up.chevron.down").font(.caption2.weight(.bold)).foregroundStyle(Theme.sub)
@@ -236,10 +267,6 @@ struct TrackEditorView: View {
             .padding(.vertical, 9)
             .background(Theme.panel.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-    }
-
-    private func layoutTitle(_ l: TrackLayout) -> String {
-        (l.name.isEmpty ? L("Giro completo") : l.name) + " · " + Fmt.distance(l.length)
     }
 
     /// The raceways downloaded again and the lines put where they most likely go.
@@ -255,7 +282,10 @@ struct TrackEditorView: View {
         } else {
             box = GeoBox(around: t.center, meters: 1500)
         }
-        let data = await TrackFinder.raceways(in: box)
+        guard let data = await TrackFinder.raceways(in: box) else {
+            hint = L("OpenStreetMap non risponde in questo momento: riprova tra poco.")
+            return
+        }
         let w = width
         // The search for the lap can take a moment on a big venue: away from the main thread.
         let found = await Task.detached(priority: .userInitiated) { AutoLines.layouts(data, width: w) }.value
@@ -308,6 +338,7 @@ struct TrackEditorView: View {
         update { track in
             track.start = track.start?.resized(w)
             track.sectors = track.sectors.map { gate in gate.resized(w) }
+            track.keepLinesInLayout()
         }
     }
 
@@ -333,6 +364,7 @@ struct TrackEditorView: View {
             update {
                 $0.start = gate
                 $0.autoLines = nil
+                $0.keepLinesInLayout()
             }
             hint = L("Linea del via messa. Ora aggiungi gli intermedi, se vuoi.")
             tool = .sector
@@ -344,6 +376,7 @@ struct TrackEditorView: View {
             update {
                 $0.sectors.append(gate)
                 $0.autoLines = nil
+                $0.keepLinesInLayout()
             }
             hint = nil
         }
@@ -393,5 +426,18 @@ private struct GateBadge: View {
         .background(color, in: Capsule())
         .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
         .padding(.bottom, 6)
+    }
+}
+
+/// A round glass button floating over the map.
+struct MapButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+            .environment(\.colorScheme, .dark)
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }

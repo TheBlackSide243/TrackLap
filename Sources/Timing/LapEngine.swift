@@ -114,6 +114,34 @@ final class LapEngine {
         reset()
     }
 
+    /// Another layout of the same track, found from the lap just driven: its lines from now on, its
+    /// record to beat, and the laps of this session on it. When the start line moves too, the timer
+    /// waits for the new line before the next lap.
+    func switchLayout(start: GateLine, sectors: [GateLine], record: Lap?, laps keep: [Lap]) {
+        guard var t = track else { return }
+        let moved = t.start.map { Geo.distance($0.mid, start.mid) > 15 } ?? true
+        t.start = start
+        t.sectors = sectors
+        track = t
+        let f = LocalFrame(origin: start.mid)
+        frame = f
+        startGate = (a: f.xy(start.a), b: f.xy(start.b))
+        splitGates = sectors.map { (a: f.xy($0.a), b: f.xy($0.b)) }
+        if let p = prev { prev = (p.s, f.xy(p.s.coord)) }
+        self.record = record
+        laps = keep
+        splits = [:]
+        if moved {
+            lapStartT = nil
+            lapStartWall = nil
+            trace = []
+            lapDistance = 0
+            delta = nil
+            predicted = nil
+        }
+        self.sectors = makeSectors(carry: [])
+    }
+
     /// Sets the track record after the track is loaded; it lasts until another track is loaded.
     func setRecord(_ lap: Lap?) {
         record = lap

@@ -2,6 +2,57 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.8.2 (2026-11-04)
+
+Every layout of a track, and TrackLap follows the one you drive. / Tutti i tracciati di una pista, e
+TrackLap segue quello su cui giri.
+
+### English
+
+**New**
+- **Every layout of a track**: besides the circuits OpenStreetMap maps, TrackLap finds the other
+  laps the track allows, up to four, the most different first. Monza gets the full circuit, the
+  Junior and the motorcycle chicane; Spa its motorcycle layout; the Red Bull Ring the Südschleife.
+- **The layout follows where you drive**: after every lap TrackLap compares it with each layout.
+  On another one it takes that layout's lines, files the next laps in a session of their own, and
+  compares with that layout's laps and record only. Layouts too alike to tell apart (Monza's two
+  chicanes) stay as chosen in the editor. Live shows the layout in use.
+- Sessions show their layout, and the analysis compares laps of the same layout only.
+- Lines moved by hand stay with their layout.
+
+**Fixed**
+- **Track editor**: the back button and the menu float over the map. On the closed iPhone Duo the
+  system bar showed the title without them.
+- **Downloading a track**: a busy OpenStreetMap server takes longer than before, so TrackLap now
+  waits longer. A track saved while it did not answer shows **Download the layout**.
+
+**Firmware 0.8.2**
+- Same as 0.7.0, only the version number changes.
+
+### Italiano
+
+**Novità**
+- **Tutti i tracciati di una pista**: oltre ai circuiti segnati su OpenStreetMap, TrackLap trova gli
+  altri giri che la pista permette, fino a quattro, prima i più diversi. Monza ha il circuito
+  completo, il Junior e la chicane delle moto; Spa il tracciato moto; il Red Bull Ring la
+  Südschleife.
+- **Il tracciato segue dove giri**: dopo ogni giro TrackLap lo confronta con ogni tracciato. Su un
+  altro prende le sue linee, mette i giri seguenti in una sessione a parte e confronta solo con i
+  giri e il record di quel tracciato. I tracciati troppo simili per distinguerli (le due chicane di
+  Monza) restano come scelto nell'editor. Live mostra il tracciato in uso.
+- Le sessioni mostrano il loro tracciato, e l'analisi confronta solo giri dello stesso tracciato.
+- Le linee spostate a mano restano con il loro tracciato.
+
+**Corretto**
+- **Editor della pista**: la freccia indietro e il menu stanno sopra la mappa. Sull'iPhone Duo
+  chiuso la barra di sistema mostrava il titolo senza di loro.
+- **Download della pista**: un server di OpenStreetMap occupato ci mette più di prima, quindi
+  TrackLap ora aspetta di più. Una pista salvata mentre non rispondeva mostra **Scarica il
+  tracciato**.
+
+**Firmware 0.8.2**
+- Uguale alla 0.7.0, cambia solo il numero di versione.
+
 ## 0.8.1 (2026-11-04)
 
 The car of every drag run, and tracks that come with the start line and the sectors. / L'auto di

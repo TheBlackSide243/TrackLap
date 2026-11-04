@@ -515,3 +515,6 @@
 "Tracciato" = "Layout";
 "Giro completo" = "Full lap";
 "Su OpenStreetMap non trovo un giro chiuso qui: metti il via toccando la mappa." = "OpenStreetMap has no closed lap here: place the start by tapping the map.";
+"Variante %lld" = "Variant %lld";
+"Indietro" = "Back";
+"Scarica il tracciato" = "Download the layout";

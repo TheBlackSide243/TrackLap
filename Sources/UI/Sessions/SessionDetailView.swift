@@ -84,7 +84,9 @@ struct SessionDetailView: View {
             selectedLapID = s.best?.id
         }
         if !othersLoaded {
-            others = model.sessions.bestLaps(on: s.trackID, excluding: s.id)
+            // Laps to compare with: the same layout of the track only.
+            let main = model.tracks.track(s.trackID)?.layouts?.first?.key
+            others = model.sessions.bestLaps(on: s.trackID, layout: s.layout, main: s.layout == nil || s.layout == main, excluding: s.id)
             friendLaps = model.friends.laps(on: s.trackID).compactMap { f in model.friends.lap(f.id).map { FriendRef(info: f, lap: $0) } }
             othersLoaded = true
         }

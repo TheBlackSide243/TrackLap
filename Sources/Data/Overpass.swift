@@ -97,13 +97,13 @@ enum Overpass {
     /// pit lane and finish node).
     static func raceways(in box: GeoBox) async throws -> RacewayData {
         let query = """
-        [out:json][timeout:25];
+        [out:json][timeout:50];
         way["highway"="raceway"](\(box.minLat),\(box.minLon),\(box.maxLat),\(box.maxLon))->.w;
         rel(bw.w)["type"="circuit"]->.r;
         (.w;.r;);
         out geom;
         """
-        let elements = try await run(query, timeout: 30)
+        let elements = try await run(query, timeout: 60)
         var data = RacewayData()
         for e in elements where e.type == "way" {
             let pts = (e.geometry ?? []).compactMap { $0.map { Coord($0.lat, $0.lon) } }
@@ -160,7 +160,7 @@ enum OSMMap {
         // The API refuses boxes over 0.25 square degrees; a circuit needs far less.
         guard box.area < 0.02 else { throw FinderError.busy }
         let url = URL(string: "https://api.openstreetmap.org/api/0.6/map?bbox=\(box.minLon),\(box.minLat),\(box.maxLon),\(box.maxLat)")!
-        var req = URLRequest(url: url, timeoutInterval: 25)
+        var req = URLRequest(url: url, timeoutInterval: 60)
         req.setValue(Net.userAgent, forHTTPHeaderField: "User-Agent")
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw FinderError.busy }

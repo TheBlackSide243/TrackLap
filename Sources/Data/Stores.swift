@@ -98,15 +98,24 @@ final class SessionStore {
     }
 
     /// The best lap of the fastest sessions on a track, fastest first.
-    func bestLaps(on track: UUID?, excluding: UUID? = nil, limit: Int = 12) -> [SessionLap] {
-        sessions(on: track, excluding: excluding).prefix(limit).compactMap { s in
+    /// With a layout, only its sessions; those from before layouts existed count for the main one.
+    func bestLaps(on track: UUID?, layout: String? = nil, main: Bool = true, excluding: UUID? = nil, limit: Int = 12) -> [SessionLap] {
+        sessions(on: track, excluding: excluding)
+            .filter { s in layout == nil || s.layout == layout || (main && s.layout == nil) }
+            .prefix(limit).compactMap { s in
             load(s.id)?.best.map { SessionLap(lap: $0, session: s) }
         }
     }
 
     /// The fastest lap ever driven on a track.
-    func record(on track: UUID?, excluding: UUID? = nil) -> SessionLap? {
-        bestLaps(on: track, excluding: excluding, limit: 1).first
+    func record(on track: UUID?, layout: String? = nil, main: Bool = true, excluding: UUID? = nil) -> SessionLap? {
+        bestLaps(on: track, layout: layout, main: main, excluding: excluding, limit: 1).first
+    }
+
+    /// The record of the layout in use on a track.
+    func record(on track: Track?) -> SessionLap? {
+        guard let track else { return nil }
+        return record(on: track.id, layout: track.layout?.key, main: track.layout?.key == track.layouts?.first?.key)
     }
 
     private func sessions(on track: UUID?, excluding: UUID?) -> [SessionSummary] {

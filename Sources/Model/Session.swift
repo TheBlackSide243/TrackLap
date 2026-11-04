@@ -33,6 +33,8 @@ struct Session: Codable, Identifiable {
     /// The car of your garage driven in this session (added in 0.8.0).
     var carID: UUID? = nil
     var carName: String? = nil
+    /// The layout of the track it was driven on (TrackLayout.key, 0.8.2).
+    var layout: String? = nil
 
     var best: Lap? { laps.min { $0.time < $1.time } }
 
@@ -55,7 +57,8 @@ struct Session: Codable, Identifiable {
 
     var summary: SessionSummary {
         SessionSummary(id: id, trackID: trackID, trackName: trackName, date: date, source: source,
-                       lapCount: laps.count, best: best?.time, ideal: idealTime, carID: carID, carName: carName)
+                       lapCount: laps.count, best: best?.time, ideal: idealTime, carID: carID, carName: carName,
+                       layout: layout)
     }
 }
 
@@ -72,6 +75,13 @@ struct SessionSummary: Codable, Identifiable, Hashable {
     var ideal: Double?
     var carID: UUID? = nil
     var carName: String? = nil
+    var layout: String? = nil
+
+    /// The layout's name, when it has one.
+    var layoutName: String? {
+        guard let layout, let name = layout.split(separator: "|", omittingEmptySubsequences: false).first, !name.isEmpty else { return nil }
+        return String(name)
+    }
 }
 
 extension Array where Element == TracePoint {
