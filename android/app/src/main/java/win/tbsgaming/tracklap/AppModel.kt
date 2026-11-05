@@ -23,6 +23,7 @@ import win.tbsgaming.tracklap.data.Files
 import win.tbsgaming.tracklap.data.FriendLap
 import win.tbsgaming.tracklap.data.FriendLapStore
 import win.tbsgaming.tracklap.data.FriendStore
+import win.tbsgaming.tracklap.data.Push
 import win.tbsgaming.tracklap.data.GarageLink
 import win.tbsgaming.tracklap.data.GarageStore
 import win.tbsgaming.tracklap.data.LayoutMatch
@@ -201,6 +202,7 @@ class AppModel(context: Context) {
         garage.account = account
         friendList.account = account
         account.onChange = { accountChanged() }
+        Push.sync(app, account)
         engine.minLapTime = minLapTime
         prepareEngine(selectedTrack)
 
@@ -423,6 +425,11 @@ class AppModel(context: Context) {
     fun openLink(uri: Uri): Boolean {
         GarageLink.parse(uri)?.let {
             shownGarage = it
+            return true
+        }
+        if (uri.scheme == "tracklap" && uri.host == "friends") {
+            tab = AppTab.friends
+            scope.launch { friendList.refresh() }
             return true
         }
         if (uri.scheme == "tracklap" && uri.host == "friend") {
@@ -648,6 +655,14 @@ class AppModel(context: Context) {
         }
         garage.accountChanged()
         friendList.accountChanged()
+        Push.sync(app, account)
+    }
+
+    /** Notifications are asked for once, the first time Friends opens signed in. */
+    fun shouldAskNotifications(): Boolean {
+        if (Push.canNotify(app) || prefs.getBoolean("askedNotifications", false)) return false
+        prefs.edit().putBoolean("askedNotifications", true).apply()
+        return true
     }
 
     // Settings

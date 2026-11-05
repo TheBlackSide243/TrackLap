@@ -118,6 +118,10 @@ class Permissions(private val ask: (Array<String>) -> Unit) {
         if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
         else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
     )
+    /** A friend who accepted your invitation: from Android 13 notifications need asking. */
+    fun notifications() {
+        if (Build.VERSION.SDK_INT >= 33) ask(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+    }
 }
 
 class MainActivity : ComponentActivity() {

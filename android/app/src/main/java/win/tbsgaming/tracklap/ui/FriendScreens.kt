@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 import win.tbsgaming.tracklap.AppTab
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.LocalNav
+import win.tbsgaming.tracklap.LocalPermissions
 import win.tbsgaming.tracklap.data.FriendStore
 import win.tbsgaming.tracklap.data.Server
 import win.tbsgaming.tracklap.data.ServerFailure
@@ -75,8 +76,12 @@ fun FriendsScreen() {
     val scope = rememberCoroutineScope()
     val store = m.friendList
     var removing by remember { mutableStateOf<Friend?>(null) }
-    // Asked again every time the tab opens.
-    LaunchedEffect(m.account.name) { store.refresh() }
+    val permissions = LocalPermissions.current
+    // Asked again every time the tab opens; here is where a friend accepting your invitation matters.
+    LaunchedEffect(m.account.name) {
+        if (m.account.isSignedIn && m.shouldAskNotifications()) permissions.notifications()
+        store.refresh()
+    }
     val n = store.friends.size
     val subtitle = when {
         !m.account.isSignedIn -> L("Garage e tempi dei tuoi amici")

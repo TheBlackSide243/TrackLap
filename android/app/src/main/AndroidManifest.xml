@@ -13,6 +13,8 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- A friend who accepted your invitation; asked the first time Friends opens signed in. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
@@ -38,7 +40,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- tracklap://join/<code> from a group's QR code, tracklap://garage/<code> from a garage page,
-                 tracklap://friend/<code> from a friend invitation. -->
+                 tracklap://friend/<code> from a friend invitation, tracklap://friends from a notification. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -61,6 +63,15 @@
                 <data android:mimeType="application/json" />
             </intent-filter>
         </activity>
+
+        <!-- Firebase Cloud Messaging: the notifications and this phone's token. -->
+        <service
+            android:name=".data.PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

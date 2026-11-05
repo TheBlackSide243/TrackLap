@@ -7,6 +7,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// Push notifications through Firebase: with the project's google-services.json here, the build is
+// tied to it; without, the app has no notifications and builds the same.
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+
 // The version follows the iPhone app's (project.yml): app and firmware share one number.
 val appVersion: String = Regex("MARKETING_VERSION: \"([^\"]+)\"")
     .find(rootProject.file("../project.yml").readText())?.groupValues?.get(1) ?: "0.0.0"
@@ -77,6 +81,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-messaging")
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.zxing:core:3.5.3")

@@ -263,6 +263,11 @@ object Server {
         send<Unit>("v1/friends/$id", "DELETE", null, token = token) { if (it == 404) ServerFailure.Kind.notFriend else null }
     }
 
+    /** This phone's token from Google, so a friend accepting your invitation reaches it; tied to the session, signing out stops it. */
+    suspend fun addDevice(device: String, platform: String, token: String) {
+        send<Unit>("v1/me/push", "PUT", null, buildJsonObject { put("token", device); put("platform", platform) }, token)
+    }
+
     // Plumbing
 
     private suspend fun <T> send(
