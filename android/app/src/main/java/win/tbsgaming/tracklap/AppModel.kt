@@ -116,7 +116,7 @@ class AppModel(context: Context) {
     val account: AccountStore
     val garage: GarageStore
     /** The drivers you are friends with on TrackLap (the friends' laps above are files they sent). */
-    val friendList = FriendStore()
+    val friendList: FriendStore
     val profile: DriverProfile
     val group: GroupSession
     val engine = LapEngine()
@@ -179,6 +179,8 @@ class AppModel(context: Context) {
         sessions = SessionStore()
         drags = DragStore()
         friends = FriendLapStore()
+        // After Files.init: the list reads its cache from the app's files.
+        friendList = FriendStore()
         account = AccountStore(app)
         garage = GarageStore(app)
         profile = DriverProfile(app)
