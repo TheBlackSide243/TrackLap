@@ -55,14 +55,14 @@ float stillFor = 0;
 
 const float kNeeded = 0.4f;  // weight of evidence before forward counts (about 40 fixes at 0.1 g)
 
-bool write(uint8_t reg, uint8_t value) {
+bool writeReg(uint8_t reg, uint8_t value) {
   Wire.beginTransmission(address);
   Wire.write(reg);
   Wire.write(value);
   return Wire.endTransmission() == 0;
 }
 
-bool read(uint8_t reg, uint8_t* out, uint8_t n) {
+bool readRegs(uint8_t reg, uint8_t* out, uint8_t n) {
   Wire.beginTransmission(address);
   Wire.write(reg);
   if (Wire.endTransmission(false) != 0) return false;
@@ -120,16 +120,16 @@ bool Imu::begin() {
   for (uint8_t a : {0x6B, 0x6A}) {
     address = a;
     uint8_t id = 0;
-    if (read(kWhoAmI, &id, 1) && id == 0x05) break;
+    if (readRegs(kWhoAmI, &id, 1) && id == 0x05) break;
     address = 0;
   }
   if (!address) return false;
-  write(kReset, 0xB0);
+  writeReg(kReset, 0xB0);
   delay(20);
-  write(kCtrl1, 0x40);
-  write(kCtrl2, 0x25);  // ±8 g, 250 Hz
-  write(kCtrl5, 0x01);  // the accelerometer's low-pass filter on
-  write(kCtrl7, 0x01);  // the accelerometer only
+  writeReg(kCtrl1, 0x40);
+  writeReg(kCtrl2, 0x25);  // ±8 g, 250 Hz
+  writeReg(kCtrl5, 0x01);  // the accelerometer's low-pass filter on
+  writeReg(kCtrl7, 0x01);  // the accelerometer only
   load();
   return true;
 }
@@ -142,7 +142,7 @@ void Imu::poll() {
   if (now - lastRead < 5) return;
   lastRead = now;
   uint8_t b[6];
-  if (!read(kAccelX, b, sizeof b)) return;
+  if (!readRegs(kAccelX, b, sizeof b)) return;
   Vec a = {(int16_t)(b[0] | b[1] << 8) / kPerG, (int16_t)(b[2] | b[3] << 8) / kPerG, (int16_t)(b[4] | b[5] << 8) / kPerG};
   sum = sum + a;
   if (count < 60000) count++;
