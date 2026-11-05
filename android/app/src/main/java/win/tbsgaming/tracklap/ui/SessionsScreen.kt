@@ -446,7 +446,7 @@ private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?) {
     }
 }
 
-/** The friction circle from the GPS: every point of the lap, with the strongest of each kind. */
+/** The friction circle: every point of the lap, with the strongest of each kind. */
 @Composable
 private fun GGDiagram(lap: Lap) {
     val g = remember(lap.id) { GForce.along(lap.trace) }
@@ -477,7 +477,9 @@ private fun GGDiagram(lap: Lap) {
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text(L("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative."), fontSize = 12.sp, color = Theme.sub)
+        val note = if (GForce.measured(lap.trace)) L("Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.")
+        else L("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative.")
+        Text(note, fontSize = 12.sp, color = Theme.sub)
     }
 }
 

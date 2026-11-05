@@ -22,6 +22,8 @@ struct DeviceInfo: Decodable {
     var rx: Int? = nil
     var tx: Int? = nil
     var name: String? = nil
+    /// The board's accelerometer ("QMI8658"), empty or nil without one.
+    var imu: String? = nil
 }
 
 struct FoundDevice: Identifiable {
@@ -43,10 +45,13 @@ enum BLEPacket {
         var speed: Double
         var heading: Double
         var alt: Double? = nil
+        /// From the board's accelerometer, in g: lateral (+ right) and longitudinal (+ accelerating).
+        var g: GPoint? = nil
     }
 
     /// 20 bytes: version, flags, sats, rate Hz, iTOW ms (u32), lat/lon 1e-7° (i32), speed cm/s (u16), heading 0.01° (u16);
-    /// from firmware 0.7.0 then the altitude above sea level in mm (i32, INT32_MIN for none).
+    /// from firmware 0.7.0 then the altitude above sea level in mm (i32, INT32_MIN for none); from 0.9.2
+    /// the accelerometer's lateral and longitudinal g in milli-g (i16 each, INT16_MIN for none).
     static func fix(_ data: Data) -> Fix? {
         guard data.count >= 20 else { return nil }
         let b = [UInt8](data)
@@ -66,7 +71,16 @@ enum BLEPacket {
                    lon: Double(Int32(bitPattern: u32(12))) * 1e-7,
                    speed: Double(u16(16)) / 100,
                    heading: Double(u16(18)) / 100,
-                   alt: b.count >= 24 && Int32(bitPattern: u32(20)) != Int32.min ? Double(Int32(bitPattern: u32(20))) / 1000 : nil)
+                   alt: b.count >= 24 && Int32(bitPattern: u32(20)) != Int32.min ? Double(Int32(bitPattern: u32(20))) / 1000 : nil,
+                   g: g(b))
+    }
+
+    private static func g(_ b: [UInt8]) -> GPoint? {
+        guard b.count >= 28 else { return nil }
+        let lateral = Int16(bitPattern: UInt16(b[24]) | UInt16(b[25]) << 8)
+        let longitudinal = Int16(bitPattern: UInt16(b[26]) | UInt16(b[27]) << 8)
+        guard lateral != Int16.min, longitudinal != Int16.min else { return nil }
+        return GPoint(lateral: Double(lateral) / 1000, longitudinal: Double(longitudinal) / 1000)
     }
 
     /// The fix's UTC time: iTOW counts from the start of the GPS week, GPS time runs 18 s ahead of
@@ -395,7 +409,7 @@ final class BLEManager: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if let last = lastITOW, fix.itow < last - 302_400 { weekOffset += 604_800 }
         lastITOW = fix.itow
         onSample?(Sample(t: weekOffset + fix.itow, coord: Coord(fix.lat, fix.lon), speed: fix.speed, heading: fix.heading,
-                         utc: BLEPacket.utc(itow: fix.itow), alt: fix.alt))
+                         utc: BLEPacket.utc(itow: fix.itow), alt: fix.alt, g: fix.g))
     }
 
     /// version, kind (1 = lap), lap number (u16), time ms (u32): the lap as timed by the ESP32 itself.

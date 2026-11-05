@@ -1,7 +1,10 @@
 package win.tbsgaming.tracklap.model
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class TracePoint(
     /** Seconds since the start of the lap. */
@@ -12,6 +15,13 @@ data class TracePoint(
     val lon: Double,
     /** Speed in m/s. */
     val v: Double,
+    /**
+     * g measured by the board's accelerometer (ESP32 with one, firmware 0.9.2): lateral, + turning
+     * right, and longitudinal, + accelerating. Null from the GPS alone, and then left out of the file,
+     * like the iPhone app does.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val glat: Double? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val glon: Double? = null,
 )
 
 @Serializable
@@ -129,7 +139,9 @@ fun List<TracePoint>.timeAtDistance(d: Double): Double {
 /** Time, position and speed at a distance along the lap. */
 fun List<TracePoint>.pointAtDistance(d: Double): TracePoint? {
     val (a, b, f) = bracket(d) ?: return null
-    return TracePoint(a.t + (b.t - a.t) * f, d, a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f, a.v + (b.v - a.v) * f)
+    fun mix(x: Double?, y: Double?) = if (x != null && y != null) x + (y - x) * f else null
+    return TracePoint(a.t + (b.t - a.t) * f, d, a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f, a.v + (b.v - a.v) * f,
+        mix(a.glat, b.glat), mix(a.glon, b.glon))
 }
 
 /** Index of the last point at or before a distance. */

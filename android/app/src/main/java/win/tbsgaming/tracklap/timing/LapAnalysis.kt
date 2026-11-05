@@ -14,12 +14,26 @@ data class GPoint(val lateral: Double = 0.0, val longitudinal: Double = 0.0) {
 }
 
 object GForce {
-    /**
-     * One value per trace point, from the GPS alone so it works with every source: the turn rate
-     * times the speed for the lateral, the change of speed for the longitudinal, each over about
-     * half a second around the point. Points it cannot work out are zero.
-     */
+    /** One value per trace point: measured by the board's accelerometer where it has one, else from the GPS. */
     fun along(trace: List<TracePoint>): List<GPoint> {
+        val out = fromGps(trace).toMutableList()
+        for ((i, p) in trace.withIndex()) {
+            val lateral = p.glat
+            val longitudinal = p.glon
+            if (lateral != null && longitudinal != null) out[i] = GPoint(clamp(lateral), clamp(longitudinal))
+        }
+        return out
+    }
+
+    /** Most of the lap measured by the accelerometer. */
+    fun measured(trace: List<TracePoint>): Boolean = trace.count { it.glat != null } * 2 > trace.size
+
+    /**
+     * From the GPS alone, so it works with every source: the turn rate times the speed for the
+     * lateral, the change of speed for the longitudinal, each over about half a second around the
+     * point. Points it cannot work out are zero.
+     */
+    private fun fromGps(trace: List<TracePoint>): List<GPoint> {
         val n = trace.size
         val out = MutableList(n) { GPoint() }
         if (n <= 4) return out

@@ -200,7 +200,7 @@ struct SessionDetailView: View {
 
             SectionLabel(L("Accelerazioni"))
             Panel {
-                GGDiagram(g: a.g, ref: a.refG)
+                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace))
             }
 
             SectionLabel(L("Giri"))
@@ -784,6 +784,8 @@ private struct SectorCompare: View {
 private struct GGDiagram: View {
     let g: [GPoint]
     let ref: [GPoint]
+    /// From the board's accelerometer rather than the GPS.
+    var measured = false
 
     var body: some View {
         let lateral = g.map { abs($0.lateral) }.max() ?? 0
@@ -834,7 +836,8 @@ private struct GGDiagram: View {
             .overlay(alignment: .bottom) { axisLabel(L("Frenata")) }
             .overlay(alignment: .leading) { axisLabel(L("Sinistra")) }
             .overlay(alignment: .trailing) { axisLabel(L("Destra")) }
-            Text("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative.")
+            Text(measured ? L("Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.")
+                 : L("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative."))
                 .font(.caption)
                 .foregroundStyle(Theme.sub)
         }

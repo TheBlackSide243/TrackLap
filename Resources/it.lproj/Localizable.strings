@@ -675,3 +675,5 @@
 "Accetta" = "Accetta";
 "Nuovo amico" = "Nuovo amico";
 "%@ ha accettato il tuo invito: ora siete amici." = "%@ ha accettato il tuo invito: ora siete amici.";
+"Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS." = "Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.";
+"Accelerometro: %@" = "Accelerometro: %@";

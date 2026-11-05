@@ -174,6 +174,9 @@ private struct DeviceDetails: View {
                     Text("Modulo GPS: \(gps)").font(.caption).foregroundStyle(Theme.sub)
                 }
             }
+            if let imu = info.imu, !imu.isEmpty {
+                Text("Accelerometro: \(imu)").font(.caption).foregroundStyle(Theme.sub)
+            }
             if let rx = info.rx, let tx = info.tx {
                 Button(action: onPins) {
                     HStack(spacing: 12) {

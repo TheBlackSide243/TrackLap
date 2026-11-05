@@ -17,6 +17,8 @@ struct Sample {
     var utc: Double? = nil
     /// Metres above sea level, when the source gives it: the slope of a drag run.
     var alt: Double? = nil
+    /// Measured by the board's accelerometer, when it has one.
+    var g: GPoint? = nil
 }
 
 enum SectorState { case best, faster, slower }
@@ -195,16 +197,16 @@ final class LapEngine {
             if lapStartT != nil {
                 checkSplits(from: p, to: (s, xy), until: u, dt: dt, step: step)
                 lapDistance += step * u
-                appendPoint(t: tc, coord: crossing, v: s.speed)
+                appendPoint(t: tc, coord: crossing, v: s.speed, g: s.g)
                 finishLap(at: tc)
             }
-            beginLap(at: tc, wall: s.wall.addingTimeInterval(tc - s.t), coord: crossing, v: s.speed)
+            beginLap(at: tc, wall: s.wall.addingTimeInterval(tc - s.t), coord: crossing, v: s.speed, g: s.g)
             lapDistance = step * (1 - u)
-            appendPoint(t: s.t, coord: s.coord, v: s.speed)
+            appendPoint(t: s.t, coord: s.coord, v: s.speed, g: s.g)
         } else if lapStartT != nil {
             checkSplits(from: p, to: (s, xy), until: 1, dt: dt, step: step)
             lapDistance += step
-            appendPoint(t: s.t, coord: s.coord, v: s.speed)
+            appendPoint(t: s.t, coord: s.coord, v: s.speed, g: s.g)
         }
         updateDelta(now: s.t)
     }
@@ -217,7 +219,7 @@ final class LapEngine {
         return elapsed >= minLapTime && distance >= 200
     }
 
-    private func beginLap(at t: Double, wall: Date, coord: Coord, v: Double) {
+    private func beginLap(at t: Double, wall: Date, coord: Coord, v: Double, g: GPoint?) {
         lapNumber += 1
         lapStartT = t
         lapStartWall = wall
@@ -226,7 +228,7 @@ final class LapEngine {
         splits = [:]
         maxSpeed = 0
         sectors = makeSectors(carry: sectors)
-        appendPoint(t: t, coord: coord, v: v)
+        appendPoint(t: t, coord: coord, v: v, g: g)
     }
 
     private func finishLap(at tc: Double) {
@@ -254,10 +256,11 @@ final class LapEngine {
         onLap?(lap)
     }
 
-    private func appendPoint(t: Double, coord: Coord, v: Double) {
+    private func appendPoint(t: Double, coord: Coord, v: Double, g: GPoint?) {
         guard let t0 = lapStartT else { return }
         maxSpeed = max(maxSpeed, v)
-        trace.append(TracePoint(t: t - t0, d: lapDistance, lat: coord.lat, lon: coord.lon, v: v))
+        trace.append(TracePoint(t: t - t0, d: lapDistance, lat: coord.lat, lon: coord.lon, v: v,
+                                glat: g?.lateral, glon: g?.longitudinal))
     }
 
     // MARK: - Sectors
