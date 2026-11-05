@@ -113,9 +113,11 @@ bool Ble::connected() { return server && server->getConnectedCount() > 0; }
 
 // 24 bytes: version, flags, satellites, rate Hz, iTOW ms, latitude, longitude, speed cm/s, heading
 // 0.01°, altitude mm. The first 20 are version 1's: with the smallest MTU only they get through.
-void Ble::sendFix(const Fix& f, uint8_t rate) {
+// 28 bytes, see README: the first 20 fit the minimum MTU; then the altitude, then the accelerometer's
+// lateral and longitudinal g.
+void Ble::sendFix(const Fix& f, uint8_t rate, int16_t lateral, int16_t longitudinal) {
   if (!connected()) return;
-  uint8_t p[24];
+  uint8_t p[28];
   p[0] = 2;
   p[1] = (f.valid ? 1 : 0) | (f.fix3d ? 2 : 0);
   p[2] = f.sats;
@@ -126,6 +128,8 @@ void Ble::sendFix(const Fix& f, uint8_t rate) {
   put16(p + 16, f.speed > 65535 ? 65535 : f.speed);
   put16(p + 18, f.heading % 36000);
   put32(p + 20, (uint32_t)f.alt);
+  put16(p + 24, (uint16_t)lateral);
+  put16(p + 26, (uint16_t)longitudinal);
   fixChr->setValue(p, sizeof p);
   fixChr->notify();
 }

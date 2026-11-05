@@ -1,7 +1,8 @@
 // TrackLap firmware: reads a GPS module and sends every fix to the TrackLap app over Bluetooth LE
 // (protocol v1, see README), and times laps itself on the track the app sends, with the delta
 // against the best lap at every line. Runs on every ESP32 with Bluetooth LE: ESP32, ESP32-S3, C3,
-// C5, C6 and H2; on the Waveshare ESP32-C6-LCD-1.47 it also drives the screen as a dashboard.
+// C5, C6 and H2; on the Waveshare ESP32-C6-LCD-1.47 and its Touch version it also drives the screen
+// as a dashboard, and on the Touch version it sends the g-forces of its accelerometer.
 //
 // USB serial at 115200: "pins <rx> <tx>" moves the GPS to other pins, "pins default" puts them
 // back, "info" prints the state.
@@ -13,9 +14,10 @@
 #include "Ble.h"
 #include "Display.h"
 #include "Gps.h"
+#include "Imu.h"
 #include "Laps.h"
 
-#define FW_VERSION "0.9.1"
+#define FW_VERSION "0.9.2"
 
 static Preferences prefs;
 static Gps gps;
@@ -49,11 +51,11 @@ static void setPins(int rx, int tx) {
 static void publishInfo() {
   infoModel = gps.model();
   infoRate = gps.rate();
-  char json[224];
+  char json[256];
   snprintf(json, sizeof json,
            "{\"fw\":\"%s\",\"chip\":\"%s\",\"board\":\"%s\",\"gps\":\"%s\",\"hz\":%u,\"rx\":%d,\"tx\":%d,"
-           "\"lines\":%u,\"name\":\"%s\"}",
-           FW_VERSION, CHIP_NAME, BOARD_NAME, infoModel, infoRate, gpsRx, gpsTx, laps.lines(), deviceName);
+           "\"lines\":%u,\"name\":\"%s\",\"imu\":\"%s\"}",
+           FW_VERSION, CHIP_NAME, BOARD_NAME, infoModel, infoRate, gpsRx, gpsTx, laps.lines(), deviceName, Imu::model());
   Ble::setInfo(json);
   Serial.println(json);
 }
@@ -132,6 +134,10 @@ static void readSerial() {
     else if (!strcmp(line, "pins default")) setPins(GPS_RX_DEFAULT, GPS_TX_DEFAULT);
     else if (line[0]) {
       publishInfo();
+      char imu[80];
+      Imu::describe(imu, sizeof imu);
+      Serial.printf("Accelerometer: %s
+", imu);
       Serial.println("Commands: pins <rx> <tx> | pins default | info");
     }
   }
@@ -195,6 +201,7 @@ void setup() {
   esp_read_mac(mac, ESP_MAC_BT);
   snprintf(deviceName, sizeof deviceName, "TrackLap-%02X%02X", mac[4], mac[5]);
   Display::begin();
+  if (Imu::begin()) Serial.println("Accelerometer QMI8658 found");
   Ble::begin(deviceName);
   gps.begin(gpsRx, gpsTx);
   Serial.printf("%s %s on %s, GPS on RX %d, TX %d\n", deviceName, FW_VERSION, BOARD_NAME, gpsRx, gpsTx);
@@ -206,7 +213,9 @@ void loop() {
   while (gps.poll(f)) {
     lastFix = f;
     lastFixAt = millis();
-    Ble::sendFix(f, gps.rate());
+    int16_t lateral, longitudinal;
+    Imu::take(f, lateral, longitudinal);
+    Ble::sendFix(f, gps.rate(), lateral, longitudinal);
     LapEvent events[2];
     uint8_t n = laps.feed(f, events);
     for (uint8_t i = 0; i < n; i++) {
@@ -233,6 +242,7 @@ void loop() {
   if (Ble::takeControl(buf, len)) handleControl(buf, len);
   if (gps.model() != infoModel || abs((int)gps.rate() - (int)infoRate) >= 2) publishInfo();
 
+  Imu::poll();
   readSerial();
   showStatus();
   showDashboard(now);

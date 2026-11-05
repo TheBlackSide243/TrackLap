@@ -9,7 +9,8 @@ namespace Ble {
 
 void begin(const char* name);
 bool connected();
-void sendFix(const Fix& f, uint8_t rate);
+/// With the board's accelerometer, the g since the previous fix in milli-g (INT16_MIN for none).
+void sendFix(const Fix& f, uint8_t rate, int16_t lateral = INT16_MIN, int16_t longitudinal = INT16_MIN);
 void sendLap(const LapEvent& e);
 void setInfo(const char* json);
 /// The last TRACK or CONTROL write, copied out of the Bluetooth task; true once per write.
