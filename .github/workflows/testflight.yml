@@ -4,6 +4,8 @@
 # cloud-managed distribution certificate (-allowProvisioningUpdates makes the profile) and uploads.
 #
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's text, Admin key) and APPLE_TEAM_ID.
+# The app has push notifications (Support/TrackLap.entitlements): the App ID on the Apple Developer
+# site needs the Push Notifications capability.
 # The app on the Store has its own bundle ID, win.shadowbyte.tracklap, apart from the Feather
 # build (com.local.tracklap).
 name: TestFlight
@@ -93,6 +95,17 @@ jobs:
             CURRENT_PROJECT_VERSION="$BUILD" \
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
           test -d build/TrackLap.xcarchive/Products/Applications/TrackLap.app || { grep -E "error" build.log | head -60; exit 1; }
+
+      # An unsigned archive has no entitlements, and the export would sign it without them. A
+      # signature of its own carries them (push notifications) to the export, which signs it for
+      # the App Store and keeps them.
+      - name: Entitlements
+        run: |
+          set -eu
+          APP=build/TrackLap.xcarchive/Products/Applications/TrackLap.app
+          codesign --force --sign - --timestamp=none --entitlements Support/TrackLap.entitlements "$APP"
+          codesign -d --entitlements - "$APP" 2>&1 | tee "$RUNNER_TEMP/entitlements.txt"
+          grep -q aps-environment "$RUNNER_TEMP/entitlements.txt"
 
       - name: Upload to TestFlight
         run: |
