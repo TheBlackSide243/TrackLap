@@ -22,6 +22,7 @@ import win.tbsgaming.tracklap.data.DriverProfile
 import win.tbsgaming.tracklap.data.Files
 import win.tbsgaming.tracklap.data.FriendLap
 import win.tbsgaming.tracklap.data.FriendLapStore
+import win.tbsgaming.tracklap.data.FriendStore
 import win.tbsgaming.tracklap.data.GarageLink
 import win.tbsgaming.tracklap.data.GarageStore
 import win.tbsgaming.tracklap.data.LayoutMatch
@@ -91,7 +92,7 @@ enum class SourceKind {
     }
 }
 
-enum class AppTab { live, drag, tracks, sessions, garage, device }
+enum class AppTab { live, drag, tracks, sessions, garage, friends, device }
 
 /** What the live delta compares with. */
 enum class DeltaReference {
@@ -114,6 +115,8 @@ class AppModel(context: Context) {
     val friends: FriendLapStore
     val account: AccountStore
     val garage: GarageStore
+    /** The drivers you are friends with on TrackLap (the friends' laps above are files they sent). */
+    val friendList = FriendStore()
     val profile: DriverProfile
     val group: GroupSession
     val engine = LapEngine()
@@ -154,6 +157,8 @@ class AppModel(context: Context) {
     var notice by mutableStateOf<String?>(null)
     /** A group invitation opened before signing in: Live asks you to sign in, then joins it. */
     var pendingJoin by mutableStateOf<String?>(null)
+    /** A friend invitation opened from its link, waiting for you to accept it. */
+    var pendingInvite by mutableStateOf<String?>(null)
 
     private var session: Session? = null
     private val recentT = ArrayList<Double>()
@@ -192,6 +197,7 @@ class AppModel(context: Context) {
         prefs.getString("activeCar", null)?.let { if (garage.car(it) != null) activeCarID = it }
         prefs.getString("activeSetup", null)?.let { if (garage.setup(it)?.carID == activeCarID) activeSetupID = it }
         garage.account = account
+        friendList.account = account
         account.onChange = { accountChanged() }
         engine.minLapTime = minLapTime
         prepareEngine(selectedTrack)
@@ -417,6 +423,11 @@ class AppModel(context: Context) {
             shownGarage = it
             return true
         }
+        if (uri.scheme == "tracklap" && uri.host == "friend") {
+            val code = uri.lastPathSegment?.uppercase().orEmpty()
+            if (Regex("^[A-HJ-NP-Z2-9]{8}$").matches(code)) pendingInvite = code
+            return true
+        }
         if (uri.scheme == "tracklap" && uri.host == "join") {
             uri.lastPathSegment?.let {
                 if (account.isSignedIn) group.join(it, selectedTrack)
@@ -634,6 +645,7 @@ class AppModel(context: Context) {
             group.profileChanged()
         }
         garage.accountChanged()
+        friendList.accountChanged()
     }
 
     // Settings

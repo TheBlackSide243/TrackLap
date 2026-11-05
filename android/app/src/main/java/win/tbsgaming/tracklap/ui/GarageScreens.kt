@@ -55,8 +55,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -88,6 +86,7 @@ import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.LocalNav
 import win.tbsgaming.tracklap.data.GarageLink
 import win.tbsgaming.tracklap.data.GarageStore
+import win.tbsgaming.tracklap.data.GarageAudience
 import win.tbsgaming.tracklap.data.Net
 import win.tbsgaming.tracklap.data.Server
 import win.tbsgaming.tracklap.model.Car
@@ -229,7 +228,7 @@ fun InfoCard(info: CarInfo, modifier: Modifier, open: () -> Unit) {
     }
 }
 
-/** The garage shown to everyone: its switch, its link and how the upload went. */
+/** Who sees the garage: only you, your friends or everyone, its link and how the upload went. */
 @Composable
 private fun PublicPanel() {
     val m = LocalModel.current
@@ -237,7 +236,7 @@ private fun PublicPanel() {
     val context = LocalContext.current
     val g = m.garage
     val account = m.account
-    SectionLabel(L("Garage pubblico"))
+    SectionLabel(L("Chi vede il garage"))
     Panel {
         if (!account.isSignedIn) {
             Text(L("Fallo vedere a tutti"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Theme.text)
@@ -247,13 +246,16 @@ private fun PublicPanel() {
             PrimaryButton(L("Accedi o crea un account"), Icons.Filled.Person) { nav.push(AppTab.garage, "account") }
             return@Panel
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(L("Mostra il garage a tutti"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Theme.text)
-                Text(L("Con il nome %@. Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano all'auto con cui li hai fatti.", account.name ?: ""), fontSize = 12.sp, color = Theme.sub)
-            }
-            Switch(g.isPublic, { g.updatePublic(it) }, colors = SwitchDefaults.colors(checkedTrackColor = Theme.accent, checkedThumbColor = Color.Black))
-        }
+        Segmented(GarageAudience.entries.map { it.title to it }, g.audience) { g.updateAudience(it) }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            when (g.audience) {
+                GarageAudience.nobody -> L("Le auto restano su questo telefono: non le vede nessuno.")
+                GarageAudience.friends -> L("Con il nome %@. Lo vedono solo i tuoi amici di TrackLap, nella scheda Amici e dalle classifiche.", account.name ?: "")
+                GarageAudience.everyone -> L("Con il nome %@. Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano all'auto con cui li hai fatti.", account.name ?: "")
+            },
+            fontSize = 12.sp, color = Theme.sub,
+        )
         val code = account.garage
         if (g.isPublic && code != null) {
             Spacer(Modifier.height(12.dp))
@@ -267,7 +269,7 @@ private fun PublicPanel() {
             }
         }
         Spacer(Modifier.height(8.dp))
-        when (val s = g.sync) {
+        if (g.isShown) when (val s = g.sync) {
             GarageStore.Sync.Syncing -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CircularProgressIndicator(Modifier.size(14.dp), color = Theme.accent, strokeWidth = 2.dp)
                 Text(L("Aggiorno il garage online…"), fontSize = 12.sp, color = Theme.sub)

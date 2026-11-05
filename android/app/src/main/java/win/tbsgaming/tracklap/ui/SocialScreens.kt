@@ -174,7 +174,7 @@ fun LeaderboardScreen(trackID: String) {
                     Text(
                         when {
                             car == null -> L("Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei.")
-                            m.garage.isPublic -> L("I tuoi tempi portano a quest'auto del garage")
+                            m.garage.isShown -> L("I tuoi tempi portano a quest'auto del garage")
                             else -> L("Rendi pubblico il garage perché i tempi portino all'auto")
                         },
                         fontSize = 12.sp, color = Theme.sub,

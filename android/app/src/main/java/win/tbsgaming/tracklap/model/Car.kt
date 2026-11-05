@@ -77,6 +77,8 @@ data class PublicGarage(
     val mine: Boolean? = null,
     val hidden: Boolean? = null,
     val missing: List<String>? = null,
+    /** "all", or "friends" for a garage shown to friends only. */
+    val audience: String? = null,
 ) {
     @Serializable
     data class Entry(

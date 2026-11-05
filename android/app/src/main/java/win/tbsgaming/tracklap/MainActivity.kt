@@ -8,7 +8,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import win.tbsgaming.tracklap.ui.CarDetailScreen
 import win.tbsgaming.tracklap.ui.CarEditorScreen
+import win.tbsgaming.tracklap.ui.FriendDetailScreen
+import win.tbsgaming.tracklap.ui.FriendInviteDialog
 import win.tbsgaming.tracklap.ui.FriendLapsScreen
+import win.tbsgaming.tracklap.ui.FriendsScreen
 import win.tbsgaming.tracklap.ui.GarageScreen
 import win.tbsgaming.tracklap.ui.LeaderboardScreen
 import win.tbsgaming.tracklap.ui.PublicGarageScreen
@@ -56,6 +59,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
@@ -66,6 +70,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -75,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import win.tbsgaming.tracklap.ui.DeviceScreen
@@ -140,7 +147,7 @@ class MainActivity : ComponentActivity() {
         handle(intent)
     }
 
-    /** A tracklap:// link (a group's QR, a garage page), or a .tracklap / .tracklapsetup file from another app. */
+    /** A tracklap:// link (a group's QR, a garage page, a friend invitation), or a .tracklap / .tracklapsetup file from another app. */
     private fun handle(intent: Intent?) {
         intent ?: return
         val uri: Uri? = when (intent.action) {
@@ -189,6 +196,14 @@ class MainActivity : ComponentActivity() {
             }
         }
         m.importedSetup?.let { SetupImportDialog(it) { m.importedSetup = null } }
+        // A friend invitation: accepted here, or after signing in (the dialog waits while you do).
+        val nav = LocalNav.current
+        m.pendingInvite?.takeIf { !(m.tab == AppTab.friends && nav.top(AppTab.friends) == "account") }?.let { code ->
+            FriendInviteDialog(code, signIn = {
+                m.tab = AppTab.friends
+                nav.push(AppTab.friends, "account")
+            }) { m.pendingInvite = null }
+        }
         m.notice?.let { text ->
             AlertDialog(
                 onDismissRequest = { m.notice = null }, containerColor = Theme.panel,
@@ -212,6 +227,7 @@ private fun tabItems() = listOf(
     TabItem(AppTab.tracks, L("Piste"), Icons.Filled.Map),
     TabItem(AppTab.sessions, L("Sessioni"), Icons.Filled.BarChart),
     TabItem(AppTab.garage, L("Garage"), Icons.Filled.DirectionsCar),
+    TabItem(AppTab.friends, L("Amici"), Icons.Filled.People),
     TabItem(AppTab.device, L("Dispositivo"), Icons.Filled.Sensors),
 )
 
@@ -235,7 +251,8 @@ private fun Tabs() {
         if (side) {
             Row(Modifier.fillMaxSize()) {
                 content(Modifier.weight(1f).fillMaxHeight())
-                SideBar()
+                // A phone on its side is short: seven tabs fit as icons alone.
+                SideBar(compact = maxHeight < 480.dp)
             }
         } else {
             Column(Modifier.fillMaxSize()) {
@@ -265,6 +282,8 @@ private fun Page(tab: AppTab, route: String?) {
         tab == AppTab.garage && route?.startsWith("setup:") == true -> SetupDetailScreen(route.removePrefix("setup:"))
         tab == AppTab.garage && route?.startsWith("setupEdit:") == true -> route.removePrefix("setupEdit:").split(":").let { SetupEditorScreen(it[0], it.getOrElse(1) { "new" }) }
         tab == AppTab.garage -> GarageScreen()
+        tab == AppTab.friends && route?.startsWith("friend:") == true -> FriendDetailScreen(route.removePrefix("friend:"))
+        tab == AppTab.friends -> FriendsScreen()
         else -> DeviceScreen()
     }
 }
@@ -287,7 +306,7 @@ private fun BottomBar() {
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Icon(item.icon, item.title, tint = if (selected) Theme.accent else Theme.sub, modifier = Modifier.size(24.dp))
-                    Text(item.title, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (selected) Theme.accent else Theme.sub, maxLines = 1)
+                    FitText(item.title, 10.sp, if (selected) Theme.accent else Theme.sub)
                 }
             }
         }
@@ -295,7 +314,7 @@ private fun BottomBar() {
 }
 
 @Composable
-private fun SideBar() {
+private fun SideBar(compact: Boolean) {
     val m = LocalModel.current
     Row(Modifier.fillMaxHeight().background(Theme.bg)) {
         Box(Modifier.fillMaxHeight().width(0.5.dp).background(Theme.line.copy(alpha = 0.6f)))
@@ -307,15 +326,25 @@ private fun SideBar() {
                 val selected = m.tab == item.tab
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) Theme.button else Theme.bg)
-                        .clickable { m.tab = item.tab }.padding(vertical = 8.dp),
+                        .clickable { m.tab = item.tab }.padding(vertical = if (compact) 6.dp else 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(item.icon, item.title, tint = if (selected) Theme.accent else Theme.sub, modifier = Modifier.size(22.dp))
-                    Text(item.title, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (selected) Theme.accent else Theme.sub, maxLines = 1)
+                    if (!compact) FitText(item.title, 11.sp, if (selected) Theme.accent else Theme.sub)
                 }
             }
             Spacer(Modifier.height(0.dp))
         }
     }
+}
+
+/** A tab's name on one line, a little smaller when it does not fit ("Dispositivo" among seven tabs). */
+@Composable
+private fun FitText(text: String, size: TextUnit, color: androidx.compose.ui.graphics.Color) {
+    var scale by remember(text) { mutableStateOf(1f) }
+    Text(
+        text, fontSize = size * scale, fontWeight = FontWeight.Medium, color = color, maxLines = 1, softWrap = false,
+        onTextLayout = { if (it.didOverflowWidth && scale > 0.6f) scale -= 0.08f },
+    )
 }

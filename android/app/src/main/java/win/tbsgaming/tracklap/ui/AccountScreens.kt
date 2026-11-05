@@ -131,7 +131,7 @@ fun AccountPanel() {
                 AppGlyph(Icons.Filled.Person, 40.dp, Theme.good)
                 Column(Modifier.weight(1f)) {
                     Text(a.name ?: "", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Theme.text)
-                    Text(if (m.garage.isPublic) L("Garage pubblico") else L("Garage visibile solo a te"), fontSize = 12.sp, color = Theme.sub)
+                    Text(m.garage.audience.summary, fontSize = 12.sp, color = Theme.sub)
                 }
             }
             Spacer(Modifier.height(12.dp))

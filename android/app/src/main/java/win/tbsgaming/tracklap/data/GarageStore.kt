@@ -32,9 +32,33 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Your cars: an index (garage.json) and one JPEG per photo in the garage folder. Public, the garage
- * goes to the server a moment after every change: the cars first, then the photos the server says it
- * is missing. The setups stay on this phone: never sent anywhere, only to a file you export yourself.
+ * Who sees your garage: only you, your friends on TrackLap (in their Friends tab and from the
+ * leaderboards), or everyone, also at the garage's link without the app.
+ */
+enum class GarageAudience {
+    nobody, friends, everyone;
+
+    val title: String
+        get() = when (this) {
+            nobody -> L("Solo io")
+            friends -> L("Amici")
+            everyone -> L("Tutti")
+        }
+
+    /** One line on your account. */
+    val summary: String
+        get() = when (this) {
+            nobody -> L("Garage visibile solo a te")
+            friends -> L("Garage visibile agli amici")
+            everyone -> L("Garage pubblico")
+        }
+}
+
+/**
+ * Your cars: an index (garage.json) and one JPEG per photo in the garage folder. Shown to friends or
+ * to everyone, the garage goes to the server a moment after every change: the cars first, then the
+ * photos the server says it is missing. The setups stay on this phone: never sent anywhere, only to a
+ * file you export yourself.
  */
 class GarageStore(private val context: Context) {
     sealed interface Sync {
@@ -47,8 +71,15 @@ class GarageStore(private val context: Context) {
     private val prefs = context.getSharedPreferences("tracklap", Context.MODE_PRIVATE)
     var cars by mutableStateOf<List<Car>>(emptyList()); private set
     var setups by mutableStateOf<List<CarSetup>>(emptyList()); private set
-    /** Shown to everyone at the garage's link and next to your laps on the leaderboards. */
-    var isPublic by mutableStateOf(prefs.getBoolean("garagePublic", false)); private set
+    // Before friends there was only the switch for everyone.
+    @set:JvmName("assignAudience") var audience by mutableStateOf(
+        prefs.getString("garageAudience", null)?.let { runCatching { GarageAudience.valueOf(it) }.getOrNull() }
+            ?: if (prefs.getBoolean("garagePublic", false)) GarageAudience.everyone else GarageAudience.nobody,
+    ); private set
+    /** Shown to someone: the cars are on the server, and your laps on the leaderboards lead to them. */
+    val isShown: Boolean get() = audience != GarageAudience.nobody
+    /** Shown to everyone, at the garage's link too. */
+    val isPublic: Boolean get() = audience == GarageAudience.everyone
     var sync by mutableStateOf<Sync>(Sync.Idle); private set
     var account: AccountStore? = null
 
@@ -221,9 +252,9 @@ class GarageStore(private val context: Context) {
 
     // Publishing
 
-    fun updatePublic(on: Boolean) {
-        isPublic = on
-        prefs.edit().putBoolean("garagePublic", on).apply()
+    fun updateAudience(a: GarageAudience) {
+        audience = a
+        prefs.edit().putString("garageAudience", a.name).apply()
         publishSoon(now = true)
     }
 
@@ -247,7 +278,7 @@ class GarageStore(private val context: Context) {
         }
     }
 
-    /** Public: the cars and then the missing photos. Private again: the garage is emptied on the server. */
+    /** Shown: the cars and then the missing photos. Hidden again: the garage is emptied on the server. */
     suspend fun publish() {
         val account = account
         val token = account?.token
@@ -255,15 +286,15 @@ class GarageStore(private val context: Context) {
             sync = Sync.Idle
             return
         }
-        if (!isPublic && account.garage == null) {
+        if (!isShown && account.garage == null) {
             sync = Sync.Idle
             return
         }
         sync = Sync.Syncing
         try {
             val code = account.garageCode()
-            val shown = if (isPublic) cars.map { it.published } else emptyList()
-            val missing = Server.putGarage(code, shown, token)
+            val shown = if (isShown) cars.map { it.published } else emptyList()
+            val missing = Server.putGarage(code, shown, if (audience == GarageAudience.friends) "friends" else "all", token)
             for (photo in missing) {
                 val data = withContext(Dispatchers.IO) { file(photo).takeIf { it.exists() }?.readBytes() } ?: continue
                 Server.putPhoto(code, photo, data, token)

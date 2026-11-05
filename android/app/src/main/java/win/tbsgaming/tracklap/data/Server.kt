@@ -10,6 +10,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import win.tbsgaming.tracklap.model.Car
+import win.tbsgaming.tracklap.model.Friend
+import win.tbsgaming.tracklap.model.FriendInvite
+import win.tbsgaming.tracklap.model.FriendProfile
 import win.tbsgaming.tracklap.model.Lap
 import win.tbsgaming.tracklap.model.PublicGarage
 import win.tbsgaming.tracklap.model.Track
@@ -23,7 +26,7 @@ import kotlin.math.roundToLong
 
 /** Why the server said no, as the screens tell it. */
 class ServerFailure(val kind: Kind) : Exception() {
-    enum class Kind { offline, refused, signedOut, taken, wrongLogin, wrongPassword, badName, shortPassword, tooMany, notFound }
+    enum class Kind { offline, refused, signedOut, taken, wrongLogin, wrongPassword, badName, shortPassword, tooMany, notFound, friendsOnly, noInvite, cannotBefriend, notFriend }
 
     override val message: String
         get() = when (kind) {
@@ -37,6 +40,10 @@ class ServerFailure(val kind: Kind) : Exception() {
             Kind.shortPassword -> L("La password deve avere almeno 8 caratteri.")
             Kind.tooMany -> L("Troppi tentativi: riprova tra qualche minuto.")
             Kind.notFound -> L("Questo garage non esiste più, oppure è stato nascosto.")
+            Kind.friendsOnly -> L("Questo pilota mostra il garage solo ai suoi amici.")
+            Kind.noInvite -> L("Questo invito non vale più: chiedine uno nuovo a chi te lo ha mandato.")
+            Kind.cannotBefriend -> L("Non puoi accettare questo invito: è il tuo, oppure uno di voi ha già 200 amici.")
+            Kind.notFriend -> L("Non siete più amici.")
         }
 }
 
@@ -82,7 +89,7 @@ data class GarageLink(val code: String, val car: String? = null) {
 
 /**
  * The TrackLap server (server/ in the repository, a Cloudflare Worker): new live groups, the online
- * leaderboards, the accounts and the public garages. The same server and accounts as the iPhone app.
+ * leaderboards, the accounts, the friends and the garages. The same server and accounts as the iPhone app.
  */
 object Server {
     const val BASE = "https://tracklap.tbsgaming.win"
@@ -185,9 +192,12 @@ object Server {
 
     suspend fun openGarage(token: String): String = send("v1/me/garage", "POST", Code.serializer(), token = token).code
 
-    /** Your cars as they are now; the answer lists the photos the server does not have yet. */
-    suspend fun putGarage(code: String, cars: List<Car>, token: String): List<String> {
-        val body = buildJsonObject { put("cars", Files.json.encodeToJsonElement(ListSerializer(Car.serializer()), cars)) }
+    /** Your cars as they are now, for everyone ("all") or for your friends only ("friends"); the answer lists the photos the server does not have yet. */
+    suspend fun putGarage(code: String, cars: List<Car>, audience: String, token: String): List<String> {
+        val body = buildJsonObject {
+            put("cars", Files.json.encodeToJsonElement(ListSerializer(Car.serializer()), cars))
+            put("audience", audience)
+        }
         return send("v1/garages/$code", "PUT", Missing.serializer(), body, token).missing
     }
 
@@ -196,7 +206,13 @@ object Server {
     }
 
     suspend fun garage(code: String, token: String?): PublicGarage =
-        send("v1/garages/$code", "GET", PublicGarage.serializer(), token = token) { if (it == 404) ServerFailure.Kind.notFound else null }
+        send("v1/garages/$code", "GET", PublicGarage.serializer(), token = token) {
+            when (it) {
+                404 -> ServerFailure.Kind.notFound
+                403 -> ServerFailure.Kind.friendsOnly
+                else -> null
+            }
+        }
 
     suspend fun report(code: String, car: String?, reason: String) {
         send<Unit>("v1/garages/$code/report", "POST", null, buildJsonObject { put("reason", reason); if (car != null) put("car", car) })
@@ -206,6 +222,46 @@ object Server {
 
     /** The page anyone can open, also without the app; with a car, it opens on that car. */
     fun garageURL(code: String, car: String? = null) = "$BASE/g/$code" + (car?.let { "#" + URLEncoder.encode(it, "UTF-8") } ?: "")
+
+    // Friends
+
+    @Serializable
+    private data class Inviter(val name: String)
+
+    @Serializable
+    private data class FriendList(val friends: List<Friend> = emptyList())
+
+    /** Your invitation link's code: the same for a week; `renew` makes a new one, and the old one stops working. */
+    suspend fun invite(token: String, renew: Boolean = false): FriendInvite =
+        send("v1/me/invite", "POST", FriendInvite.serializer(), buildJsonObject { put("renew", renew) }, token)
+
+    /** The page an invitation link opens, also without the app: who it is from, and a button for TrackLap. */
+    fun inviteURL(code: String) = "$BASE/f/$code"
+
+    /** Who an invitation is from, while it is good. */
+    suspend fun inviter(code: String): String =
+        send("v1/invites/$code", "GET", Inviter.serializer()) { if (it == 404) ServerFailure.Kind.noInvite else null }.name
+
+    /** An invitation accepted: you are friends both ways from now. */
+    suspend fun accept(code: String, token: String): Friend =
+        send("v1/friends", "POST", Friend.serializer(), buildJsonObject { put("code", code) }, token) {
+            when (it) {
+                404 -> ServerFailure.Kind.noInvite
+                409 -> ServerFailure.Kind.cannotBefriend
+                else -> null
+            }
+        }
+
+    suspend fun friends(token: String): List<Friend> = send("v1/friends", "GET", FriendList.serializer(), token = token).friends
+
+    /** A friend with their best laps and numbers; only while you are friends. */
+    suspend fun friend(id: String, token: String): FriendProfile =
+        send("v1/friends/$id", "GET", FriendProfile.serializer(), token = token) { if (it == 404) ServerFailure.Kind.notFriend else null }
+
+    /** No longer friends, for both. */
+    suspend fun removeFriend(id: String, token: String) {
+        send<Unit>("v1/friends/$id", "DELETE", null, token = token) { if (it == 404) ServerFailure.Kind.notFriend else null }
+    }
 
     // Plumbing
 
