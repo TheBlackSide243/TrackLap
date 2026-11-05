@@ -54,6 +54,8 @@ The phones do all the timing: the server only stores and relays.
 | `GET /v1/friends` | `{friends: [{id, name, garage, since}]}` by name |
 | `GET /v1/friends/<id>` | a friend with `laps` (their best lap on every track: `track`, `source`, `time`, `date`, `last`, `sessions`, `vehicle`, `garage`, `car`, `rank`, `of`) and `stats` (`tracks`, `sessions`, `wins`, `favourite`, `last`); 404 if you are not friends |
 | `DELETE /v1/friends/<id>` | no longer friends, for both |
+| `PUT /v1/me/push` | `{platform: "ios"\|"android", token}`: this phone's token from Apple or Google, tied to the session (signing out there stops it); up to 10 phones |
+| `DELETE /v1/me/push` | `{token}`: that phone gets nothing more |
 | `GET /v1/boards?lat=&lon=&len=` | the leaderboard of the circuit whose start line is there (`len` = a lap in metres, to pick the layout); each lap has `name`, `vehicle`, `garage` and `car`, and yours `"mine":true` when signed in |
 | `POST /v1/laps` | signed in: `{source: "device"\|"phone", time, distance, sectors, date, track: {name, lat, lon}, car}`; the name is the account's, and `car` links the lap only if it is in your garage |
 
@@ -80,6 +82,21 @@ Set a secret `ADMIN_KEY` on the Worker (Settings → Variables and Secrets). Rep
 Worker's logs as `garage reported <code>`. With the header `X-TrackLap-Admin: <key>`:
 `GET /v1/garages/<code>` shows a hidden garage and its reports, `POST /v1/garages/<code>/restore`
 shows it again, `DELETE /v1/garages/<code>` deletes it.
+
+### Push notifications
+
+When a friend accepts your invitation, your phones get a notification with their name. The server
+signs it itself, for Apple (APNs, HTTP/2 with a JWT from a .p8 key) and for Google (FCM v1, with
+an access token from a service account), in [`src/push.js`](src/push.js). The words are the apps':
+the iPhone looks up the Italian key in its own translations, Android writes it from the data. Phones
+Apple or Google no longer know are forgotten. Without these secrets on the Worker nothing is sent:
+
+| Secret | |
+|---|---|
+| `APNS_KEY` | the text of the .p8 key (developer.apple.com → Keys, with Apple Push Notifications service) |
+| `APNS_KEY_ID` | that key's ID |
+| `APNS_TEAM_ID` | the Apple team's ID |
+| `FCM_SERVICE_ACCOUNT` | the JSON of a service account of the Firebase project (Project settings → Service accounts → Generate new private key) |
 
 ### Tests and deployment
 
@@ -122,6 +139,12 @@ piano gratuito di Workers.
 
 I tempi li calcolano i telefoni: il server salva e inoltra e basta. Le chiamate e i messaggi sono
 nelle tabelle sopra; le chiamate con account portano `Authorization: Bearer <token>`.
+
+**Notifiche**: quando un amico accetta il tuo invito, i tuoi telefoni ricevono una notifica con il
+suo nome. Il server la firma da solo, per Apple (APNs) e per Google (FCM), in
+[`src/push.js`](src/push.js); le parole sono quelle delle app. Servono i segreti `APNS_KEY` (il
+testo della chiave .p8), `APNS_KEY_ID`, `APNS_TEAM_ID` e `FCM_SERVICE_ACCOUNT` (il JSON del service
+account di Firebase): senza, non parte niente.
 
 **Moderazione**: sul Worker va impostato il segreto `ADMIN_KEY` (Settings → Variables and
 Secrets). Le segnalazioni compaiono nei log del Worker come `garage reported <codice>`. Con

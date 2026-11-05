@@ -44,7 +44,10 @@ struct FriendsView: View {
         }
         // The tab stays alive behind the others: the server is asked each time it opens.
         .task(id: model.tab == .friends ? model.account.name : nil) {
-            if model.tab == .friends { await model.friendList.refresh() }
+            guard model.tab == .friends else { return }
+            // Here is where a friend accepting your invitation matters: iOS asks once.
+            if model.account.isSignedIn { PushNotifications.shared.ask() }
+            await model.friendList.refresh()
         }
         // A friend added from an invitation link: back to the list, where they are now.
         .onChange(of: model.friendList.friends.count) { path = NavigationPath() }

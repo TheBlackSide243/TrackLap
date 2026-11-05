@@ -3,6 +3,7 @@ import UIKit
 
 @main
 struct TrackLapApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = AppModel()
 
     var body: some Scene {
@@ -53,6 +54,7 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardUp = true }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardUp = false }
         .task { model.runShowcase() }
+        .task { PushNotifications.shared.start(model) }
         .task {
             await model.account.refresh()
             model.garage.publishSoon(now: true)
