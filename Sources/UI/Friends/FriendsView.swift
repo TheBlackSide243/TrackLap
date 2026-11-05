@@ -42,9 +42,9 @@ struct FriendsView: View {
                 Text("Non vedrete più garage e tempi l'uno dell'altro. Per tornare amici serve un invito nuovo.")
             }
         }
-        .task(id: model.account.name) { await model.friendList.refresh() }
-        .onChange(of: model.tab) { _, tab in
-            if tab == .friends { Task { await model.friendList.refresh() } }
+        // The tab stays alive behind the others: the server is asked each time it opens.
+        .task(id: model.tab == .friends ? model.account.name : nil) {
+            if model.tab == .friends { await model.friendList.refresh() }
         }
         // A friend added from an invitation link: back to the list, where they are now.
         .onChange(of: model.friendList.friends.count) { path = NavigationPath() }
@@ -168,6 +168,8 @@ struct FriendAvatar: View {
 private struct InvitePanel: View {
     @Environment(AppModel.self) private var model
     @State private var url: URL?
+    /// The account the link is for: another account needs its own.
+    @State private var linkFor: String?
     @State private var error: String?
     @State private var busy = false
     @State private var renewing = false
@@ -210,7 +212,12 @@ private struct InvitePanel: View {
                 }
             }
         }
-        .task(id: model.account.name) { await load() }
+        // Made the first time the tab opens, not at every launch.
+        .task(id: model.tab == .friends ? model.account.name : nil) {
+            guard model.tab == .friends, linkFor != model.account.name else { return }
+            url = nil
+            await load()
+        }
         .confirmationDialog(L("Fare un link nuovo?"), isPresented: $renewing, titleVisibility: .visible) {
             Button(L("Fai un link nuovo")) { Task { await load(renew: true) } }
             Button(L("Annulla"), role: .cancel) {}
@@ -226,6 +233,7 @@ private struct InvitePanel: View {
         defer { busy = false }
         do {
             url = try await model.friendList.inviteURL(renew: renew)
+            linkFor = model.account.name
         } catch {
             if url == nil { self.error = error.localizedDescription }
         }
