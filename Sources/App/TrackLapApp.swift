@@ -22,6 +22,8 @@ struct RootView: View {
     @State private var importError: String?
     @AppStorage(TabbarPlace.key) private var tabbarPlace: TabbarPlace = .auto
     @State private var keyboardUp = false
+    /// Signing in for a group invitation that came in without an account.
+    @State private var inviteSignIn = false
 
     /// Once, on the first launch, and again from Device; in screenshot mode only for its own screen.
     private var showIntro: Bool {
@@ -59,6 +61,11 @@ struct RootView: View {
             PublicGarageView(link: link)
                 .environment(model)
         }
+        .sheet(isPresented: Binding(get: { model.pendingInvite != nil }, set: { if !$0 { model.pendingInvite = nil } })) {
+            if let code = model.pendingInvite {
+                FriendInviteSheet(code: code).environment(model)
+            }
+        }
         .sheet(isPresented: Binding(get: { model.importedSetup != nil }, set: { if !$0 { model.importedSetup = nil } })) {
             if let shared = model.importedSetup {
                 SetupImportSheet(shared: shared).environment(model)
@@ -76,16 +83,31 @@ struct RootView: View {
         .alert(importError ?? "", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
             Button("OK", role: .cancel) {}
         }
+        // Groups need an account: an invitation opened while signed out asks first, then joins.
+        .alert(L("Serve un account"),
+               isPresented: Binding(get: { model.pendingJoin != nil && !model.account.isSignedIn && !inviteSignIn }, set: { _ in })) {
+            Button(L("Accedi o crea un account")) { inviteSignIn = true }
+            Button(L("Annulla"), role: .cancel) { model.pendingJoin = nil }
+        } message: {
+            Text(L("Ti hanno invitato nel gruppo \(model.pendingJoin ?? ""). Accedi o crea un account e ci entri subito."))
+        }
+        .sheet(isPresented: $inviteSignIn, onDismiss: { if !model.account.isSignedIn { model.pendingJoin = nil } }) {
+            AccountSheet().environment(model)
+        }
+        .onChange(of: model.account.isSignedIn) { _, on in
+            if on { model.joinPending() }
+        }
         .fullScreenCover(isPresented: Binding(get: { showIntro }, set: { if !$0 { introSeen = true } })) {
             IntroView { introSeen = true }
                 .environment(model)
         }
     }
 
-    /// The six tabs in a TabView of five, its bar always hidden: the app draws its own. With six,
-    /// an iPhone's TabView moves the last ones into a hidden "More" tab, with a back button of its
-    /// own above them; so Garage and Device share the fifth, one above the other. The TabView keeps
-    /// each tab with its navigation and pauses the ones not shown (Live's clock among them).
+    /// The seven tabs in a TabView of five, its bar always hidden: the app draws its own. With more
+    /// than five, an iPhone's TabView moves the last ones into a hidden "More" tab, with a back
+    /// button of its own above them; so Garage, Friends and Device share the fifth, one above the
+    /// other. The TabView keeps each tab with its navigation and pauses the ones not shown (Live's
+    /// clock among them).
     private var tabs: some View {
         TabView(selection: Binding(get: { Self.systemTab(model.tab) }, set: { _ in })) {
             LiveView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.live)
@@ -94,6 +116,7 @@ struct RootView: View {
             SessionsView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.sessions)
             ZStack {
                 shared(.garage) { GarageView().id(model.units) }
+                shared(.friends) { FriendsView().id(model.units) }
                 shared(.device) { DeviceView() }
             }
             .toolbar(.hidden, for: .tabBar)
@@ -101,8 +124,8 @@ struct RootView: View {
         }
     }
 
-    /// The TabView tab an app tab is in: Device is in Garage's.
-    private static func systemTab(_ t: AppTab) -> AppTab { t == .device ? .garage : t }
+    /// The TabView tab an app tab is in: Friends and Device are in Garage's.
+    private static func systemTab(_ t: AppTab) -> AppTab { t == .device || t == .friends ? .garage : t }
 
     private func shared<Content: View>(_ tab: AppTab, @ViewBuilder _ content: () -> Content) -> some View {
         let shown = model.tab == tab
@@ -113,7 +136,8 @@ struct RootView: View {
             .zIndex(shown ? 1 : 0)
     }
 
-    /// An invitation to a group (tracklap://join/…) or a .tracklap file from a friend.
+    /// An invitation to a group (tracklap://join/…) or to be friends (tracklap://friend/…), or a
+    /// .tracklap file from a friend.
     private func open(_ url: URL) {
         if model.open(url) { return }
         guard url.isFileURL else { return }

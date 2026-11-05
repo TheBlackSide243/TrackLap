@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The Garage tab: your cars with their photos, the one you drive on top, and the switch that shows
-/// them to everyone at a link of their own.
+/// The Garage tab: your cars with their photos, the one you drive on top, and who sees them: nobody,
+/// your friends, or everyone at a link of their own.
 struct GarageView: View {
     @Environment(AppModel.self) private var model
     @State private var path = NavigationPath()
@@ -31,7 +31,7 @@ struct GarageView: View {
                         cars
                     }
 
-                    SectionLabel(L("Garage pubblico"))
+                    SectionLabel(L("Chi vede il garage"))
                     PublishPanel(signIn: { signingIn = true })
                 }
                 .padding(16)
@@ -163,7 +163,7 @@ private struct EmptyGarage: View {
     }
 }
 
-/// Showing the garage to everyone: the account it goes under, the switch, the link and how the
+/// Who sees the garage: the account it goes under, nobody, friends or everyone, the link and how the
 /// upload went.
 private struct PublishPanel: View {
     @Environment(AppModel.self) private var model
@@ -174,18 +174,27 @@ private struct PublishPanel: View {
         Panel {
             VStack(alignment: .leading, spacing: 14) {
                 if let name = model.account.name {
-                    Toggle(isOn: Binding(get: { garage.isPublic }, set: { garage.setPublic($0) })) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Mostra il garage a tutti").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                            Text("Con il nome \(name). Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano all'auto con cui li hai fatti.")
-                                .font(.caption)
-                                .foregroundStyle(Theme.sub)
-                                .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Picker(L("Chi vede il garage"), selection: Binding(get: { garage.audience }, set: { garage.setAudience($0) })) {
+                            ForEach(GarageAudience.allCases) { Text($0.title).tag($0) }
                         }
+                        .pickerStyle(.segmented)
+                        Group {
+                            switch garage.audience {
+                            case .nobody:
+                                Text("Le auto restano su questo telefono: non le vede nessuno.")
+                            case .friends:
+                                Text("Con il nome \(name). Lo vedono solo i tuoi amici di TrackLap, nella scheda Amici e dalle classifiche.")
+                            case .everyone:
+                                Text("Con il nome \(name). Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano all'auto con cui li hai fatti.")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Theme.sub)
+                        .fixedSize(horizontal: false, vertical: true)
                     }
-                    .tint(Theme.accent)
+                    if garage.isShown { status }
                     if garage.isPublic {
-                        status
                         if let code = model.account.garage {
                             let url = Server.garageURL(code: code)
                             HStack(spacing: 10) {

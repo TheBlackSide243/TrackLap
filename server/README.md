@@ -4,8 +4,8 @@ English first, then Italian. / Prima in inglese, poi in italiano.
 
 ## English
 
-The live groups, the online leaderboards, the accounts and the public garages of the TrackLap app,
-as one Cloudflare Worker with four Durable Object classes ([`src/index.js`](src/index.js)). It runs
+The live groups, the online leaderboards, the accounts, the friends and the garages of the TrackLap
+app, as one Cloudflare Worker with four Durable Object classes ([`src/index.js`](src/index.js)). It runs
 on the Workers free plan.
 
 - **Room**, one per group: the WebSockets of its members (they hibernate between messages, so an
@@ -13,15 +13,18 @@ on the Workers free plan.
   deleted a day after the last activity with nobody connected.
 - **Boards**, one for every leaderboard: the circuits by the middle of their start line (two lines
   within 150 m are the same circuit, a lap more than 20% longer or shorter is another layout), and
-  for each one the best lap of every driver with each kind of GPS, with the car of that lap.
+  for each one the best lap of every driver with each kind of GPS, with the car of that lap, how
+  many sessions sent one and when the last was driven.
 - **Accounts**, one for everyone: a username (3 to 20 letters, numbers, `.` `-` `_`, unique whatever
   the capitals) and a password kept as a salted PBKDF2-SHA256 hash. Signing in gives the phone a
   token; only its hash is stored. Ten wrong passwords in 15 minutes block a name or an address for
-  a while.
+  a while. The same object keeps the friends: an invitation code good for a week (one per driver,
+  usable by several people) makes two drivers friends both ways, up to 200 each.
 - **Garage**, one per driver who shows their cars: up to 20 cars with one JPEG photo each (up to
-  1.5 MB), year, power in CV, weight in kg, modifications and notes. Only the owner writes; anyone
-  reads, in the app or on the page `/g/<code>`. Reports from three different people hide a garage
-  until the admin looks at it.
+  1.5 MB), year, power in CV, weight in kg, modifications and notes. Only the owner writes. Shown to
+  everyone, anyone reads it, in the app or on the page `/g/<code>`; shown to friends only, only the
+  owner's friends do (the worker checks and tells the garage, and keeps the owner to itself). Reports
+  from three different people hide a garage until the admin looks at it.
 
 The phones do all the timing: the server only stores and relays.
 
@@ -38,12 +41,19 @@ The phones do all the timing: the server only stores and relays.
 | `POST /v1/me/password` | `{old, new}` → a new token; every other token stops working |
 | `DELETE /v1/me` | `{password}`: the account goes, with its garage and its laps |
 | `POST /v1/me/garage` | your garage's code (made the first time): `{"code":"K7P2QX9M"}` |
-| `GET /v1/garages/<code>` | the garage: `{code, name, cars: [{id, name, year, power, weight, mods, notes, photo}], mine}`; for its owner also the photos still `missing` |
-| `PUT /v1/garages/<code>` | the owner's cars, all of them: the answer lists the `missing` photos; photos of cars that went are deleted |
+| `GET /v1/garages/<code>` | the garage: `{code, name, cars: [{id, name, year, power, weight, mods, notes, photo}], mine, audience}`; for its owner also the photos still `missing`; 403 `friends only` for anyone but the owner's friends when `audience` is `friends` |
+| `PUT /v1/garages/<code>` | the owner's cars, all of them, and `audience`: `all` (the default) or `friends`; the answer lists the `missing` photos; photos of cars that went are deleted |
 | `PUT /v1/garages/<code>/photos/<id>` | a JPEG for a car of the garage, owner only |
 | `GET /v1/garages/<code>/photos/<id>` | the photo, cached for good (a new photo gets a new id) |
 | `POST /v1/garages/<code>/report` | `{reason, car}` from anyone |
 | `GET /g/<code>` | the garage's page, in Italian or English, with a preview for chats |
+| `POST /v1/me/invite` | your invitation: `{code, expires}`, the same one while it has more than a day left; `{"renew": true}` makes a new one and the old one stops working |
+| `GET /v1/invites/<code>` | who an invitation is from, while it is good: `{name, expires}` |
+| `GET /f/<code>` | the invitation's page, in Italian or English, with the button `tracklap://friend/<code>` |
+| `POST /v1/friends` | `{code}`: the invitation accepted, friends both ways; the answer is the friend (409 for your own invitation or 200 friends) |
+| `GET /v1/friends` | `{friends: [{id, name, garage, since}]}` by name |
+| `GET /v1/friends/<id>` | a friend with `laps` (their best lap on every track: `track`, `source`, `time`, `date`, `last`, `sessions`, `vehicle`, `garage`, `car`, `rank`, `of`) and `stats` (`tracks`, `sessions`, `wins`, `favourite`, `last`); 404 if you are not friends |
+| `DELETE /v1/friends/<id>` | no longer friends, for both |
 | `GET /v1/boards?lat=&lon=&len=` | the leaderboard of the circuit whose start line is there (`len` = a lap in metres, to pick the layout); each lap has `name`, `vehicle`, `garage` and `car`, and yours `"mine":true` when signed in |
 | `POST /v1/laps` | signed in: `{source: "device"\|"phone", time, distance, sectors, date, track: {name, lat, lon}, car}`; the name is the account's, and `car` links the lap only if it is in your garage |
 
@@ -85,7 +95,7 @@ somewhere else.
 
 ## Italiano
 
-I gruppi live, le classifiche online, gli account e i garage pubblici dell'app TrackLap, in un
+I gruppi live, le classifiche online, gli account, gli amici e i garage dell'app TrackLap, in un
 Cloudflare Worker con quattro classi di Durable Object ([`src/index.js`](src/index.js)). Sta nel
 piano gratuito di Workers.
 
@@ -96,15 +106,19 @@ piano gratuito di Workers.
 - **Boards**, una per tutte le classifiche: i circuiti per il centro della linea del via (due linee
   entro 150 m sono lo stesso circuito, un giro più lungo o più corto del 20% è un'altra
   configurazione) e per ognuno il giro migliore di ogni pilota con ogni tipo di GPS, con l'auto di
-  quel giro.
+  quel giro, quante sessioni ne hanno mandato uno e quando è stata l'ultima.
 - **Accounts**, uno per tutti: un nome utente (da 3 a 20 tra lettere, numeri, `.` `-` `_`, unico
   anche cambiando le maiuscole) e una password salvata come hash PBKDF2-SHA256 con sale.
   L'accesso dà al telefono un token, e del token si salva solo l'hash. Dieci password sbagliate in
-  15 minuti bloccano per un po' un nome o un indirizzo.
+  15 minuti bloccano per un po' un nome o un indirizzo. Lo stesso oggetto tiene gli amici: un
+  codice d'invito che vale una settimana (uno per pilota, usabile da più persone) rende due piloti
+  amici a vicenda, fino a 200 a testa.
 - **Garage**, uno per pilota che mostra le sue auto: fino a 20 auto con una foto JPEG ciascuna
-  (fino a 1,5 MB), anno, potenza in CV, peso in kg, modifiche e note. Scrive solo il proprietario;
-  leggono tutti, nell'app o alla pagina `/g/<codice>`. Le segnalazioni di tre persone diverse
-  nascondono il garage finché l'amministratore non lo guarda.
+  (fino a 1,5 MB), anno, potenza in CV, peso in kg, modifiche e note. Scrive solo il proprietario.
+  Mostrato a tutti, lo leggono tutti, nell'app o alla pagina `/g/<codice>`; mostrato solo agli
+  amici, lo leggono solo gli amici del proprietario (controlla il worker, che non fa uscire chi è il
+  proprietario). Le segnalazioni di tre persone diverse nascondono il garage finché
+  l'amministratore non lo guarda.
 
 I tempi li calcolano i telefoni: il server salva e inoltra e basta. Le chiamate e i messaggi sono
 nelle tabelle sopra; le chiamate con account portano `Authorization: Bearer <token>`.

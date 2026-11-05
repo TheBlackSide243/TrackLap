@@ -59,6 +59,7 @@ struct SideTabBar: View {
         (.tracks, "Piste", "map.fill"),
         (.sessions, "Sessioni", "chart.bar.xaxis"),
         (.garage, "Garage", "car.fill"),
+        (.friends, "Amici", "person.2.fill"),
         (.device, "Dispositivo", "antenna.radiowaves.left.and.right"),
     ]
 
@@ -112,7 +113,7 @@ struct SideTabBar: View {
     }
 }
 
-/// The six tabs along the bottom: the system's bar shows five on an iPhone and puts the rest under
+/// The seven tabs along the bottom: the system's bar shows five on an iPhone and puts the rest under
 /// "More", so the app draws its own, in the same style as the column on the right.
 struct BottomTabBar: View {
     @Binding var tab: AppTab

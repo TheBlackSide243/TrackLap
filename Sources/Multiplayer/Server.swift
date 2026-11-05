@@ -1,7 +1,7 @@
 import Foundation
 
 /// The TrackLap server (server/ in the repository, a Cloudflare Worker): new live groups, the online
-/// leaderboards, the accounts and the public garages. `-server <url>` on the command line points the
+/// leaderboards, the accounts, the friends and the garages. `-server <url>` on the command line points the
 /// app at another one.
 enum Server {
     static var base: URL {
@@ -10,6 +10,7 @@ enum Server {
 
     enum Failure: LocalizedError {
         case offline, refused, signedOut, taken, wrongLogin, wrongPassword, badName, shortPassword, tooMany, notFound
+        case friendsOnly, noInvite, cannotBefriend, notFriend
 
         var errorDescription: String? {
             switch self {
@@ -23,6 +24,10 @@ enum Server {
             case .shortPassword: L("La password deve avere almeno 8 caratteri.")
             case .tooMany: L("Troppi tentativi: riprova tra qualche minuto.")
             case .notFound: L("Questo garage non esiste più, oppure è stato nascosto.")
+            case .friendsOnly: L("Questo pilota mostra il garage solo ai suoi amici.")
+            case .noInvite: L("Questo invito non vale più: chiedine uno nuovo a chi te lo ha mandato.")
+            case .cannotBefriend: L("Non puoi accettare questo invito: è il tuo, oppure uno di voi ha già 200 amici.")
+            case .notFriend: L("Non siete più amici.")
             }
         }
     }
@@ -157,11 +162,13 @@ enum Server {
         return try await send(request("v1/me/garage", method: "POST", token: token), as: Opened.self).code
     }
 
-    /// Your cars as they are now; the answer lists the photos the server does not have yet.
-    static func putGarage(code: String, cars: [Car], token: String) async throws -> [String] {
-        struct Body: Encodable { var cars: [Car] }
+    /// Your cars as they are now, for everyone ("all") or for your friends only ("friends"); the
+    /// answer lists the photos the server does not have yet.
+    static func putGarage(code: String, cars: [Car], audience: String, token: String) async throws -> [String] {
+        struct Body: Encodable { var cars: [Car]; var audience: String }
         struct Answer: Decodable { var missing: [String] }
-        return try await send(request("v1/garages/\(code)", method: "PUT", json: Body(cars: cars), token: token), as: Answer.self).missing
+        return try await send(request("v1/garages/\(code)", method: "PUT", json: Body(cars: cars, audience: audience), token: token),
+                              as: Answer.self).missing
     }
 
     static func putPhoto(code: String, photo: String, jpeg: Data, token: String) async throws {
@@ -173,7 +180,9 @@ enum Server {
     }
 
     static func garage(code: String, token: String?) async throws -> PublicGarage {
-        try await send(request("v1/garages/\(code)", token: token), as: PublicGarage.self) { $0 == 404 ? Failure.notFound : nil }
+        try await send(request("v1/garages/\(code)", token: token), as: PublicGarage.self) {
+            $0 == 404 ? Failure.notFound : $0 == 403 ? Failure.friendsOnly : nil
+        }
     }
 
     static func report(code: String, car: String?, reason: String) async throws {
@@ -190,6 +199,54 @@ enum Server {
         var c = URLComponents(url: base.appendingPathComponent("g/\(code)"), resolvingAgainstBaseURL: false)!
         c.fragment = car
         return c.url!
+    }
+
+    // MARK: - Friends
+
+    /// Your invitation link's code: the same for a week; `renew` makes a new one, and the old one
+    /// stops working.
+    static func invite(token: String, renew: Bool = false) async throws -> FriendInvite {
+        struct Body: Encodable { var renew: Bool }
+        return try await send(request("v1/me/invite", method: "POST", json: Body(renew: renew), token: token), as: FriendInvite.self)
+    }
+
+    /// The page an invitation link opens, also without the app: who it is from, and a button for
+    /// TrackLap (tracklap://friend/<code>).
+    static func inviteURL(code: String) -> URL {
+        base.appendingPathComponent("f/\(code)")
+    }
+
+    /// Who an invitation is from, while it is good.
+    static func inviter(code: String) async throws -> String {
+        struct From: Decodable { var name: String }
+        return try await send(request("v1/invites/\(code)"), as: From.self) { $0 == 404 ? Failure.noInvite : nil }.name
+    }
+
+    /// An invitation accepted: you are friends both ways from now.
+    static func accept(invite code: String, token: String) async throws -> Friend {
+        struct Body: Encodable { var code: String }
+        return try await send(request("v1/friends", method: "POST", json: Body(code: code), token: token), as: Friend.self) {
+            switch $0 {
+            case 404: return Failure.noInvite
+            case 409: return Failure.cannotBefriend
+            default: return nil
+            }
+        }
+    }
+
+    static func friends(token: String) async throws -> [Friend] {
+        struct List: Decodable { var friends: [Friend] }
+        return try await send(request("v1/friends", token: token), as: List.self).friends
+    }
+
+    /// A friend with their best laps and numbers; only while you are friends.
+    static func friend(id: String, token: String) async throws -> FriendProfile {
+        try await send(request("v1/friends/\(id)", token: token), as: FriendProfile.self) { $0 == 404 ? Failure.notFriend : nil }
+    }
+
+    /// No longer friends, for both.
+    static func removeFriend(id: String, token: String) async throws {
+        _ = try await send(request("v1/friends/\(id)", method: "DELETE", token: token), as: OK.self) { $0 == 404 ? Failure.notFriend : nil }
     }
 
     // MARK: - Plumbing

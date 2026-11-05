@@ -1,9 +1,10 @@
-// TrackLap server: live groups, per-track leaderboards, accounts and garages for the TrackLap app,
-// on Cloudflare Workers with Durable Objects. One Room per group, holding the WebSockets of its
-// members (they hibernate between messages); one Boards object for every leaderboard; one Accounts
-// object with the drivers who signed in; one Garage per driver who shows their cars. The phones do
-// all the timing: the server only keeps who is in a group with their times, relays positions and
-// laps, stores the best lap of each driver on each track, and the cars they show.
+// TrackLap server: live groups, per-track leaderboards, accounts, friends and garages for the
+// TrackLap app, on Cloudflare Workers with Durable Objects. One Room per group, holding the
+// WebSockets of its members (they hibernate between messages); one Boards object for every
+// leaderboard; one Accounts object with the drivers who signed in and who their friends are; one
+// Garage per driver who shows their cars. The phones do all the timing: the server only keeps who is
+// in a group with their times, relays positions and laps, stores the best lap of each driver on each
+// track, and the cars they show.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE = /^[A-HJ-NP-Z2-9]{5}$/;
@@ -33,7 +34,13 @@ const MAX_PHOTO = 1536 * 1024;
 const MAX_GARAGE_JSON = 64 * 1024;
 // Reports from this many different people hide a garage until it is looked at.
 const REPORTS_TO_HIDE = 3;
-const INTERNAL = /^x-tracklap-(account|name|garage|car|car-name|is-admin|admin)$/i;
+// Friends: an invitation link, good for a week, makes two drivers friends both ways. Friends see
+// each other's garage (also one shown to friends only), their best laps and a few numbers.
+const INVITE = /^[A-HJ-NP-Z2-9]{8}$/;
+const INVITE_TTL = 7 * 24 * 3600 * 1000;
+const MAX_FRIENDS = 200;
+const AUDIENCES = ['all', 'friends'];
+const INTERNAL = /^x-tracklap-(account|name|garage|car|car-name|is-admin|admin|friend)$/i;
 
 export default {
   async fetch(request, env) {
@@ -50,6 +57,11 @@ export default {
       }
       if (path === '/v1/me' && request.method === 'DELETE') return await deleteAccount(request, env);
       if (path === '/v1/me/garage' && request.method === 'POST') return await openGarage(request, env);
+      if (path === '/v1/me/invite' || path === '/v1/friends' || /^\/v1\/invites\/[^/]+$/.test(path)) {
+        return await accounts(env).fetch(await inward(request));
+      }
+      const friend = path.match(/^\/v1\/friends\/([^/]+)$/);
+      if (friend) return await friendRoute(request, env, friend[1]);
       if (path === '/v1/accounts' || path === '/v1/sessions' || path === '/v1/me' || path === '/v1/me/password') {
         return await accounts(env).fetch(await inward(request));
       }
@@ -59,10 +71,12 @@ export default {
         const code = garage[1].toUpperCase();
         if (!GARAGE.test(code)) return json({ error: 'no such garage' }, 404);
         const account = await authenticate(request, env);
-        return garages(env, code).fetch(await inward(request, signedIn(account, env, request)));
+        return await garageRoute(request, env, code, account);
       }
       const page = path.match(/^\/g\/([^/]+)\/?$/);
       if (page) return await garagePage(page[1].toUpperCase(), request, env);
+      const invite = path.match(/^\/f\/([^/]+)\/?$/);
+      if (invite) return await invitePage(invite[1].toUpperCase(), request, env);
       return json({ error: 'not found' }, 404);
     } catch (e) {
       console.error(e);
@@ -136,6 +150,41 @@ async function boards(request, env) {
   return leaderboards(env).fetch(await inward(request, internal));
 }
 
+/// A garage call. A garage shown to friends only answers 403 to anyone else: when the one asking is
+/// a friend of its owner, the call goes again saying so. The owner's id never leaves the worker.
+async function garageRoute(request, env, code, account) {
+  const internal = signedIn(account, env, request);
+  const again = request.method === 'GET' ? request.clone() : null;
+  const res = await garages(env, code).fetch(await inward(request, internal));
+  if (res.status !== 403 || !again) return res;
+  const refused = await res.json();
+  if (refused.error !== 'friends only') return json(refused, 403);
+  if (account && refused.owner && (await areFriends(env, account.id, refused.owner))) {
+    return garages(env, code).fetch(await inward(again, { ...internal, 'X-TrackLap-Friend': '1' }));
+  }
+  return json({ error: 'friends only' }, 403);
+}
+
+async function areFriends(env, a, b) {
+  const res = await accounts(env).fetch(new Request('https://accounts/internal/friends', {
+    method: 'POST',
+    body: JSON.stringify({ a, b }),
+  }));
+  return res.ok && (await res.json()).friends === true;
+}
+
+/// A friend: who they are (only if you are friends), their best lap on every track and a few
+/// numbers from the leaderboards. DELETE ends the friendship, for both.
+async function friendRoute(request, env, id) {
+  const res = await accounts(env).fetch(await inward(request));
+  if (!res.ok || request.method !== 'GET') return res;
+  const friend = await res.json();
+  const laps = await leaderboards(env).fetch(new Request('https://boards/internal/driver', {
+    headers: { 'X-TrackLap-Account': encodeURIComponent(friend.id) },
+  }));
+  return json({ ...friend, ...(await laps.json()) });
+}
+
 /// Your garage: made the first time you show a car, then always the same code.
 async function openGarage(request, env) {
   const account = await authenticate(request, env);
@@ -157,7 +206,7 @@ async function openGarage(request, env) {
   return json({ error: 'busy' }, 503);
 }
 
-/// The account goes, and with it the garage and every lap on the leaderboards.
+/// The account goes, and with it the garage, the friendships and every lap on the leaderboards.
 async function deleteAccount(request, env) {
   const res = await accounts(env).fetch(await inward(request));
   if (!res.ok) return res;
@@ -330,6 +379,7 @@ export class Boards {
     // Set by the worker from the token: the account, its name and the car of the lap.
     const driver = header(request, 'X-TrackLap-Account') || null;
     if (url.pathname === '/internal/forget' && request.method === 'POST') return this.forget(driver);
+    if (url.pathname === '/internal/driver') return json(await this.driver(driver));
     if (url.pathname === '/v1/laps' && request.method === 'POST') {
       const body = await request.json().catch(() => null);
       const who = {
@@ -385,10 +435,18 @@ export class Boards {
       time: t,
       sectors: Array.isArray(b.sectors) ? b.sectors.slice(0, 8).map(time).filter(x => x !== null) : [],
       date: Number.isFinite(+b.date) ? Math.round(+b.date) : Date.now(),
+      // Every session sends its best lap: how many came, and when the last one was driven.
+      sessions: 1,
     };
-    if (i < 0) entries.push(entry);
-    else if (t < entries[i].time) entries[i] = entry;
-    else entries[i].name = entry.name;
+    entry.last = entry.date;
+    if (i >= 0) {
+      const old = entries[i];
+      const seen = { sessions: (old.sessions || 1) + 1, last: Math.max(old.last || old.date, entry.date) };
+      if (t < old.time) entries[i] = { ...entry, ...seen };
+      else Object.assign(old, seen, { name: entry.name });
+    } else {
+      entries.push(entry);
+    }
     entries.sort((x, y) => x.time - y.time);
     await storage.put(key, entries.slice(0, 1000));
     const same = entries.filter(e => e.source === b.source);
@@ -404,6 +462,54 @@ export class Boards {
     });
     const shown = laps.filter(e => e.rank <= BOARD_SIZE || e.mine);
     return { track: { id: track.id, name: track.name, length: track.length }, laps: shown };
+  }
+
+  /// A driver's best lap on every track, with its place there, and a few numbers: how many tracks,
+  /// sessions and first places, the track driven most and the last day on track.
+  async driver(driver) {
+    const laps = [];
+    if (!driver) return { laps, stats: null };
+    const storage = this.state.storage;
+    for (const t of (await storage.get('tracks')) || []) {
+      const entries = (await storage.get('board:' + t.id)) || [];
+      for (const e of entries) {
+        if (e.driver !== driver) continue;
+        const same = entries.filter(x => x.source === e.source);
+        laps.push({
+          track: { id: t.id, name: t.name, length: t.length },
+          source: e.source,
+          time: e.time,
+          sectors: e.sectors || [],
+          date: e.date,
+          last: e.last || e.date,
+          sessions: e.sessions || 1,
+          vehicle: e.vehicle || '',
+          garage: e.garage || '',
+          car: e.car || '',
+          rank: same.indexOf(e) + 1,
+          of: same.length,
+        });
+      }
+    }
+    laps.sort((a, b) => b.last - a.last);
+    const byTrack = new Map();
+    for (const l of laps) {
+      const s = byTrack.get(l.track.id) || { name: l.track.name, sessions: 0, last: 0 };
+      s.sessions += l.sessions;
+      s.last = Math.max(s.last, l.last);
+      byTrack.set(l.track.id, s);
+    }
+    const favourite = [...byTrack.values()].sort((a, b) => b.sessions - a.sessions || b.last - a.last)[0];
+    return {
+      laps,
+      stats: {
+        tracks: byTrack.size,
+        sessions: laps.reduce((n, l) => n + l.sessions, 0),
+        wins: laps.filter(l => l.rank === 1).length,
+        favourite: favourite ? favourite.name : null,
+        last: laps.length ? Math.max(...laps.map(l => l.last)) : null,
+      },
+    };
   }
 
   /// A deleted account: its laps leave every leaderboard.
@@ -470,6 +576,16 @@ export class Accounts {
       await this.state.storage.put('user:' + user.name.toLowerCase(), user);
       return json({ ok: true });
     }
+    if (path === '/internal/friends') {
+      const b = await request.json();
+      const user = await this.byID(b.a);
+      return json({ friends: !!user && (user.friends || []).some(f => f.id === b.b) });
+    }
+    const invited = path.match(/^\/v1\/invites\/([^/]+)$/);
+    if (invited && method === 'GET') {
+      const from = await this.invitation(invited[1]);
+      return from ? json({ name: from.user.name, expires: from.expires }) : json({ error: 'no such invitation' }, 404);
+    }
     if (path === '/v1/accounts' && method === 'POST') return this.signUp(await body(request), ip);
     if (path === '/v1/sessions' && method === 'POST') return this.signIn(await body(request), ip);
     const found = await this.byToken(request);
@@ -492,9 +608,27 @@ export class Accounts {
       user.tokens = [];
       return json({ token: await this.issue(user), account: this.view(user) });
     }
+    if (path === '/v1/me/invite' && method === 'POST') return this.invite(user, (await body(request))?.renew === true);
+    if (path === '/v1/friends' && method === 'GET') return json({ friends: await this.friendsOf(user) });
+    if (path === '/v1/friends' && method === 'POST') return this.accept(user, (await body(request))?.code);
+    const friend = path.match(/^\/v1\/friends\/([^/]+)$/);
+    if (friend) {
+      const other = user.friends?.some(f => f.id === friend[1]) ? await this.byID(friend[1]) : null;
+      if (!other) return json({ error: 'not a friend' }, 404);
+      if (method === 'GET') return json(this.friendView(other, user));
+      if (method === 'DELETE') {
+        await this.unfriend(user, other);
+        return json({ ok: true });
+      }
+    }
     if (path === '/v1/me' && method === 'DELETE') {
       const b = await body(request);
       if (!(await this.check(user, b?.password))) return json({ error: 'wrong password' }, 403);
+      for (const f of user.friends || []) {
+        const other = await this.byID(f.id);
+        if (other) await this.unfriend(user, other);
+      }
+      if (user.invite) await this.state.storage.delete('invite:' + user.invite);
       await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       console.log('account deleted', user.name);
       return json({ id: user.id, garage: user.garage || null });
@@ -565,6 +699,78 @@ export class Accounts {
     return { id: user.id, name: user.name, garage: user.garage || null };
   }
 
+  /// Your invitation link's code: the same one for a week, so a link sent around keeps working; a
+  /// new one when it has less than a day left, or when you ask (the old one stops working).
+  async invite(user, renew) {
+    const storage = this.state.storage;
+    const current = user.invite ? await storage.get('invite:' + user.invite) : null;
+    if (current && !renew && current.expires - Date.now() > 24 * 3600 * 1000) {
+      return json({ code: user.invite, expires: current.expires });
+    }
+    for (let i = 0; i < 6; i++) {
+      const code = randomCode(8);
+      if (await storage.get('invite:' + code)) continue;
+      const expires = Date.now() + INVITE_TTL;
+      if (user.invite) await storage.delete('invite:' + user.invite);
+      user.invite = code;
+      await storage.put({ ['invite:' + code]: { id: user.id, expires }, ['user:' + user.name.toLowerCase()]: user });
+      return json({ code, expires }, 201);
+    }
+    return json({ error: 'busy' }, 503);
+  }
+
+  /// Who an invitation is from, while it is good.
+  async invitation(raw) {
+    const code = typeof raw === 'string' ? raw.toUpperCase() : '';
+    if (!INVITE.test(code)) return null;
+    const inv = await this.state.storage.get('invite:' + code);
+    if (!inv || inv.expires < Date.now()) return null;
+    const user = await this.byID(inv.id);
+    return user && user.invite === code ? { user, expires: inv.expires } : null;
+  }
+
+  /// An invitation accepted: friends both ways, from now.
+  async accept(user, code) {
+    const from = await this.invitation(code);
+    if (!from) return json({ error: 'no such invitation' }, 404);
+    const other = from.user;
+    if (other.id === user.id) return json({ error: 'that is you' }, 409);
+    user.friends ||= [];
+    other.friends ||= [];
+    if (user.friends.some(f => f.id === other.id)) return json(this.friendView(other, user));
+    if (user.friends.length >= MAX_FRIENDS || other.friends.length >= MAX_FRIENDS) return json({ error: 'too many friends' }, 409);
+    const since = Date.now();
+    user.friends.push({ id: other.id, since });
+    other.friends.push({ id: user.id, since });
+    await this.state.storage.put({ ['user:' + user.name.toLowerCase()]: user, ['user:' + other.name.toLowerCase()]: other });
+    return json(this.friendView(other, user), 201);
+  }
+
+  async unfriend(user, other) {
+    user.friends = (user.friends || []).filter(f => f.id !== other.id);
+    other.friends = (other.friends || []).filter(f => f.id !== user.id);
+    await this.state.storage.put({ ['user:' + user.name.toLowerCase()]: user, ['user:' + other.name.toLowerCase()]: other });
+  }
+
+  /// Your friends by name; friends whose account went are dropped on the way.
+  async friendsOf(user) {
+    const out = [];
+    for (const f of user.friends || []) {
+      const other = await this.byID(f.id);
+      if (other) out.push(this.friendView(other, user));
+    }
+    if (out.length !== (user.friends || []).length) {
+      user.friends = user.friends.filter(f => out.some(o => o.id === f.id));
+      await this.state.storage.put('user:' + user.name.toLowerCase(), user);
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }
+
+  friendView(other, user) {
+    const since = (user.friends || []).find(f => f.id === other.id)?.since ?? null;
+    return { ...this.view(other), since };
+  }
+
   allowed(key) {
     const now = Date.now();
     const recent = (this.failures.get(key) || []).filter(t => now - t < 15 * 60 * 1000);
@@ -586,9 +792,11 @@ export class Accounts {
   }
 }
 
-/// A driver's garage: the cars they show to everyone, each with one photo, the power, the weight, the
-/// modifications and a few notes. Only its owner can change it; anyone can read it, in the app or at
-/// /g/<code>, and report it. Reports from three different people hide it until the admin looks.
+/// A driver's garage: the cars they show, each with one photo, the power, the weight, the
+/// modifications and a few notes. Only its owner can change it. Shown to everyone, anyone can read
+/// it, in the app or at /g/<code>; shown to friends only, the owner's friends (the worker says so)
+/// and nobody else. A photo is read by its id, which only those who can read the garage get.
+/// Reports from three different people hide it until the admin looks.
 export class Garage {
   constructor(state) {
     this.state = state;
@@ -618,6 +826,7 @@ export class Garage {
     const account = header(request, 'X-TrackLap-Account');
     const mine = !!account && account === meta.owner;
     const admin = header(request, 'X-TrackLap-Is-Admin') === '1';
+    const friend = header(request, 'X-TrackLap-Friend') === '1';
     const visible = !meta.hidden || mine || admin;
 
     if (m[2] !== undefined) {
@@ -655,9 +864,12 @@ export class Garage {
     if (method === 'GET') {
       if (!visible) return json({ error: 'hidden' }, 404);
       const garage = await storage.get('garage');
+      const audience = garage.audience || 'all';
+      // The worker asks again for a friend of the owner, and keeps the owner to itself.
+      if (audience === 'friends' && !mine && !admin && !friend) return json({ error: 'friends only', owner: meta.owner }, 403);
       const photos = new Set((await storage.get('photos')) || []);
       const cars = garage.cars.map(c => ({ ...c, photo: photos.has(c.photo) ? c.photo : null }));
-      const out = { code, name: garage.name, cars, updated: garage.updated, mine };
+      const out = { code, name: garage.name, cars, updated: garage.updated, mine, audience };
       if (mine) out.missing = garage.cars.map(c => c.photo).filter(p => p && !photos.has(p));
       if (mine || admin) out.hidden = meta.hidden;
       if (admin) out.reports = Object.values(meta.reports || {});
@@ -715,9 +927,14 @@ async function garagePage(code, request, env) {
   const t = PAGE_TEXT[lang];
   const origin = new URL(request.url).origin;
   let g = null;
+  let friendsOnly = false;
   if (GARAGE.test(code)) {
     const res = await garages(env, code).fetch(new Request(`${origin}/v1/garages/${code}`));
     if (res.ok) g = await res.json();
+    friendsOnly = res.status === 403;
+  }
+  if (friendsOnly) {
+    return html(pageShell(lang, t.friendsOnlyTitle, `<main class="empty"><h1>${esc(t.friendsOnlyTitle)}</h1><p>${esc(t.friendsOnly)}</p><p><a class="open" href="tracklap://garage/${code}">${esc(t.open)}</a></p></main>`, ''), 403);
   }
   if (!g) return html(pageShell(lang, t.missingTitle, `<main class="empty"><h1>${esc(t.missingTitle)}</h1><p>${esc(t.missing)}</p></main>`, ''), 404);
 
@@ -782,6 +999,14 @@ const PAGE_TEXT = {
     ratio: 'kg/CV',
     missingTitle: 'Garage non trovato',
     missing: 'Il link non è giusto, oppure il garage è stato tolto.',
+    friendsOnlyTitle: 'Garage solo per gli amici',
+    friendsOnly: 'Questo pilota mostra il garage solo ai suoi amici su TrackLap.',
+    inviteTitle: n => `${n} ti invita su TrackLap`,
+    invite: 'Diventate amici: vedrete i vostri garage, i giri migliori su ogni pista e le statistiche.',
+    inviteOpen: "Accetta nell'app",
+    inviteApp: "Serve l'app TrackLap su iPhone: aprila e accedi con il tuo account.",
+    inviteGoneTitle: 'Invito scaduto',
+    inviteGone: 'Questo invito non vale più: chiedine uno nuovo a chi te lo ha mandato.',
   },
   en: {
     title: n => `${n}'s garage`,
@@ -799,8 +1024,43 @@ const PAGE_TEXT = {
     ratio: 'kg/hp',
     missingTitle: 'Garage not found',
     missing: 'The link is wrong, or the garage was taken down.',
+    friendsOnlyTitle: 'Garage for friends only',
+    friendsOnly: 'This driver shows their garage to their TrackLap friends only.',
+    inviteTitle: n => `${n} invites you to TrackLap`,
+    invite: "Become friends: you will see each other's garage, best lap on every track and numbers.",
+    inviteOpen: 'Accept in the app',
+    inviteApp: 'You need the TrackLap app on iPhone: open it and sign in with your account.',
+    inviteGoneTitle: 'Invitation expired',
+    inviteGone: 'This invitation is no longer good: ask whoever sent it for a new one.',
   },
 };
+
+/// The page of a friend invitation at /f/<code>: who it is from, and the button that opens the app
+/// on it. Chats show the title in their preview.
+async function invitePage(code, request, env) {
+  const lang = /^it\b/i.test(request.headers.get('Accept-Language') || '') ? 'it' : 'en';
+  const t = PAGE_TEXT[lang];
+  const res = INVITE.test(code) ? await accounts(env).fetch(new Request(`https://accounts/v1/invites/${code}`)) : null;
+  if (!res?.ok) {
+    return html(pageShell(lang, t.inviteGoneTitle, `<main class="empty"><h1>${esc(t.inviteGoneTitle)}</h1><p>${esc(t.inviteGone)}</p></main>`, ''), 404);
+  }
+  const { name } = await res.json();
+  const title = t.inviteTitle(name);
+  const meta = [
+    `<meta property="og:title" content="${esc(title)}">`,
+    `<meta property="og:description" content="${esc(t.invite)}">`,
+    '<meta name="twitter:card" content="summary">',
+  ].join('\n');
+  const body = `
+<main class="empty">
+  <p class="kicker">TrackLap</p>
+  <h1>${esc(title)}</h1>
+  <p>${esc(t.invite)}</p>
+  <p><a class="open" href="tracklap://friend/${code}">${esc(t.inviteOpen)}</a></p>
+  <p class="count">${esc(t.inviteApp)}</p>
+</main>`;
+  return html(pageShell(lang, title, body, meta));
+}
 
 const CAR_ICON = '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h-1a1 1 0 0 1-1-1v-3.5l2-5A2 2 0 0 1 6.9 6h10.2a2 2 0 0 1 1.9 1.5l2 5V16a1 1 0 0 1-1 1h-1"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/><path d="M9.5 17h5M3 12.5h18"/></svg>';
 
@@ -1034,7 +1294,7 @@ function cleanGarage(b, name) {
       photo: clean(c.photo, ID),
     });
   }
-  return { name: text(name), cars, updated: Date.now() };
+  return { name: text(name), cars, audience: AUDIENCES.includes(b.audience) ? b.audience : 'all', updated: Date.now() };
 }
 
 function html(body, status = 200) {

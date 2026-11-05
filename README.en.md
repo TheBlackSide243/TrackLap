@@ -139,8 +139,13 @@ The **Garage** holds the cars you drive on track: each with a photo, the year, t
 weight and every modification. The one you drive in Live sits on top, and every session, drag run
 and leaderboard time remembers the car it was set with.
 
-- **Public garage**: with a TrackLap account the garage gets a link that opens without the app too,
-  and on the track leaderboards every time leads to the car it was set with.
+- **Who sees the garage**: with a TrackLap account you choose, only you, your friends or everyone.
+  Shown to everyone, the garage gets a link that opens without the app too; on the track
+  leaderboards every time leads to the car it was set with.
+- **Friends**: in the Friends tab you send an invitation, and whoever opens it in TrackLap becomes
+  your friend, and you theirs. For every friend you see their garage (also one shown to friends
+  only), their best lap on every track with its place on the leaderboard, and their numbers:
+  tracks, sessions, first places, favourite track and last time on track.
 - **Setups**: for every car as many setups as you like, one for the wet, one for the dry, one per
   track, with pressures, geometry, dampers, springs, anti-roll bars, wing and brakes. Changing one
   deletes nothing: the version before stays in the history, with what changed.
