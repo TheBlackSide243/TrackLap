@@ -244,6 +244,13 @@ enum Server {
         try await send(request("v1/friends/\(id)", token: token), as: FriendProfile.self) { $0 == 404 ? Failure.notFriend : nil }
     }
 
+    /// This phone's token from Apple, so a friend accepting your invitation reaches it; tied to the
+    /// session, signing out stops it.
+    static func addDevice(token device: String, platform: String, account token: String) async throws {
+        struct Body: Encodable { var token: String; var platform: String }
+        _ = try await send(request("v1/me/push", method: "PUT", json: Body(token: device, platform: platform), token: token), as: OK.self)
+    }
+
     /// No longer friends, for both.
     static func removeFriend(id: String, token: String) async throws {
         _ = try await send(request("v1/friends/\(id)", method: "DELETE", token: token), as: OK.self) { $0 == 404 ? Failure.notFriend : nil }

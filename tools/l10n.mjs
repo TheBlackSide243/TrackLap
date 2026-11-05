@@ -1120,6 +1120,11 @@ const strings = [
     'Você precisa de uma conta TrackLap: entre ou crie uma, depois aceite.'],
   ['È il tuo invito: mandalo a un amico.', 'This is your invitation: send it to a friend.', 'Es tu invitación: envíasela a un amigo.', "C'est votre invitation : envoyez-la à un ami.", 'Das ist deine Einladung: Schick sie einem Freund.', 'É o seu convite: envie a um amigo.'],
   ['Accetta', 'Accept', 'Aceptar', 'Accepter', 'Annehmen', 'Aceitar'],
+  // The notification when a friend accepts your invitation: the server sends these keys (push.js).
+  ['Nuovo amico', 'New friend', 'Nuevo amigo', 'Nouvel ami', 'Neuer Freund', 'Novo amigo'],
+  ['%@ ha accettato il tuo invito: ora siete amici.', '%@ accepted your invitation: you are friends now.',
+    '%@ aceptó tu invitación: ahora sois amigos.', '%@ a accepté votre invitation : vous êtes maintenant amis.',
+    '%@ hat deine Einladung angenommen: Ihr seid jetzt Freunde.', '%@ aceitou o seu convite: agora vocês são amigos.'],
 ];
 
 // The permission prompts, in Info.plist.

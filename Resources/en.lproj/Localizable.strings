@@ -673,3 +673,5 @@
 "Serve un account TrackLap: accedi o creane uno, poi accetti." = "You need a TrackLap account: sign in or make one, then accept.";
 "È il tuo invito: mandalo a un amico." = "This is your invitation: send it to a friend.";
 "Accetta" = "Accept";
+"Nuovo amico" = "New friend";
+"%@ ha accettato il tuo invito: ora siete amici." = "%@ accepted your invitation: you are friends now.";
