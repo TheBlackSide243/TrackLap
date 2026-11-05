@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:941547497690:android:10bfb9b023d57f15f15de3",
+        "android_client_info": {
+          "package_name": "win.shadowbyte.tracklap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBb02YBmd87qib_h4ddo8V7zyHr39tjNM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:941547497690:android:da0e3a4e30f38c11f15de3",
         "android_client_info": {
           "package_name": "win.tbsgaming.tracklap"

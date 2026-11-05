@@ -26,7 +26,8 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "win.tbsgaming.tracklap"
+        // The same as the iPhone app on the App Store; the Kotlin code stays in win.tbsgaming.tracklap.
+        applicationId = "win.shadowbyte.tracklap"
         minSdk = 26
         targetSdk = 35
         versionCode = appBuild
