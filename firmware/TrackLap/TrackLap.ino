@@ -136,8 +136,7 @@ static void readSerial() {
       publishInfo();
       char imu[80];
       Imu::describe(imu, sizeof imu);
-      Serial.printf("Accelerometer: %s
-", imu);
+      Serial.printf("Accelerometer: %s\n", imu);
       Serial.println("Commands: pins <rx> <tx> | pins default | info");
     }
   }
