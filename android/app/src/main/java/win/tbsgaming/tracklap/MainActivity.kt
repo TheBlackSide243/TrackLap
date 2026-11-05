@@ -240,6 +240,8 @@ private fun Tabs() {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // On its side in the car mount: the tabs go in a column on the right, where the thumb is.
         val side = maxWidth > maxHeight
+        // A phone on its side is short: seven tabs fit as icons alone.
+        val compactSide = maxHeight < 480.dp
         val content: @Composable (Modifier) -> Unit = { mod ->
             val sides = if (side) WindowInsetsSides.Vertical + WindowInsetsSides.Start else WindowInsetsSides.Top + WindowInsetsSides.Horizontal
             Box(mod.windowInsetsPadding(WindowInsets.safeDrawing.only(sides))) {
@@ -251,8 +253,7 @@ private fun Tabs() {
         if (side) {
             Row(Modifier.fillMaxSize()) {
                 content(Modifier.weight(1f).fillMaxHeight())
-                // A phone on its side is short: seven tabs fit as icons alone.
-                SideBar(compact = maxHeight < 480.dp)
+                SideBar(compact = compactSide)
             }
         } else {
             Column(Modifier.fillMaxSize()) {
