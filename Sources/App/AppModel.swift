@@ -587,7 +587,7 @@ final class AppModel {
         }
         garage.accountChanged()
         friendList.accountChanged()
-        PushNotifications.shared.sync()
+        Task { @MainActor in PushNotifications.shared.sync() }
     }
 
     // MARK: - Settings
