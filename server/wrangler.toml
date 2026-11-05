@@ -32,5 +32,11 @@ new_sqlite_classes = ["Room", "Boards"]
 tag = "v2"
 new_sqlite_classes = ["Accounts", "Garage"]
 
+# Push notifications (src/push.js). These two only say which Apple key and team: the key itself,
+# APNS_KEY, and Firebase's FCM_SERVICE_ACCOUNT are secrets set in the dashboard.
+[vars]
+APNS_KEY_ID = "D72YXX7K3Y"
+APNS_TEAM_ID = "4RPJ56QNT3"
+
 [observability]
 enabled = true

@@ -93,10 +93,12 @@ Apple or Google no longer know are forgotten. Without these secrets on the Worke
 
 | Secret | |
 |---|---|
-| `APNS_KEY` | the text of the .p8 key (developer.apple.com → Keys, with Apple Push Notifications service) |
-| `APNS_KEY_ID` | that key's ID |
-| `APNS_TEAM_ID` | the Apple team's ID |
-| `FCM_SERVICE_ACCOUNT` | the JSON of a service account of the Firebase project (Project settings → Service accounts → Generate new private key) |
+| `APNS_KEY` | the text of the .p8 key "TrackLap Push" (developer.apple.com → Keys, with Apple Push Notifications service) |
+| `FCM_SERVICE_ACCOUNT` | the JSON of a service account of the Firebase project `tracklap-198f9` (Project settings → Service accounts → Generate new private key) |
+
+The key's ID and the team's, `APNS_KEY_ID` and `APNS_TEAM_ID`, are not secret: they are in
+[`wrangler.toml`](wrangler.toml). The Android app's Firebase configuration is
+`android/app/google-services.json`.
 
 ### Tests and deployment
 
@@ -143,8 +145,8 @@ nelle tabelle sopra; le chiamate con account portano `Authorization: Bearer <tok
 **Notifiche**: quando un amico accetta il tuo invito, i tuoi telefoni ricevono una notifica con il
 suo nome. Il server la firma da solo, per Apple (APNs) e per Google (FCM), in
 [`src/push.js`](src/push.js); le parole sono quelle delle app. Servono i segreti `APNS_KEY` (il
-testo della chiave .p8), `APNS_KEY_ID`, `APNS_TEAM_ID` e `FCM_SERVICE_ACCOUNT` (il JSON del service
-account di Firebase): senza, non parte niente.
+testo della chiave .p8) e `FCM_SERVICE_ACCOUNT` (il JSON del service account di Firebase): senza,
+non parte niente. `APNS_KEY_ID` e `APNS_TEAM_ID` non sono segreti e stanno in `wrangler.toml`.
 
 **Moderazione**: sul Worker va impostato il segreto `ADMIN_KEY` (Settings → Variables and
 Secrets). Le segnalazioni compaiono nei log del Worker come `garage reported <codice>`. Con

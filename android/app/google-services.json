@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "941547497690",
+    "project_id": "tracklap-198f9",
+    "storage_bucket": "tracklap-198f9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:941547497690:android:da0e3a4e30f38c11f15de3",
+        "android_client_info": {
+          "package_name": "win.tbsgaming.tracklap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBb02YBmd87qib_h4ddo8V7zyHr39tjNM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
