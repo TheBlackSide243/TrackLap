@@ -4,7 +4,10 @@
 // leaderboard; one Accounts object with the drivers who signed in and who their friends are; one
 // Garage per driver who shows their cars. The phones do all the timing: the server only keeps who is
 // in a group with their times, relays positions and laps, stores the best lap of each driver on each
-// track, and the cars they show.
+// track, and the cars they show. Friends who accept your invitation reach your phones as a push
+// notification (push.js).
+
+import { goodPushToken, notify, pushPlatforms } from './push.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE = /^[A-HJ-NP-Z2-9]{5}$/;
@@ -24,6 +27,7 @@ const MIN_PASSWORD = 8;
 const MAX_PASSWORD = 200;
 const PBKDF2_ROUNDS = 100000;
 const MAX_TOKENS = 20;
+const MAX_DEVICES = 10;
 const LOGIN_FAILURES = 10;
 const SIGNUPS_PER_HOUR = 10;
 // Garages: the cars a driver shows to everyone, at a public eight-letter code.
@@ -62,7 +66,7 @@ export default {
       }
       const friend = path.match(/^\/v1\/friends\/([^/]+)$/);
       if (friend) return await friendRoute(request, env, friend[1]);
-      if (path === '/v1/accounts' || path === '/v1/sessions' || path === '/v1/me' || path === '/v1/me/password') {
+      if (path === '/v1/accounts' || path === '/v1/sessions' || path === '/v1/me' || path === '/v1/me/password' || path === '/v1/me/push') {
         return await accounts(env).fetch(await inward(request));
       }
       if (path === '/v1/laps' || path === '/v1/boards') return await boards(request, env);
@@ -553,8 +557,9 @@ export class Boards {
 /// PBKDF2 hash. Signing in gives the phone a token; only its hash is stored, so the stored data
 /// alone cannot be used to sign in.
 export class Accounts {
-  constructor(state) {
+  constructor(state, env) {
     this.state = state;
+    this.env = env || {};
     this.failures = new Map();
     this.signups = new Map();
   }
@@ -593,6 +598,8 @@ export class Accounts {
     const { user, hash } = found;
     if (path === '/v1/sessions' && method === 'DELETE') {
       user.tokens = user.tokens.filter(t => t !== hash);
+      // Signed out: this phone gets nothing more for this account.
+      user.push = (user.push || []).filter(d => d.session !== hash);
       await this.state.storage.put('user:' + user.name.toLowerCase(), user);
       await this.state.storage.delete('token:' + hash);
       return json({ ok: true });
@@ -603,10 +610,22 @@ export class Accounts {
       if (!(await this.check(user, b?.old))) return json({ error: 'wrong password' }, 403);
       if (!goodPassword(b?.new)) return json({ error: 'password too short' }, 400);
       Object.assign(user, await hashPassword(b.new));
-      // Every other phone is signed out.
+      // Every other phone is signed out; this one keeps its notifications, with its new token.
       await this.state.storage.delete(user.tokens.map(t => 'token:' + t));
       user.tokens = [];
-      return json({ token: await this.issue(user), account: this.view(user) });
+      const devices = (user.push || []).filter(d => d.session === hash);
+      const token = await this.issue(user);
+      const fresh = await sha256(token);
+      user.push = devices.map(d => ({ ...d, session: fresh }));
+      await this.state.storage.put('user:' + user.name.toLowerCase(), user);
+      return json({ token, account: this.view(user) });
+    }
+    if (path === '/v1/me/push' && method === 'PUT') return this.addDevice(user, hash, await body(request));
+    if (path === '/v1/me/push' && method === 'DELETE') {
+      const token = (await body(request))?.token;
+      user.push = (user.push || []).filter(d => d.token !== token);
+      await this.state.storage.put('user:' + user.name.toLowerCase(), user);
+      return json({ ok: true });
     }
     if (path === '/v1/me/invite' && method === 'POST') return this.invite(user, (await body(request))?.renew === true);
     if (path === '/v1/friends' && method === 'GET') return json({ friends: await this.friendsOf(user) });
@@ -743,7 +762,47 @@ export class Accounts {
     user.friends.push({ id: other.id, since });
     other.friends.push({ id: user.id, since });
     await this.state.storage.put({ ['user:' + user.name.toLowerCase()]: user, ['user:' + other.name.toLowerCase()]: other });
+    // Whoever sent the invitation hears about it on their phones.
+    this.later(this.notify(other, {
+      kind: 'friend',
+      title: 'Nuovo amico',
+      body: '%@ ha accettato il tuo invito: ora siete amici.',
+      args: [user.name],
+      data: { friend: user.id, name: user.name },
+    }));
     return json(this.friendView(other, user), 201);
+  }
+
+  /// A phone that wants notifications for this account: its token from Apple or Google, tied to the
+  /// session it signed in with, so signing out there stops them.
+  async addDevice(user, session, b) {
+    const platform = b?.platform;
+    if (!pushPlatforms.includes(platform) || !goodPushToken(platform, b?.token)) return json({ error: 'bad device' }, 400);
+    const devices = (user.push || []).filter(d => d.token !== b.token && user.tokens.includes(d.session));
+    devices.push({ token: b.token, platform, session, at: Date.now() });
+    user.push = devices.slice(-MAX_DEVICES);
+    await this.state.storage.put('user:' + user.name.toLowerCase(), user);
+    return json({ ok: true });
+  }
+
+  /// A notification to the phones still signed in to the account; the ones Apple or Google forgot
+  /// are dropped.
+  async notify(user, note) {
+    const devices = (user.push || []).filter(d => user.tokens.includes(d.session));
+    if (!devices.length) return;
+    const gone = await notify(this.env, devices, note);
+    if (!gone.length) return;
+    const fresh = await this.byID(user.id);
+    if (!fresh) return;
+    fresh.push = (fresh.push || []).filter(d => !gone.includes(d.token));
+    await this.state.storage.put('user:' + fresh.name.toLowerCase(), fresh);
+  }
+
+  /// Work after the answer: the object stays up until it is done.
+  later(promise) {
+    const p = promise.catch(e => console.log('later', e.message));
+    this.state.waitUntil?.(p);
+    this.pending = p;
   }
 
   async unfriend(user, other) {
@@ -1004,7 +1063,7 @@ const PAGE_TEXT = {
     inviteTitle: n => `${n} ti invita su TrackLap`,
     invite: 'Diventate amici: vedrete i vostri garage, i giri migliori su ogni pista e le statistiche.',
     inviteOpen: "Accetta nell'app",
-    inviteApp: "Serve l'app TrackLap su iPhone: aprila e accedi con il tuo account.",
+    inviteApp: "Serve l'app TrackLap, su iPhone o su Android: aprila e accedi con il tuo account.",
     inviteGoneTitle: 'Invito scaduto',
     inviteGone: 'Questo invito non vale più: chiedine uno nuovo a chi te lo ha mandato.',
   },
@@ -1029,7 +1088,7 @@ const PAGE_TEXT = {
     inviteTitle: n => `${n} invites you to TrackLap`,
     invite: "Become friends: you will see each other's garage, best lap on every track and numbers.",
     inviteOpen: 'Accept in the app',
-    inviteApp: 'You need the TrackLap app on iPhone: open it and sign in with your account.',
+    inviteApp: 'You need the TrackLap app, on iPhone or Android: open it and sign in with your account.',
     inviteGoneTitle: 'Invitation expired',
     inviteGone: 'This invitation is no longer good: ask whoever sent it for a new one.',
   },
