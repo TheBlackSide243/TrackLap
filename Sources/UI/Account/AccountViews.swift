@@ -199,7 +199,7 @@ struct AccountPanel: View {
                             .background(Theme.accent, in: Circle())
                         VStack(alignment: .leading, spacing: 2) {
                             Text(name).font(.headline).foregroundStyle(Theme.text)
-                            Text(model.garage.isPublic ? L("Garage pubblico") : L("Garage visibile solo a te"))
+                            Text(model.garage.audience.summary)
                                 .font(.caption)
                                 .foregroundStyle(Theme.sub)
                         }
@@ -338,7 +338,7 @@ struct PasswordSheet: View {
             do {
                 if mode == .delete {
                     try await model.account.delete(password: current)
-                    model.garage.setPublic(false)
+                    model.garage.setAudience(.nobody)
                 } else {
                     try await model.account.changePassword(old: current, new: new)
                 }

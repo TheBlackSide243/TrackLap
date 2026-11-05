@@ -140,8 +140,13 @@ Nel **Garage** stanno le auto con cui giri: ognuna con una foto, l'anno, la pote
 le modifiche. Quella che usi in Live sta in cima, e ogni sessione, ogni corsa drag e ogni tempo in
 classifica si ricorda con quale auto l'hai fatto.
 
-- **Garage pubblico**: con un account TrackLap il garage ha un link che si apre anche senza l'app,
-  e nelle classifiche delle piste ogni tempo porta all'auto con cui è stato fatto.
+- **Chi vede il garage**: con un account TrackLap scegli tu, solo io, gli amici o tutti. Mostrato a
+  tutti, il garage ha un link che si apre anche senza l'app; nelle classifiche delle piste ogni tempo
+  porta all'auto con cui è stato fatto.
+- **Amici**: nella scheda Amici mandi un invito, e chi lo apre in TrackLap diventa tuo amico, e tu
+  suo. Di ogni amico vedi il garage (anche quello mostrato solo agli amici), il giro migliore su
+  ogni pista con il posto in classifica, e le statistiche: piste, sessioni, primi posti, pista
+  preferita e ultima volta in pista.
 - **Assetti**: per ogni auto tutti gli assetti che vuoi, uno per il bagnato, uno per l'asciutto,
   uno per pista, con pressioni, geometria, ammortizzatori, molle, barre, ala e frenata. Modificarne
   uno non cancella niente: la versione di prima resta nello storico, con cosa è cambiato.

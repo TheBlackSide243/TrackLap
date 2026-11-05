@@ -91,6 +91,8 @@ struct PublicGarage: Decodable {
     var cars: [Entry]
     var mine: Bool?
     var hidden: Bool?
+    /// "all", or "friends" for a garage shown to friends only.
+    var audience: String?
     /// Your own garage only: the photos the server is still waiting for.
     var missing: [String]?
 

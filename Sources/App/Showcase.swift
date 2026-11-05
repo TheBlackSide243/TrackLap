@@ -29,7 +29,7 @@ extension AppModel {
         fillDemoGarage()
         if [.garage, .car, .setup].contains(screen) {
             account.showcase(name: "Luca", garage: "K7P2QX9M")
-            garage.setPublic(true)
+            garage.setAudience(.everyone)
         }
         if sessions.summaries.isEmpty, let track = selectedTrack, track.isReady {
             fillDemoSessions(on: track)

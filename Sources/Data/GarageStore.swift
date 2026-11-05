@@ -1,9 +1,34 @@
 import UIKit
 import Observation
 
-/// Your cars: an index (garage.json) and one JPEG per photo in the garage folder. Public, the
-/// garage goes to the server a moment after every change: the cars first, then the photos the server
-/// says it is missing.
+/// Who sees your garage: nobody but you, your friends on TrackLap (in their Friends tab and from the
+/// leaderboards), or everyone, also at the garage's link without the app.
+enum GarageAudience: String, CaseIterable, Identifiable {
+    case nobody, friends, everyone
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .nobody: L("Solo io")
+        case .friends: L("Amici")
+        case .everyone: L("Tutti")
+        }
+    }
+
+    /// One line on your account.
+    var summary: String {
+        switch self {
+        case .nobody: L("Garage visibile solo a te")
+        case .friends: L("Garage visibile agli amici")
+        case .everyone: L("Garage pubblico")
+        }
+    }
+}
+
+/// Your cars: an index (garage.json) and one JPEG per photo in the garage folder. Shown to friends
+/// or to everyone, the garage goes to the server a moment after every change: the cars first, then
+/// the photos the server says it is missing.
 @Observable
 final class GarageStore {
     enum SyncState: Equatable {
@@ -16,9 +41,13 @@ final class GarageStore {
     /// The setups of every car. They stay on this phone: never sent anywhere, only to a file you
     /// export yourself.
     private(set) var setups: [CarSetup] = []
-    /// Shown to everyone at the garage's link and next to your laps on the leaderboards.
-    private(set) var isPublic: Bool
+    private(set) var audience: GarageAudience
     private(set) var sync: SyncState = .idle
+
+    /// Shown to someone: the cars are on the server, and your laps on the leaderboards lead to them.
+    var isShown: Bool { audience != .nobody }
+    /// Shown to everyone, at the garage's link too.
+    var isPublic: Bool { audience == .everyone }
 
     @ObservationIgnored var account: AccountStore?
     @ObservationIgnored private let cache = NSCache<NSString, UIImage>()
@@ -33,7 +62,9 @@ final class GarageStore {
     static let maxPhotoBytes = 1_400_000
 
     init() {
-        isPublic = UserDefaults.standard.bool(forKey: "garagePublic")
+        let d = UserDefaults.standard
+        // Before friends there was only the switch for everyone.
+        audience = GarageAudience(rawValue: d.string(forKey: "garageAudience") ?? "") ?? (d.bool(forKey: "garagePublic") ? .everyone : .nobody)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         cars = Files.read([Car].self, from: indexURL) ?? []
         setups = Files.read([CarSetup].self, from: setupsURL) ?? []
@@ -207,9 +238,9 @@ final class GarageStore {
 
     // MARK: - Publishing
 
-    func setPublic(_ on: Bool) {
-        isPublic = on
-        UserDefaults.standard.set(on, forKey: "garagePublic")
+    func setAudience(_ a: GarageAudience) {
+        audience = a
+        UserDefaults.standard.set(a.rawValue, forKey: "garageAudience")
         publishSoon(now: true)
     }
 
@@ -234,7 +265,7 @@ final class GarageStore {
         }
     }
 
-    /// Public: the cars and then the missing photos. Private again: the garage is emptied on the
+    /// Shown: the cars and then the missing photos. Hidden again: the garage is emptied on the
     /// server, so the link shows nothing, but it stays yours for when you show it again.
     @MainActor
     func publish() async {
@@ -246,15 +277,15 @@ final class GarageStore {
             sync = .idle
             return
         }
-        guard isPublic || account.garage != nil else {
+        guard isShown || account.garage != nil else {
             sync = .idle
             return
         }
         sync = .syncing
         do {
             let code = try await account.garageCode()
-            let shown = isPublic ? cars.map(\.published) : []
-            let missing = try await Server.putGarage(code: code, cars: shown, token: token)
+            let shown = isShown ? cars.map(\.published) : []
+            let missing = try await Server.putGarage(code: code, cars: shown, audience: audience == .friends ? "friends" : "all", token: token)
             for photo in missing {
                 guard !Task.isCancelled else { return }
                 guard let data = photoData(photo) else { continue }
