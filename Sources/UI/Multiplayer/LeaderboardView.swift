@@ -167,10 +167,10 @@ struct LeaderboardView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(car.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
-                    Text(model.garage.isPublic ? L("I tuoi tempi portano a quest'auto del garage")
+                    Text(model.garage.isShown ? L("I tuoi tempi portano a quest'auto del garage")
                          : L("Rendi pubblico il garage perché i tempi portino all'auto"))
                         .font(.caption)
-                        .foregroundStyle(model.garage.isPublic ? Theme.sub : Theme.yellow)
+                        .foregroundStyle(model.garage.isShown ? Theme.sub : Theme.yellow)
                 }
             }
         } else {

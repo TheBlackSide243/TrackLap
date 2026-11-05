@@ -47,7 +47,7 @@ extension SourceKind {
     }
 }
 
-enum AppTab: Hashable { case live, drag, tracks, sessions, garage, device }
+enum AppTab: Hashable { case live, drag, tracks, sessions, garage, friends, device }
 
 /// What the live delta compares with.
 enum DeltaReference: String, CaseIterable, Identifiable {
@@ -80,6 +80,8 @@ final class AppModel {
     let demoDrag = DemoDrag()
     let account = AccountStore()
     let garage = GarageStore()
+    /// The drivers you are friends with on TrackLap (the friends' laps above are files they sent).
+    let friendList = FriendStore()
 
     private(set) var source: SourceKind = .demo
     private(set) var selectedTrackID: UUID? = nil
@@ -110,6 +112,8 @@ final class AppModel {
     var importedSetup: SharedSetup? = nil
     /// A group invitation opened before signing in: Live asks you to sign in, then joins it.
     var pendingJoin: String? = nil
+    /// A friend invitation opened from its link, waiting for you to accept it.
+    var pendingInvite: String? = nil
 
     /// Set once the screenshot mode has opened its screen (see Showcase).
     @ObservationIgnored var showcaseStarted = false
@@ -143,6 +147,7 @@ final class AppModel {
         if let s = d.string(forKey: "activeCar"), let id = UUID(uuidString: s), garage.car(id) != nil { activeCarID = id }
         if let s = d.string(forKey: "activeSetup"), let id = UUID(uuidString: s), garage.setup(id)?.carID == activeCarID { activeSetupID = id }
         garage.account = account
+        friendList.account = account
         account.onChange = { [weak self] in self?.accountChanged() }
         engine.minLapTime = minLapTime
         prepareEngine(selectedTrack)
@@ -496,10 +501,16 @@ final class AppModel {
 
     // MARK: - Live group
 
-    /// tracklap://join/<code>, from the QR code of a group or an invitation.
+    /// tracklap://join/<code>, from the QR code of a group or an invitation; tracklap://garage/…
+    /// for someone's garage; tracklap://friend/<code> for a friend invitation.
     func open(_ url: URL) -> Bool {
         if let link = GarageLink(url: url) {
             shownGarage = link
+            return true
+        }
+        if url.scheme == "tracklap", url.host == "friend" {
+            let code = url.lastPathComponent.uppercased()
+            if FriendStore.isInviteCode(code) { pendingInvite = code }
             return true
         }
         guard url.scheme == "tracklap", url.host == "join" else { return false }
@@ -567,14 +578,15 @@ final class AppModel {
         garage.delete(id)
     }
 
-    /// Signed in or out: the garage follows the account, and your name for the live groups is the
-    /// account's when you had none.
+    /// Signed in or out: the garage and the friends follow the account, and your name for the live
+    /// groups is the account's when you had none.
     private func accountChanged() {
         if let name = account.name, !profile.hasName {
             profile.set(name: String(name.prefix(DriverProfile.maxLength)))
             group.profileChanged()
         }
         garage.accountChanged()
+        friendList.accountChanged()
     }
 
     // MARK: - Settings
