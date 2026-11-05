@@ -238,6 +238,11 @@ Bluetooth e non vanno bene.
   alto giro, satelliti, frequenza e il pallino verde quando l'app è collegata. Con la scheda Drag
   dell'app aperta mostra la velocità, *READY* da fermo, *GO* con il tempo della corsa e i risultati
   principali.
+- **Versione Touch**: la Waveshare ESP32-C6-Touch-LCD-1.47 (file `…-esp32c6-touch-lcd147.bin`) è
+  un'altra scheda, con schermo JD9853 e accelerometro QMI8658: ha lo stesso cruscotto e manda i g
+  che misura, che l'app usa per il cerchio delle accelerazioni invece di ricavarli dal GPS. Impara
+  da sola come è montata: il basso da fermo, l'avanti dalle prime accelerazioni e frenate in
+  rettilineo; se lo ricorda, e lo reimpara se la sposti. Fissala bene, non su qualcosa che balla.
 - **LED**: sulle schede con il LED RGB è rosso senza GPS, giallo in attesa del fix e verde con il fix;
   lampeggia finché l'app non si collega.
 
@@ -249,6 +254,7 @@ Bluetooth e non vanno bene.
 | ESP32-S3 | 18 | 17 |
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (pin RX) | 16 (pin TX) |
+| Waveshare ESP32-C6-Touch-LCD-1.47 | 17 (pin RX) | 16 (pin TX) |
 
 Negli schemi le frecce indicano dove vanno i dati: il TX del GPS va al pin che riceve, l'RX a
 quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
@@ -261,15 +267,19 @@ quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
   <img src="docs/wiring/esp32c.svg" width="300" alt="GPS collegato a ESP32-C3, C5, C6, H2">
   <img src="docs/wiring/lcd147.svg" width="300" alt="GPS collegato a Waveshare ESP32-C6-LCD-1.47">
 </p>
+<p>
+  <img src="docs/wiring/lcd147t.svg" width="300" alt="GPS collegato a Waveshare ESP32-C6-Touch-LCD-1.47">
+</p>
 
-Sulla Waveshare i GPIO 4 e 5 vanno allo slot microSD, per questo il GPS usa i pin RX e TX del
-connettore. Se la scheda usa quei pin per altro (display, LED, la PSRAM dei moduli ESP32-WROVER su
+Su tutte e due le Waveshare il GPS usa i pin RX e TX del connettore (su quella senza touch i GPIO 4
+e 5 vanno allo slot microSD). Se la scheda usa quei pin per altro (display, LED, la PSRAM dei moduli ESP32-WROVER su
 16 e 17), si cambiano dall'app (Dispositivo → ESP32 → Cambia pin) oppure dal monitor seriale USB a
 115200 baud con `pins <rx> <tx>`; `pins default` torna ai predefiniti, `info` mostra lo stato.
 
 **Installazione**: apri https://esp32.tbsgaming.win da Chrome, Edge o Brave sul computer, collega
 la scheda via USB e premi Installa: "Qualsiasi ESP32 con Bluetooth" riconosce il chip da solo,
-"Waveshare ESP32-C6-LCD-1.47" mette la versione con il cruscotto. Gli aggiornamenti tengono pin
+"Waveshare ESP32-C6-LCD-1.47 (senza touch)" e "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" mettono la
+versione con il cruscotto di ciascuna: non sono la stessa scheda. Gli aggiornamenti tengono pin
 e giro migliore. Se la scheda non si collega, tieni premuto BOOT mentre la colleghi.
 
 A ogni modifica in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) compila un file
@@ -290,7 +300,8 @@ Tutti i numeri sono little-endian.
 | CONTROL | `7A1C0004-…` | write (con risposta) | comandi |
 | INFO | `7A1C0005-…` | read, notify | stato dell'ESP32 in JSON |
 
-**FIX**, 24 byte; i primi 20 entrano nell'MTU minimo, e con quello l'app fa a meno dell'altitudine:
+**FIX**, 28 byte; i primi 20 entrano nell'MTU minimo, e con quello l'app fa a meno dell'altitudine
+e dei g:
 
 | Offset | Tipo | Campo |
 |---|---|---|
@@ -304,6 +315,8 @@ Tutti i numeri sono little-endian.
 | 16 | u16 | velocità in cm/s |
 | 18 | u16 | direzione in centesimi di grado |
 | 20 | i32 | altitudine sul livello del mare in mm (`0x80000000` senza fix 3D) |
+| 24 | i16 | g laterali dall'accelerometro della scheda in milli-g, + girando a destra (`0x8000` senza, o mentre impara come è montata; dalla 0.9.2) |
+| 26 | i16 | g longitudinali in milli-g, + accelerando (`0x8000` per nessuno) |
 
 Senza GPS l'ESP32 manda un FIX vuoto (non valido, 0 satelliti) ogni secondo.
 
