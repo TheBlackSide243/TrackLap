@@ -2,6 +2,57 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.9.2 (2026-11-06)
+
+Friends, notifications, the Android app, and g-forces measured by the Waveshare Touch. / Gli
+amici, le notifiche, l'app Android e i g misurati dalla Waveshare Touch.
+
+### English
+
+**New**
+- **Friends**: a Friends tab with your invitation link. Whoever opens it in TrackLap becomes your
+  friend, and you theirs. A friend's page shows their garage, their best lap on every track with the
+  place on the leaderboard, and their numbers. Your garage can be shown to **Only me**, **Friends**
+  or **All**.
+- **Notifications**: when a friend accepts your invitation, your phones get a notification with
+  their name; tapping it opens Friends. iOS and Android ask once, the first time Friends opens.
+- **TrackLap for Android**: the Android app is part of the project, with the same features, account
+  and files as the iPhone app. Its app ID is now `win.shadowbyte.tracklap`, like the iPhone's.
+- **G-forces from the accelerometer**: with the Waveshare ESP32-C6-Touch-LCD-1.47 the friction
+  circle uses the g measured by the board instead of working them out from the GPS; the note below
+  it says which.
+
+**Firmware 0.9.2**
+- New build for the **Waveshare ESP32-C6-Touch-LCD-1.47** (`…-esp32c6-touch-lcd147.bin`), a different
+  board from the one without touch: the same dashboard on its JD9853 screen, and the g-forces of its
+  QMI8658 accelerometer. It learns how it is mounted by itself and remembers it.
+- The FIX packet has 28 bytes: the lateral and longitudinal g follow the altitude. Older apps read the
+  first 24 as before.
+- The other boards work as in 0.7.0.
+
+### Italiano
+
+**Novità**
+- **Amici**: una scheda Amici con il tuo link d'invito. Chi lo apre in TrackLap diventa tuo amico, e
+  tu suo. La pagina di un amico mostra il suo garage, il giro migliore su ogni pista con il posto in
+  classifica e i suoi numeri. Il garage si può mostrare a **Solo io**, **Amici** o **Tutti**.
+- **Notifiche**: quando un amico accetta il tuo invito, sui tuoi telefoni arriva una notifica con il
+  suo nome; toccandola si apre Amici. iOS e Android chiedono il permesso una volta, la prima volta che
+  apri Amici.
+- **TrackLap per Android**: l'app Android fa parte del progetto, con le stesse funzioni, lo stesso
+  account e gli stessi file dell'app per iPhone. Il suo ID ora è `win.shadowbyte.tracklap`, come
+  quello dell'iPhone.
+- **I g dall'accelerometro**: con la Waveshare ESP32-C6-Touch-LCD-1.47 il cerchio delle
+  accelerazioni usa i g misurati dalla scheda invece di ricavarli dal GPS; la nota sotto dice quali.
+
+**Firmware 0.9.2**
+- Nuova versione per la **Waveshare ESP32-C6-Touch-LCD-1.47** (`…-esp32c6-touch-lcd147.bin`), una
+  scheda diversa da quella senza touch: lo stesso cruscotto sul suo schermo JD9853, e i g del suo
+  accelerometro QMI8658. Impara da sola come è montata e se lo ricorda.
+- Il pacchetto FIX ha 28 byte: i g laterali e longitudinali vengono dopo l'altitudine. Le app più
+  vecchie leggono i primi 24 come prima.
+- Le altre schede funzionano come nella 0.7.0.
+
 ## 0.9.1 (2026-11-04)
 
 Live groups with your account, and leaderboards that say Phone. / I gruppi live con il tuo

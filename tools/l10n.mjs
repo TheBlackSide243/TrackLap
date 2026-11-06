@@ -1126,6 +1126,11 @@ const strings = [
   ['%@ ha accettato il tuo invito: ora siete amici.', '%@ accepted your invitation: you are friends now.',
     '%@ aceptó tu invitación: ahora sois amigos.', '%@ a accepté votre invitation : vous êtes maintenant amis.',
     '%@ hat deine Einladung angenommen: Ihr seid jetzt Freunde.', '%@ aceitou o seu convite: agora vocês são amigos.'],
+  // The g-forces from the board's accelerometer (Waveshare ESP32-C6-Touch-LCD-1.47, firmware 0.9.2).
+  ["Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.", "Measured by the ESP32's accelerometer, at every GPS fix.",
+    'Medidas por el acelerómetro del ESP32, en cada fix del GPS.', "Mesurées par l'accéléromètre de l'ESP32, à chaque fix GPS.",
+    'Vom Beschleunigungssensor des ESP32 gemessen, bei jedem GPS-Fix.', 'Medidas pelo acelerômetro do ESP32, a cada fix do GPS.'],
+  ['Accelerometro: %@', 'Accelerometer: %@', 'Acelerómetro: %@', 'Accéléromètre : %@', 'Beschleunigungssensor: %@', 'Acelerômetro: %@'],
 ];
 
 // The permission prompts, in Info.plist.

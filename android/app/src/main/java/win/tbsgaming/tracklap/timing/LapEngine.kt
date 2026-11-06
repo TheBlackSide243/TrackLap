@@ -29,6 +29,8 @@ data class Sample(
     val utc: Double? = null,
     /** Metres above sea level, when the source gives it: the slope of a drag run. */
     val alt: Double? = null,
+    /** Measured by the board's accelerometer, when it has one. */
+    val g: GPoint? = null,
 )
 
 enum class SectorState { best, faster, slower }
@@ -211,16 +213,16 @@ class LapEngine {
             if (lapStartT != null) {
                 checkSplits(p, Pt(s, xy), u, dt, step)
                 lapDistance += step * u
-                appendPoint(tc, crossing, s.speed)
+                appendPoint(tc, crossing, s.speed, s.g)
                 finishLap(tc)
             }
-            beginLap(tc, s.wall + (tc - s.t), crossing, s.speed)
+            beginLap(tc, s.wall + (tc - s.t), crossing, s.speed, s.g)
             lapDistance = step * (1 - u)
-            appendPoint(s.t, s.coord, s.speed)
+            appendPoint(s.t, s.coord, s.speed, s.g)
         } else if (lapStartT != null) {
             checkSplits(p, Pt(s, xy), 1.0, dt, step)
             lapDistance += step
-            appendPoint(s.t, s.coord, s.speed)
+            appendPoint(s.t, s.coord, s.speed, s.g)
         }
         updateDelta(s.t)
     }
@@ -233,7 +235,7 @@ class LapEngine {
         return elapsed >= minLapTime && distance >= 200
     }
 
-    private fun beginLap(t: Double, wall: Double, coord: Coord, v: Double) {
+    private fun beginLap(t: Double, wall: Double, coord: Coord, v: Double, g: GPoint?) {
         lapNumber += 1
         lapStartT = t
         lapStartWall = wall
@@ -242,7 +244,7 @@ class LapEngine {
         splits.clear()
         maxSpeed = 0.0
         sectors = makeSectors(sectors)
-        appendPoint(t, coord, v)
+        appendPoint(t, coord, v, g)
     }
 
     private fun finishLap(tc: Double) {
@@ -271,10 +273,10 @@ class LapEngine {
         onLap?.invoke(lap)
     }
 
-    private fun appendPoint(t: Double, coord: Coord, v: Double) {
+    private fun appendPoint(t: Double, coord: Coord, v: Double, g: GPoint?) {
         val t0 = lapStartT ?: return
         maxSpeed = maxOf(maxSpeed, v)
-        trace.add(TracePoint(t - t0, lapDistance, coord.lat, coord.lon, v))
+        trace.add(TracePoint(t - t0, lapDistance, coord.lat, coord.lon, v, g?.lateral, g?.longitudinal))
     }
 
     // Sectors

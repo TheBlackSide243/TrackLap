@@ -1,13 +1,19 @@
 #include "Display.h"
 
-#ifdef TRACKLAP_LCD147
-#pragma message "TrackLap: dashboard for the Waveshare ESP32-C6-LCD-1.47"
+#ifdef TRACKLAP_DISPLAY
+#pragma message "TrackLap: dashboard for the " BOARD_NAME
 #include <Arduino_GFX_Library.h>
 
 namespace {
 
+#ifdef TRACKLAP_LCD147T
+// Waveshare ESP32-C6-Touch-LCD-1.47: JD9853 IPS panel, 172 × 320, used in landscape. The JD9853
+// takes the ST7789's commands for drawing; its own setup comes after (jd9853Setup).
+const int8_t kDC = 15, kCS = 14, kSCK = 1, kMOSI = 2, kRST = 22, kBacklight = 23;
+#else
 // Waveshare ESP32-C6-LCD-1.47: ST7789 IPS panel, 172 × 320, used in landscape.
 const int8_t kDC = 15, kCS = 14, kSCK = 7, kMOSI = 6, kRST = 21, kBacklight = 22;
+#endif
 const int16_t W = 320, H = 172;
 const int16_t kTop = 26;       // status bar
 const int16_t kMainY = 30;     // lap time or speed
@@ -305,12 +311,76 @@ void Display::group(uint8_t position, uint8_t count, int32_t gap) {
   groupGap = gap;
 }
 
+#ifdef TRACKLAP_LCD147T
+// The JD9853's power, timing and gamma for this 172 × 320 panel, from Waveshare's driver: command,
+// length, data. Then the window the panel starts with (columns 34-205), and the screen on.
+static void jd9853Setup(Arduino_DataBus* bus) {
+  static const uint8_t setup[] = {
+      0xDF, 2, 0x98, 0x53,
+      0xDF, 2, 0x98, 0x53,
+      0xB2, 1, 0x23,
+      0xB7, 4, 0x00, 0x47, 0x00, 0x6F,
+      0xBB, 6, 0x1C, 0x1A, 0x55, 0x73, 0x63, 0xF0,
+      0xC0, 2, 0x44, 0xA4,
+      0xC1, 1, 0x16,
+      0xC3, 8, 0x7D, 0x07, 0x14, 0x06, 0xCF, 0x71, 0x72, 0x77,
+      0xC4, 12, 0x00, 0x00, 0xA0, 0x79, 0x0B, 0x0A, 0x16, 0x79, 0x0B, 0x0A, 0x16, 0x82,
+      0xC8, 32, 0x3F, 0x32, 0x29, 0x29, 0x27, 0x2B, 0x27, 0x28, 0x28, 0x26, 0x25, 0x17, 0x12, 0x0D, 0x04, 0x00,
+                0x3F, 0x32, 0x29, 0x29, 0x27, 0x2B, 0x27, 0x28, 0x28, 0x26, 0x25, 0x17, 0x12, 0x0D, 0x04, 0x00,
+      0xD0, 5, 0x04, 0x06, 0x6B, 0x0F, 0x00,
+      0xD7, 2, 0x00, 0x30,
+      0xE6, 1, 0x14,
+      0xDE, 1, 0x01,
+      0xB7, 5, 0x03, 0x13, 0xEF, 0x35, 0x35,
+      0xC1, 3, 0x14, 0x15, 0xC0,
+      0xC2, 2, 0x06, 0x3A,
+      0xC4, 2, 0x72, 0x12,
+      0xBE, 1, 0x00,
+      0xDE, 1, 0x02,
+      0xE5, 3, 0x00, 0x02, 0x00,
+      0xE5, 3, 0x01, 0x02, 0x00,
+      0xDE, 1, 0x00,
+      0x35, 1, 0x00,
+      0x3A, 1, 0x05,
+      0x2A, 4, 0x00, 0x22, 0x00, 0xCD,
+      0x2B, 4, 0x00, 0x00, 0x01, 0x3F,
+      0xDE, 1, 0x02,
+      0xE5, 3, 0x00, 0x02, 0x00,
+      0xDE, 1, 0x00,
+  };
+  bus->beginWrite();
+  bus->writeCommand(0x11);  // out of sleep
+  bus->endWrite();
+  delay(120);
+  bus->beginWrite();
+  for (size_t i = 0; i < sizeof setup;) {
+    bus->writeCommand(setup[i]);
+    uint8_t n = setup[i + 1];
+    for (uint8_t k = 0; k < n; k++) bus->write(setup[i + 2 + k]);
+    i += 2 + n;
+  }
+  bus->writeCommand(0x21);  // colours inverted, as the panel wants
+  bus->writeCommand(0x29);  // on
+  bus->endWrite();
+  delay(10);
+}
+#endif
+
 void Display::begin() {
   pinMode(kBacklight, OUTPUT);
   digitalWrite(kBacklight, HIGH);
   Arduino_DataBus* bus = new Arduino_HWSPI(kDC, kCS, kSCK, kMOSI);
   gfx = new Arduino_ST7789(bus, kRST, 1, true, 172, 320, 34, 0, 34, 0);
-  if (!gfx->begin()) {
+#ifdef TRACKLAP_LCD147T
+  bool ok = gfx->begin(20000000);
+  if (ok) {
+    jd9853Setup(bus);
+    gfx->setRotation(1);
+  }
+#else
+  bool ok = gfx->begin();
+#endif
+  if (!ok) {
     gfx = nullptr;
     return;
   }

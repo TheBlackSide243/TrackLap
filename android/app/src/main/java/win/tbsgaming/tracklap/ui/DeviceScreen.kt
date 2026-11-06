@@ -144,6 +144,7 @@ private fun BleSection() {
                     ble.info?.let { info ->
                         if (info.gps.isNullOrEmpty()) Note(Icons.Filled.Warning, Theme.yellow, L("Nessun GPS risponde: controlla i fili e i pin."))
                         else Text(L("Modulo GPS: %@", info.gps), fontSize = 12.sp, color = Theme.sub)
+                        if (!info.imu.isNullOrEmpty()) Text(L("Accelerometro: %@", info.imu), fontSize = 12.sp, color = Theme.sub)
                         if (info.rx != null && info.tx != null) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(L("GPS su RX %lld · TX %lld", info.rx, info.tx), style = Theme.numStyle(12.sp, FontWeight.Normal, Theme.sub), modifier = Modifier.weight(1f))

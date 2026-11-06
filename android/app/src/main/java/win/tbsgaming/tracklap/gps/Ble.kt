@@ -31,6 +31,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import win.tbsgaming.tracklap.model.Coord
 import win.tbsgaming.tracklap.model.Track
+import win.tbsgaming.tracklap.timing.GPoint
 import win.tbsgaming.tracklap.timing.Sample
 import win.tbsgaming.tracklap.ui.L
 import java.io.ByteArrayOutputStream
@@ -61,6 +62,8 @@ data class DeviceInfo(
     val rx: Int? = null,
     val tx: Int? = null,
     val name: String? = null,
+    /** The board's accelerometer ("QMI8658"), empty or null without one. */
+    val imu: String? = null,
 )
 
 data class FoundDevice(val address: String, val name: String, val rssi: Int)
@@ -70,6 +73,8 @@ object BlePacket {
     data class Fix(
         val valid: Boolean, val sats: Int, val rate: Int, val itow: Double,
         val lat: Double, val lon: Double, val speed: Double, val heading: Double, val alt: Double?,
+        /** From the board's accelerometer, in g: lateral (+ right) and longitudinal (+ accelerating). */
+        val g: GPoint? = null,
     )
 
     private fun u16(b: ByteArray, i: Int) = (b[i].toInt() and 0xFF) or ((b[i + 1].toInt() and 0xFF) shl 8)
@@ -78,7 +83,8 @@ object BlePacket {
 
     /**
      * 20 bytes: version, flags, sats, rate Hz, iTOW ms (u32), lat/lon 1e-7° (i32), speed cm/s (u16),
-     * heading 0.01° (u16); from firmware 0.7.0 then the altitude in mm (i32, INT32_MIN for none).
+     * heading 0.01° (u16); from firmware 0.7.0 then the altitude in mm (i32, INT32_MIN for none); from
+     * 0.9.2 the accelerometer's lateral and longitudinal g in milli-g (i16 each, INT16_MIN for none).
      */
     fun fix(b: ByteArray): Fix? {
         if (b.size < 20) return null
@@ -86,8 +92,16 @@ object BlePacket {
         return Fix(
             valid = (b[1].toInt() and 1) == 1, sats = b[2].toInt() and 0xFF, rate = b[3].toInt() and 0xFF,
             itow = u32(b, 4) / 1000.0, lat = i32(b, 8) * 1e-7, lon = i32(b, 12) * 1e-7,
-            speed = u16(b, 16) / 100.0, heading = u16(b, 18) / 100.0, alt = alt,
+            speed = u16(b, 16) / 100.0, heading = u16(b, 18) / 100.0, alt = alt, g = g(b),
         )
+    }
+
+    private fun g(b: ByteArray): GPoint? {
+        if (b.size < 28) return null
+        val lateral = u16(b, 24).toShort().toInt()
+        val longitudinal = u16(b, 26).toShort().toInt()
+        if (lateral == Short.MIN_VALUE.toInt() || longitudinal == Short.MIN_VALUE.toInt()) return null
+        return GPoint(lateral / 1000.0, longitudinal / 1000.0)
     }
 
     /** The fix's UTC time: iTOW counts from the start of the GPS week, GPS time runs 18 s ahead of UTC. */
@@ -531,7 +545,7 @@ class BleManager(private val context: Context) {
         if (last != null && fix.itow < last - 302_400) weekOffset += 604_800.0
         lastITOW = fix.itow
         onSample?.invoke(
-            Sample(weekOffset + fix.itow, Coord(fix.lat, fix.lon), fix.speed, fix.heading, utc = BlePacket.utc(fix.itow), alt = fix.alt),
+            Sample(weekOffset + fix.itow, Coord(fix.lat, fix.lon), fix.speed, fix.heading, utc = BlePacket.utc(fix.itow), alt = fix.alt, g = fix.g),
         )
     }
 

@@ -9,6 +9,10 @@ struct TracePoint: Codable {
     var lon: Double
     /// Speed in m/s.
     var v: Double
+    /// g measured by the board's accelerometer (ESP32 with one, firmware 0.9.2): lateral, + turning
+    /// right, and longitudinal, + accelerating. Nil from the GPS alone: the app works them out.
+    var glat: Double? = nil
+    var glon: Double? = nil
 }
 
 struct Lap: Codable, Identifiable {
@@ -118,9 +122,10 @@ extension Array where Element == TracePoint {
     func point(atDistance d: Double) -> TracePoint? {
         guard let x = bracket(d) else { return nil }
         let (a, b, f) = (x.a, x.b, x.f)
+        func mix(_ x: Double?, _ y: Double?) -> Double? { x.flatMap { x in y.map { x + ($0 - x) * f } } }
         return TracePoint(t: a.t + (b.t - a.t) * f, d: d,
                           lat: a.lat + (b.lat - a.lat) * f, lon: a.lon + (b.lon - a.lon) * f,
-                          v: a.v + (b.v - a.v) * f)
+                          v: a.v + (b.v - a.v) * f, glat: mix(a.glat, b.glat), glon: mix(a.glon, b.glon))
     }
 
     /// Index of the last point at or before a distance.

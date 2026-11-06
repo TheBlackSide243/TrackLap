@@ -14,4 +14,5 @@ target esp32c3 esp32:esp32:esp32c3:CDCOnBoot=cdc
 target esp32c5 esp32:esp32:esp32c5:CDCOnBoot=cdc
 target esp32c6 esp32:esp32:esp32c6:CDCOnBoot=cdc
 target esp32c6-lcd147 esp32:esp32:esp32c6:CDCOnBoot=cdc -DTRACKLAP_LCD147
+target esp32c6-touch-lcd147 esp32:esp32:esp32c6:CDCOnBoot=cdc -DTRACKLAP_LCD147T
 target esp32h2 esp32:esp32:esp32h2:CDCOnBoot=cdc

@@ -11,10 +11,27 @@ struct GPoint {
 }
 
 enum GForce {
-    /// One value per trace point, from the GPS alone so it works with every source: the turn rate
-    /// times the speed for the lateral, the change of speed for the longitudinal, each over about
-    /// half a second around the point. Points it cannot work out (standing still, the ends) are zero.
+    /// One value per trace point: measured by the board's accelerometer where it has one, else from
+    /// the GPS.
     static func along(_ trace: [TracePoint]) -> [GPoint] {
+        var out = fromGPS(trace)
+        for (i, p) in trace.enumerated() {
+            if let lateral = p.glat, let longitudinal = p.glon {
+                out[i] = GPoint(lateral: clamp(lateral), longitudinal: clamp(longitudinal))
+            }
+        }
+        return out
+    }
+
+    /// Most of the lap measured by the accelerometer.
+    static func measured(_ trace: [TracePoint]) -> Bool {
+        trace.filter { $0.glat != nil }.count * 2 > trace.count
+    }
+
+    /// From the GPS alone, so it works with every source: the turn rate times the speed for the
+    /// lateral, the change of speed for the longitudinal, each over about half a second around the
+    /// point. Points it cannot work out (standing still, the ends) are zero.
+    private static func fromGPS(_ trace: [TracePoint]) -> [GPoint] {
         let n = trace.count
         var out = [GPoint](repeating: GPoint(), count: n)
         guard n > 4 else { return out }
