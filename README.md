@@ -285,7 +285,7 @@ e 5 vanno allo slot microSD). Se la scheda usa quei pin per altro (display, LED,
 **Installazione**: apri https://esp32.tbsgaming.win da Chrome, Edge o Brave sul computer, collega
 la scheda via USB e premi Installa: "Qualsiasi ESP32 con Bluetooth" riconosce il chip da solo,
 "Waveshare ESP32-C6-LCD-1.47 (senza touch)", "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" e
-"Waveshare ESP32-C6-LCD-1.69" mettono la versione con il cruscotto di ciascuna: non sono la stessa
+"Waveshare ESP32-C6-LCD-1.69 (senza touch)" mettono la versione con il cruscotto di ciascuna: non sono la stessa
 scheda. Gli aggiornamenti tengono pin
 e giro migliore. Se la scheda non si collega, tieni premuto BOOT mentre la colleghi.
 

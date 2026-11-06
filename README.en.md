@@ -287,7 +287,7 @@ shows the state.
 **Install**: open https://esp32.tbsgaming.win in Chrome, Edge or Brave on a computer, plug the
 board in over USB and press Install: "Any ESP32 with Bluetooth" detects the chip by itself,
 "Waveshare ESP32-C6-LCD-1.47 (without touch)", "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" and
-"Waveshare ESP32-C6-LCD-1.69" install the build with the dashboard for each board: they are not the
+"Waveshare ESP32-C6-LCD-1.69 (without touch)" install the build with the dashboard for each board: they are not the
 same board. Updates keep the pins and
 the best lap. If the board does not connect, hold BOOT while plugging it in.
 
