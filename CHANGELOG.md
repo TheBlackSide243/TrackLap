@@ -2,6 +2,30 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## Firmware 0.9.3 (2026-11-06)
+
+A new board, the Waveshare ESP32-C6-LCD-1.69. The apps stay at 0.9.2. / Una scheda nuova, la
+Waveshare ESP32-C6-LCD-1.69. Le app restano alla 0.9.2.
+
+### English
+
+- New build for the **Waveshare ESP32-C6-LCD-1.69** (`…-esp32c6-lcd169.bin`): the dashboard laid out
+  for its 240 × 280 screen, used sideways and clear of the rounded corners, and the g-forces of its
+  QMI8658 accelerometer, as on the Touch. GPS on the header's RXD (17) and TXD (16) pins. On its
+  battery it stays on after the PWR button.
+- With a place in the live group on a narrow screen, the status bar leaves out the GPS rate.
+- The other boards work as before: there is no need to update them.
+
+### Italiano
+
+- Nuova versione per la **Waveshare ESP32-C6-LCD-1.69** (`…-esp32c6-lcd169.bin`): il cruscotto
+  disposto per il suo schermo 240 × 280, in orizzontale e lontano dagli angoli arrotondati, e i g del
+  suo accelerometro QMI8658, come sulla Touch. GPS sui pin RXD (17) e TXD (16) del connettore. A
+  batteria resta accesa dopo il tasto PWR.
+- Con il posto nel gruppo dal vivo, su uno schermo stretto la barra in alto non mostra la frequenza
+  del GPS.
+- Le altre schede funzionano come prima: aggiornarle non è necessario.
+
 ## 0.9.2 (2026-11-06)
 
 Friends, notifications, the Android app, and g-forces measured by the Waveshare Touch. / Gli

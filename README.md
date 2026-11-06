@@ -243,6 +243,10 @@ Bluetooth e non vanno bene.
   che misura, che l'app usa per il cerchio delle accelerazioni invece di ricavarli dal GPS. Impara
   da sola come è montata: il basso da fermo, l'avanti dalle prime accelerazioni e frenate in
   rettilineo; se lo ricorda, e lo reimpara se la sposti. Fissala bene, non su qualcosa che balla.
+- **Schermo da 1,69"**: la Waveshare ESP32-C6-LCD-1.69 (file `…-esp32c6-lcd169.bin`) ha uno schermo
+  240 × 280 con gli angoli arrotondati, usato in orizzontale, e l'accelerometro QMI8658: lo stesso
+  cruscotto, disposto per il suo schermo, e i g misurati come la Touch. A batteria si accende con il
+  suo tasto PWR.
 - **LED**: sulle schede con il LED RGB è rosso senza GPS, giallo in attesa del fix e verde con il fix;
   lampeggia finché l'app non si collega.
 
@@ -255,6 +259,7 @@ Bluetooth e non vanno bene.
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (pin RX) | 16 (pin TX) |
 | Waveshare ESP32-C6-Touch-LCD-1.47 | 17 (pin RX) | 16 (pin TX) |
+| Waveshare ESP32-C6-LCD-1.69 | 17 (pin RXD) | 16 (pin TXD) |
 
 Negli schemi le frecce indicano dove vanno i dati: il TX del GPS va al pin che riceve, l'RX a
 quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
@@ -269,17 +274,19 @@ quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
 </p>
 <p>
   <img src="docs/wiring/lcd147t.svg" width="300" alt="GPS collegato a Waveshare ESP32-C6-Touch-LCD-1.47">
+  <img src="docs/wiring/lcd169.svg" width="300" alt="GPS collegato a Waveshare ESP32-C6-LCD-1.69">
 </p>
 
-Su tutte e due le Waveshare il GPS usa i pin RX e TX del connettore (su quella senza touch i GPIO 4
+Sulle Waveshare il GPS usa i pin RX e TX del connettore (su quella senza touch i GPIO 4
 e 5 vanno allo slot microSD). Se la scheda usa quei pin per altro (display, LED, la PSRAM dei moduli ESP32-WROVER su
 16 e 17), si cambiano dall'app (Dispositivo → ESP32 → Cambia pin) oppure dal monitor seriale USB a
 115200 baud con `pins <rx> <tx>`; `pins default` torna ai predefiniti, `info` mostra lo stato.
 
 **Installazione**: apri https://esp32.tbsgaming.win da Chrome, Edge o Brave sul computer, collega
 la scheda via USB e premi Installa: "Qualsiasi ESP32 con Bluetooth" riconosce il chip da solo,
-"Waveshare ESP32-C6-LCD-1.47 (senza touch)" e "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" mettono la
-versione con il cruscotto di ciascuna: non sono la stessa scheda. Gli aggiornamenti tengono pin
+"Waveshare ESP32-C6-LCD-1.47 (senza touch)", "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" e
+"Waveshare ESP32-C6-LCD-1.69 (senza touch)" mettono la versione con il cruscotto di ciascuna: non sono la stessa
+scheda. Gli aggiornamenti tengono pin
 e giro migliore. Se la scheda non si collega, tieni premuto BOOT mentre la colleghi.
 
 A ogni modifica in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) compila un file

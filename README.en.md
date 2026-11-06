@@ -243,6 +243,10 @@ Bluetooth and will not do.
   working them out from the GPS. It learns how it sits in the car by itself: down while the car
   stands still, forward from the first accelerations and brakings on a straight; it remembers it,
   and learns it again when you move it. Mount it firmly, not on something that wobbles.
+- **1.69" screen**: the Waveshare ESP32-C6-LCD-1.69 (file `…-esp32c6-lcd169.bin`) has a 240 × 280
+  screen with rounded corners, used sideways, and a QMI8658 accelerometer: the same dashboard,
+  laid out for its screen, and the measured g-forces like the Touch. On its battery it switches on
+  with its PWR button.
 - **LED**: on boards with an RGB LED it is red without GPS, yellow while waiting for a fix and green
   with a fix; it blinks until the app connects.
 
@@ -255,6 +259,7 @@ Bluetooth and will not do.
 | ESP32-C3, C5, C6, H2 | 4 | 5 |
 | Waveshare ESP32-C6-LCD-1.47 | 17 (RX pin) | 16 (TX pin) |
 | Waveshare ESP32-C6-Touch-LCD-1.47 | 17 (RX pin) | 16 (TX pin) |
+| Waveshare ESP32-C6-LCD-1.69 | 17 (RXD pin) | 16 (TXD pin) |
 
 In the diagrams the arrows show where the data goes: the GPS TX goes to the pin that receives,
 its RX to the one that transmits. VCC goes to 3V3, or to 5V if the module asks for it.
@@ -269,9 +274,10 @@ its RX to the one that transmits. VCC goes to 3V3, or to 5V if the module asks f
 </p>
 <p>
   <img src="docs/wiring/lcd147t.svg" width="300" alt="GPS wired to Waveshare ESP32-C6-Touch-LCD-1.47">
+  <img src="docs/wiring/lcd169.svg" width="300" alt="GPS wired to Waveshare ESP32-C6-LCD-1.69">
 </p>
 
-On both Waveshare boards the GPS takes the header's RX and TX pins (on the one without touch GPIO 4
+On the Waveshare boards the GPS takes the header's RX and TX pins (on the one without touch GPIO 4
 and 5 go to the microSD slot).
 When the board uses those pins for something else (display, LED, the PSRAM of ESP32-WROVER modules
 on 16 and 17), change them from the app (Device → ESP32 → Change pins) or from the USB serial
@@ -280,8 +286,9 @@ shows the state.
 
 **Install**: open https://esp32.tbsgaming.win in Chrome, Edge or Brave on a computer, plug the
 board in over USB and press Install: "Any ESP32 with Bluetooth" detects the chip by itself,
-"Waveshare ESP32-C6-LCD-1.47 (without touch)" and "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" install
-the build with the dashboard for each board: they are not the same board. Updates keep the pins and
+"Waveshare ESP32-C6-LCD-1.47 (without touch)", "Waveshare ESP32-C6-Touch-LCD-1.47 (touch)" and
+"Waveshare ESP32-C6-LCD-1.69 (without touch)" install the build with the dashboard for each board: they are not the
+same board. Updates keep the pins and
 the best lap. If the board does not connect, hold BOOT while plugging it in.
 
 On every change in `firmware/` GitHub Actions (`.github/workflows/firmware.yml`) builds one file
