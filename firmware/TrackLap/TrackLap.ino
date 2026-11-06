@@ -17,7 +17,7 @@
 #include "Imu.h"
 #include "Laps.h"
 
-#define FW_VERSION "0.9.2"
+#define FW_VERSION "0.9.3"
 
 static Preferences prefs;
 static Gps gps;
@@ -180,6 +180,11 @@ static void showDashboard(uint32_t now) {
 }
 
 void setup() {
+#ifdef TRACKLAP_POWER_HOLD
+  // On its battery the board stays on only while this pin is high.
+  pinMode(TRACKLAP_POWER_HOLD, OUTPUT);
+  digitalWrite(TRACKLAP_POWER_HOLD, HIGH);
+#endif
   Serial.begin(115200);
   prefs.begin("tracklap", false);
   int rx = prefs.getChar("rx", GPS_RX_DEFAULT);

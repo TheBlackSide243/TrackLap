@@ -6,7 +6,21 @@
 
 namespace {
 
-#ifdef TRACKLAP_LCD147T
+#if defined(TRACKLAP_LCD169)
+// Waveshare ESP32-C6-LCD-1.69: ST7789V2 IPS panel, 240 × 280 with rounded corners, used in
+// landscape; everything keeps clear of the corners.
+const int8_t kDC = 3, kCS = 5, kSCK = 1, kMOSI = 2, kRST = 4, kBacklight = 6;
+const int16_t W = 280, H = 240;
+const int16_t kTop = 36;        // status bar
+const int16_t kBarY = 11;       // its text
+const int16_t kInset = 16;      // left and right margin of the status bar and the labels
+const int16_t kMainY = 42;      // lap time or speed
+const int16_t kBigH = 80;       // its digits
+const int16_t kBottomY = 140;   // best and last lap, or the delta just measured
+const int16_t kBottomPad = 14;  // the bottom line's contents, from its top
+const int16_t kSmallH = 46;     // its digits
+const int16_t kLastX = 146;     // "LAST", next to "BEST"
+#elif defined(TRACKLAP_LCD147T)
 // Waveshare ESP32-C6-Touch-LCD-1.47: JD9853 IPS panel, 172 × 320, used in landscape. The JD9853
 // takes the ST7789's commands for drawing; its own setup comes after (jd9853Setup).
 const int8_t kDC = 15, kCS = 14, kSCK = 1, kMOSI = 2, kRST = 22, kBacklight = 23;
@@ -14,10 +28,23 @@ const int8_t kDC = 15, kCS = 14, kSCK = 1, kMOSI = 2, kRST = 22, kBacklight = 23
 // Waveshare ESP32-C6-LCD-1.47: ST7789 IPS panel, 172 × 320, used in landscape.
 const int8_t kDC = 15, kCS = 14, kSCK = 7, kMOSI = 6, kRST = 21, kBacklight = 22;
 #endif
+#ifndef TRACKLAP_LCD169
 const int16_t W = 320, H = 172;
 const int16_t kTop = 26;       // status bar
+const int16_t kBarY = 5;
+const int16_t kInset = 10;
 const int16_t kMainY = 30;     // lap time or speed
+const int16_t kBigH = 76;
 const int16_t kBottomY = 120;  // best and last lap, or the delta just measured
+const int16_t kBottomPad = 0;
+const int16_t kSmallH = 42;
+const int16_t kLastX = 172;
+#endif
+// Too narrow for the place in the group and the GPS rate together in the status bar.
+const bool kNarrow = W < 300;
+const int16_t kGroupX = kInset + 88;
+const int16_t kRightEnd = W - kInset - 14;  // the status bar's right text ends here, before the link dot
+const int16_t kB = kBottomY + kBottomPad;  // where the bottom line's contents start
 
 constexpr uint16_t rgb(uint8_t r, uint8_t g, uint8_t b) { return (r & 0xF8) << 8 | (g & 0xFC) << 3 | b >> 3; }
 
@@ -144,8 +171,8 @@ class SegText {
 
 enum Mode : uint8_t { None, Message, Speed, Time };
 
-SegText big(kMainY + 6, 76);
-SegText small(kBottomY + 6, 42);
+SegText big(kMainY + 6, kBigH);
+SegText small(kB + 6, kSmallH);
 Mode mainMode = None;
 char mainKey[48] = "";
 bool bottomEvent = false;
@@ -161,7 +188,7 @@ uint16_t shownLap = 0;
 uint8_t groupPos = 0, groupCount = 0;
 int32_t groupGap = kNoDelta;
 bool groupPending = false;
-char topGroup[8] = "-";
+char topGroup[10] = "";
 // The drag dashboard: the speed always, and at the bottom what the app's drag timer waits for, the
 // time of the run in progress, or a result for 5 s.
 bool dragMode = false;
@@ -178,7 +205,7 @@ void setMain(Mode m) {
   big.reset();
   mainKey[0] = 0;
   mainMode = m;
-  if (m == Speed) text(W - 64, kMainY + 66, 2, kSub, kBg, "km/h");
+  if (m == Speed) text(W - 54 - kInset, kMainY + kBigH - 10, 2, kSub, kBg, "km/h");
 }
 
 void message(const char* title, const char* sub, uint16_t color) {
@@ -188,8 +215,9 @@ void message(const char* title, const char* sub, uint16_t color) {
   if (!strcmp(key, mainKey)) return;
   strcpy(mainKey, key);
   clearMain();
-  centered(kMainY + 14, 5, color, title);
-  centered(kMainY + 66, 2, kSub, sub);
+  int16_t pad = (kBottomY - kMainY - 90) / 2;
+  centered(kMainY + pad + 14, 5, color, title);
+  centered(kMainY + pad + 66, 2, kSub, sub);
 }
 
 void topBar(const DashState& s, uint32_t now) {
@@ -198,16 +226,27 @@ void topBar(const DashState& s, uint32_t now) {
   if (dragMode) strcpy(left, "DRAG   ");
   else if (lap) snprintf(left, sizeof left, "LAP %-3u", lap);
   else strcpy(left, "LAP -  ");
-  snprintf(right, sizeof right, "%2u SAT %2uHz", s.sats, s.rate);
-  if (strcmp(left, topLeft)) text(10, 5, 2, kText, kPanel, strcpy(topLeft, left));
-  if (strcmp(right, topRight)) text(W - 24 - 11 * 12, 5, 2, kSub, kPanel, strcpy(topRight, right));
-  char place[sizeof topGroup];
-  if (groupPos && !dragMode) snprintf(place, sizeof place, "P%u/%-2u", groupPos, groupCount);
-  else strcpy(place, "      ");
-  if (strcmp(place, topGroup)) text(100, 5, 2, kYellow, kPanel, strcpy(topGroup, place));
+  bool place = groupPos && !dragMode;
+  if (kNarrow && place) snprintf(right, sizeof right, "%2u SAT", s.sats);
+  else snprintf(right, sizeof right, "%2u SAT %2uHz", s.sats, s.rate);
+  if (strcmp(left, topLeft)) text(kInset, kBarY, 2, kText, kPanel, strcpy(topLeft, left));
+  char where[sizeof topGroup] = "";
+  if (place) snprintf(where, sizeof where, "P%u/%u", groupPos, groupCount);
+  // Each one is cleared where its longer text was, before either is drawn.
+  int16_t oldRight = strlen(topRight) * 12, newRight = strlen(right) * 12;
+  int16_t oldWhere = strlen(topGroup) * 12, newWhere = strlen(where) * 12;
+  bool rightChanged = strcmp(right, topRight), whereChanged = strcmp(where, topGroup);
+  if (rightChanged && newRight < oldRight)
+    gfx->fillRect(kRightEnd - oldRight, kBarY, oldRight - newRight, 16, kPanel);
+  if (whereChanged && newWhere < oldWhere)
+    gfx->fillRect(kGroupX + newWhere, kBarY, oldWhere - newWhere, 16, kPanel);
+  if (rightChanged || whereChanged) {
+    text(kRightEnd - newRight, kBarY, 2, kSub, kPanel, strcpy(topRight, right));
+    text(kGroupX, kBarY, 2, kYellow, kPanel, strcpy(topGroup, where));
+  }
   if (topLink != s.connected) {
     topLink = s.connected;
-    gfx->fillCircle(W - 12, kTop / 2, 5, s.connected ? kGood : kSub);
+    gfx->fillCircle(W - kInset - 2, kTop / 2, 5, s.connected ? kGood : kSub);
   }
 }
 
@@ -223,13 +262,18 @@ void info(const DashState& s) {
   clearBottom();
   small.reset();
   if (!s.hasTrack) {
-    centered(kBottomY + 18, 2, kSub, "SEND TRACK FROM THE APP");
+    if (kNarrow) {
+      centered(kB + 8, 2, kSub, "SEND THE TRACK");
+      centered(kB + 30, 2, kSub, "FROM THE APP");
+    } else {
+      centered(kB + 18, 2, kSub, "SEND TRACK FROM THE APP");
+    }
     return;
   }
-  text(12, kBottomY + 4, 2, kSub, kBg, "BEST");
-  text(12, kBottomY + 24, 3, kPurple, kBg, best);
-  text(172, kBottomY + 4, 2, kSub, kBg, "LAST");
-  text(172, kBottomY + 24, 3, kText, kBg, last);
+  text(kInset + 2, kB + 4, 2, kSub, kBg, "BEST");
+  text(kInset + 2, kB + 24, 3, kPurple, kBg, best);
+  text(kLastX, kB + 4, 2, kSub, kBg, "LAST");
+  text(kLastX, kB + 24, 3, kText, kBg, last);
 }
 
 // "P2" and the gap to the driver ahead in red; when first, "P1" and the margin over the second in green.
@@ -240,7 +284,7 @@ void showGroup(uint32_t now) {
   eventUntil = now + 4000;
   char buf[12];
   snprintf(buf, sizeof buf, "P%u", groupPos);
-  text(12, kBottomY + 14, 3, kYellow, kBg, buf);
+  text(kInset + 2, kB + 14, 3, kYellow, kBg, buf);
   if (groupGap == kNoDelta) return;
   formatDelta(buf, sizeof buf, groupGap);
   small.show(buf, groupPos == 1 ? kGood : kBad);
@@ -264,12 +308,12 @@ void dragBottom(uint32_t now) {
     small.reset();
   }
   if (dragState == 2) {
-    if (redraw) text(12, kBottomY + 14, 3, kAccent, kBg, "GO");
+    if (redraw) text(kInset + 2, kB + 14, 3, kAccent, kBg, "GO");
     small.show(buf, kText);
   } else if (dragState == 1) {
-    centered(kBottomY + 14, 3, kGood, "READY");
+    centered(kB + 14, 3, kGood, "READY");
   } else {
-    centered(kBottomY + 18, 2, kSub, "STOP TO START");
+    centered(kB + 18, 2, kSub, "STOP TO START");
   }
 }
 
@@ -298,9 +342,9 @@ void Display::dragResult(const char* label, uint32_t value, bool distance, bool 
   char buf[12];
   if (distance) snprintf(buf, sizeof buf, "%lu.%lu", (unsigned long)(value / 100), (unsigned long)(value % 100 / 10));
   else formatTime(buf, sizeof buf, value, true);
-  text(12, kBottomY + 18, 2, best ? kPurple : kSub, kBg, label);
+  text(kInset + 2, kB + 18, 2, best ? kPurple : kSub, kBg, label);
   small.show(buf, best ? kPurple : kText);
-  text(W - 30, kBottomY + 30, 2, kSub, kBg, distance ? "m" : "s");
+  text(W - 20 - kInset, kB + 30, 2, kSub, kBg, distance ? "m" : "s");
 }
 
 void Display::group(uint8_t position, uint8_t count, int32_t gap) {
@@ -370,7 +414,11 @@ void Display::begin() {
   pinMode(kBacklight, OUTPUT);
   digitalWrite(kBacklight, HIGH);
   Arduino_DataBus* bus = new Arduino_HWSPI(kDC, kCS, kSCK, kMOSI);
+#ifdef TRACKLAP_LCD169
+  gfx = new Arduino_ST7789(bus, kRST, 1, true, 240, 280, 0, 20, 0, 20);
+#else
   gfx = new Arduino_ST7789(bus, kRST, 1, true, 172, 320, 34, 0, 34, 0);
+#endif
 #ifdef TRACKLAP_LCD147T
   bool ok = gfx->begin(20000000);
   if (ok) {
@@ -386,7 +434,7 @@ void Display::begin() {
   }
   gfx->fillScreen(kBg);
   gfx->fillRect(0, 0, W, kTop, kPanel);
-  centered(kMainY + 24, 4, kAccent, "TRACKLAP");
+  centered((kMainY + kBottomY) / 2 - 21, 4, kAccent, "TRACKLAP");
 }
 
 void Display::show(const DashState& s) {
@@ -444,16 +492,16 @@ void Display::event(const LapEvent& e) {
     shownLap = e.lap;
     lapUntil = eventUntil = now + 5000;
     if (e.delta == kNoDelta) {
-      centered(kBottomY + 14, 3, kPurple, "BEST LAP");
+      centered(kB + 14, 3, kPurple, "BEST LAP");
       return;
     }
-    text(12, kBottomY + 14, 3, e.best ? kPurple : kSub, kBg, e.best ? "BEST" : "LAP");
+    text(kInset + 2, kB + 14, 3, e.best ? kPurple : kSub, kBg, e.best ? "BEST" : "LAP");
     formatDelta(buf, sizeof buf, e.delta);
     small.show(buf, color);
   } else {
     eventUntil = now + 4000;
     snprintf(buf, sizeof buf, "S%u", e.sector + 1);
-    text(12, kBottomY + 14, 3, kSub, kBg, buf);
+    text(kInset + 2, kB + 14, 3, kSub, kBg, buf);
     if (e.delta == kNoDelta) formatTime(buf, sizeof buf, e.ms, true);
     else formatDelta(buf, sizeof buf, e.delta);
     small.show(buf, color);
