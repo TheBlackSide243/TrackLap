@@ -143,7 +143,7 @@ struct LeaderboardView: View {
                         .disabled(sending)
                     }
                 } else {
-                    Text("Per entrare in classifica serve un account: il tuo nome utente è quello che vedono tutti, accanto al tempo e all'auto.")
+                    Text("Per entrare in classifica serve un account: il tuo nome utente è quello che vedono tutti, accanto al tempo e al veicolo.")
                         .font(.subheadline)
                         .foregroundStyle(Theme.sub)
                         .fixedSize(horizontal: false, vertical: true)
@@ -162,19 +162,19 @@ struct LeaderboardView: View {
     private var carLine: some View {
         if let car = model.activeCar {
             HStack(spacing: 10) {
-                CarPhotoView(photo: car.info.photo)
+                CarPhotoView(photo: car.info.photo, kind: car.vehicle)
                     .frame(width: 34, height: 34)
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(car.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
-                    Text(model.garage.isShown ? L("I tuoi tempi portano a quest'auto del garage")
-                         : L("Rendi pubblico il garage perché i tempi portino all'auto"))
+                    Text(model.garage.isShown ? L("I tuoi tempi portano a questo veicolo del garage")
+                         : L("Rendi pubblico il garage perché i tempi portino al veicolo"))
                         .font(.caption)
                         .foregroundStyle(model.garage.isShown ? Theme.sub : Theme.yellow)
                 }
             }
         } else {
-            Label(L("Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei."), systemImage: "car.fill")
+            Label(L("Scegli in Live il veicolo che usi: i tuoi tempi porteranno a lui."), systemImage: "car.fill")
                 .font(.caption)
                 .foregroundStyle(Theme.sub)
         }
@@ -196,7 +196,8 @@ struct LeaderboardView: View {
         defer { sending = false }
         let kind = SourceKind(sessionSource: record.session.source)
         do {
-            let r = try await Server.submit(record.lap, source: kind, track: track, car: record.session.carID, token: token)
+            let r = try await Server.submit(record.lap, source: kind, track: track, car: record.session.carID,
+                                            kind: record.session.vehicle, token: token)
             note = L("Sei \(r.rank)° su \(r.of) con \(kind == .device ? L("GPS esterno") : L("Telefono")).")
             await load()
         } catch Server.Failure.signedOut {

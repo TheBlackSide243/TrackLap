@@ -83,6 +83,8 @@ data class SessionLap(val lap: Lap, val session: SessionSummary)
 /** One JSON file per session, plus a small index for the list. */
 class SessionStore {
     var summaries by mutableStateOf<List<SessionSummary>>(emptyList()); private set
+    /** A session saved or deleted: the shared sessions follow. */
+    var onChange: (() -> Unit)? = null
     private val dir get() = File(Files.docs, "sessions").also { it.mkdirs() }
     private val indexFile get() = File(Files.docs, "sessions.json")
     private val indexSerializer = ListSerializer(SessionSummary.serializer())
@@ -98,6 +100,15 @@ class SessionStore {
         if (i >= 0) list[i] = s.summary else list.add(s.summary)
         summaries = list.sortedByDescending { it.date }
         Files.write(summaries, indexSerializer, indexFile)
+        onChange?.invoke()
+    }
+
+    /** The summaries with the time of every lap, read once from the session files of indexes written before 0.10.0. */
+    fun withLapTimes(): List<SessionSummary> {
+        if (summaries.none { it.lapTimes == null }) return summaries
+        summaries = summaries.map { s -> if (s.lapTimes != null) s else s.copy(lapTimes = load(s.id)?.laps?.map { it.time } ?: emptyList()) }
+        Files.write(summaries, indexSerializer, indexFile)
+        return summaries
     }
 
     fun load(id: String): Session? = Files.read(Session.serializer(), file(id))
@@ -106,6 +117,7 @@ class SessionStore {
         file(id).delete()
         summaries = summaries.filter { it.id != id }
         Files.write(summaries, indexSerializer, indexFile)
+        onChange?.invoke()
     }
 
     /**

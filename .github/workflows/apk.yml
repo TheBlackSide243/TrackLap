@@ -1,7 +1,8 @@
 name: Android APK
 
-# The Android app (android/), built on every push that touches it. Signed with the release key
-# when the ANDROID_KEYSTORE and ANDROID_KEYSTORE_PASSWORD secrets are set, else with a debug key.
+# The Android app (android/), built on every push that touches it: TrackLap and TrackLap Lite (the
+# full and lite flavors). Signed with the release key when the ANDROID_KEYSTORE and
+# ANDROID_KEYSTORE_PASSWORD secrets are set, else with a debug key.
 on:
   workflow_dispatch:
   push:
@@ -39,11 +40,12 @@ jobs:
         env:
           TRACKLAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
-      - name: Name the APK
+      - name: Name the APKs
         run: |
           v=$(grep -m1 'MARKETING_VERSION' project.yml | sed 's/.*"\(.*\)".*/\1/')
           mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk "out/TrackLap-$v.apk"
+          cp android/app/build/outputs/apk/full/release/app-full-release.apk "out/TrackLap-$v.apk"
+          cp android/app/build/outputs/apk/lite/release/app-lite-release.apk "out/TrackLap-Lite-$v.apk"
           ls -la out
       - uses: actions/upload-artifact@v4
         with:

@@ -58,6 +58,8 @@ final class TrackStore {
 @Observable
 final class SessionStore {
     private(set) var summaries: [SessionSummary] = []
+    /// A session saved or deleted: the shared sessions follow.
+    @ObservationIgnored var onChange: (() -> Void)? = nil
 
     private var dir: URL { Files.docs.appendingPathComponent("sessions", isDirectory: true) }
     private var indexURL: URL { Files.docs.appendingPathComponent("sessions.json") }
@@ -85,6 +87,19 @@ final class SessionStore {
         }
         summaries.sort { $0.date > $1.date }
         Files.write(summaries, to: indexURL)
+        onChange?()
+    }
+
+    /// The summaries with the time of every lap, read once from the session files of indexes
+    /// written before 0.10.0.
+    func withLapTimes() -> [SessionSummary] {
+        var changed = false
+        for i in summaries.indices where summaries[i].lapTimes == nil {
+            summaries[i].lapTimes = load(summaries[i].id)?.laps.map(\.time) ?? []
+            changed = true
+        }
+        if changed { Files.write(summaries, to: indexURL) }
+        return summaries
     }
 
     func load(_ id: UUID) -> Session? {
@@ -95,6 +110,7 @@ final class SessionStore {
         try? FileManager.default.removeItem(at: file(id))
         summaries.removeAll { $0.id == id }
         Files.write(summaries, to: indexURL)
+        onChange?()
     }
 
     /// The best lap of the fastest sessions on a track, fastest first.

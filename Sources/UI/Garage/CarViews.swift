@@ -7,6 +7,8 @@ struct CarPhotoView: View {
     @Environment(AppModel.self) private var model
     let photo: CarPhoto
     var contentMode: ContentMode = .fill
+    /// The vehicle drawn when there is no photo.
+    var kind: VehicleKind = .car
 
     var body: some View {
         switch photo {
@@ -14,31 +16,33 @@ struct CarPhotoView: View {
             if let image = model.garage.image(id) {
                 Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
             } else {
-                CarPlaceholder()
+                CarPlaceholder(kind: kind)
             }
         case .remote(let url):
             AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
                 switch phase {
                 case .success(let image): image.resizable().aspectRatio(contentMode: contentMode)
-                case .failure: CarPlaceholder()
+                case .failure: CarPlaceholder(kind: kind)
                 default:
                     ZStack {
-                        CarPlaceholder()
+                        CarPlaceholder(kind: kind)
                         ProgressView().tint(Theme.sub)
                     }
                 }
             }
         case .empty:
-            CarPlaceholder()
+            CarPlaceholder(kind: kind)
         }
     }
 }
 
 struct CarPlaceholder: View {
+    var kind: VehicleKind = .car
+
     var body: some View {
         ZStack {
             LinearGradient(colors: [Theme.input, Theme.panel], startPoint: .topLeading, endPoint: .bottomTrailing)
-            Image(systemName: "car.side.fill")
+            Image(systemName: kind == .car ? "car.side.fill" : kind.symbol)
                 .font(.system(size: 44, weight: .regular))
                 .foregroundStyle(Theme.sub.opacity(0.45))
         }
@@ -55,7 +59,7 @@ struct CarCard: View {
         VStack(alignment: .leading, spacing: 0) {
             Color.clear
                 .aspectRatio(4 / 3, contentMode: .fit)
-                .overlay { CarPhotoView(photo: info.photo) }
+                .overlay { CarPhotoView(photo: info.photo, kind: info.kind) }
                 .clipped()
                 .overlay(alignment: .topLeading) {
                     if let badge { CarBadge(text: badge).padding(8) }
@@ -98,7 +102,7 @@ struct CarHeroCard: View {
         let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
         Color.clear
             .aspectRatio(16 / 10, contentMode: .fit)
-            .overlay { CarPhotoView(photo: info.photo) }
+            .overlay { CarPhotoView(photo: info.photo, kind: info.kind) }
             .overlay {
                 LinearGradient(colors: [.clear, .clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
             }
@@ -203,7 +207,7 @@ struct CarDetailContent<Extra: View>: View {
     private var hero: some View {
         GeometryReader { g in
             let pull = max(0, g.frame(in: .scrollView).minY)
-            CarPhotoView(photo: info.photo)
+            CarPhotoView(photo: info.photo, kind: info.kind)
                 .frame(width: g.size.width, height: g.size.height + pull)
                 .clipped()
                 .overlay {
@@ -377,9 +381,9 @@ struct ActiveCarChip: View {
     var body: some View {
         Menu {
             if model.garage.cars.isEmpty {
-                Button { model.tab = .garage } label: { Label("Aggiungi un'auto al garage", systemImage: "plus") }
+                Button { model.tab = .garage } label: { Label("Aggiungi un veicolo al garage", systemImage: "plus") }
             } else {
-                Picker(L("Auto in uso"), selection: Binding(get: { model.activeCarID }, set: { model.setActiveCar($0) })) {
+                Picker(L("Veicolo in uso"), selection: Binding(get: { model.activeCarID }, set: { model.setActiveCar($0) })) {
                     Text("Nessuna").tag(UUID?.none)
                     ForEach(model.garage.cars) { car in
                         Text(car.displayName).tag(UUID?.some(car.id))
@@ -391,13 +395,13 @@ struct ActiveCarChip: View {
         } label: {
             HStack(spacing: 6) {
                 if let car = model.activeCar {
-                    CarPhotoView(photo: car.info.photo)
+                    CarPhotoView(photo: car.info.photo, kind: car.vehicle)
                         .frame(width: 20, height: 20)
                         .clipShape(Circle())
                     Text(car.displayName).lineLimit(1)
                 } else {
-                    Image(systemName: "car.fill").font(.caption2.weight(.bold)).foregroundStyle(Theme.sub)
-                    Text("Scegli l'auto")
+                    Image(systemName: model.drivenKind.symbol).font(.caption2.weight(.bold)).foregroundStyle(Theme.sub)
+                    Text("Scegli il veicolo")
                 }
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.sub)
             }
@@ -410,6 +414,6 @@ struct ActiveCarChip: View {
             .background(Theme.panel, in: Capsule())
             .overlay(Capsule().strokeBorder(model.activeCar == nil ? Theme.line : Theme.accent.opacity(0.6), lineWidth: 1))
         }
-        .accessibilityLabel(L("Auto in uso"))
+        .accessibilityLabel(L("Veicolo in uso"))
     }
 }

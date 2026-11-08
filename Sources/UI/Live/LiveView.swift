@@ -47,7 +47,7 @@ struct LiveView: View {
                 LiveStatsRow()
                 MiniMapCard().frame(height: 210)
                 SessionButton()
-                MultiplayerCard().id("multiplayer")
+                if Edition.online { MultiplayerCard().id("multiplayer") }
             } else {
                 NoTrackCard()
             }
@@ -71,7 +71,7 @@ struct LiveView: View {
                         LiveStatsRow()
                         MiniMapCard().frame(height: 150)
                         SessionButton()
-                        MultiplayerCard()
+                        if Edition.online { MultiplayerCard() }
                     }
                 }
             } else {
@@ -109,8 +109,10 @@ private struct LiveHeader: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
                     pills
-                    ActiveCarChip()
-                    ActiveSetupChip()
+                    if Edition.online {
+                        ActiveCarChip()
+                        ActiveSetupChip()
+                    }
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -118,10 +120,12 @@ private struct LiveHeader: View {
                         pills
                         Spacer(minLength: 0)
                     }
-                    HStack(spacing: 8) {
-                        ActiveCarChip()
-                        ActiveSetupChip()
-                        Spacer(minLength: 0)
+                    if Edition.online {
+                        HStack(spacing: 8) {
+                            ActiveCarChip()
+                            ActiveSetupChip()
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
             }
@@ -267,7 +271,7 @@ private struct ChallengeMenu: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        let laps = model.friends.laps(on: model.selectedTrackID)
+        let laps = Edition.online ? model.friends.laps(on: model.selectedTrackID) : []
         if !laps.isEmpty {
             Menu {
                 Button { model.setChallenge(nil) } label: {
@@ -370,6 +374,9 @@ private struct LiveStatsRow: View {
             StatTile(title: L("Best"), value: Fmt.lap(engine.bestLap?.time),
                      color: engine.bestLap == nil ? Theme.text : Theme.purple)
             StatTile(title: L("Velocità"), value: Fmt.speed(engine.speed), unit: Fmt.speedUnit)
+            if model.drivenKind.onTwoWheels {
+                StatTile(title: L("Piega"), value: "\(Int(LapEngine.lean(engine.lateralG).rounded()))°")
+            }
         }
     }
 }

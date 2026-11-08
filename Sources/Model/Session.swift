@@ -41,6 +41,10 @@ struct Session: Codable, Identifiable {
     var layout: String? = nil
     /// The car's setup, as it was that day (0.9.0).
     var setup: SessionSetup? = nil
+    /// Car, motorcycle or scooter (0.10.0); nil for sessions from before, all with a car.
+    var kind: VehicleKind? = nil
+
+    var vehicle: VehicleKind { kind ?? .car }
 
     var best: Lap? { laps.min { $0.time < $1.time } }
 
@@ -65,7 +69,7 @@ struct Session: Codable, Identifiable {
         SessionSummary(id: id, trackID: trackID, trackName: trackName, date: date, source: source,
                        lapCount: laps.count, best: best?.time, ideal: idealTime, carID: carID, carName: carName,
                        layout: layout, setupID: setup?.id, setupName: setup?.name, setupWeather: setup?.weather,
-                       setupVersion: setup?.version)
+                       setupVersion: setup?.version, kind: kind, lapTimes: laps.map(\.time))
     }
 }
 
@@ -87,6 +91,12 @@ struct SessionSummary: Codable, Identifiable, Hashable {
     var setupName: String? = nil
     var setupWeather: SetupWeather? = nil
     var setupVersion: Int? = nil
+    var kind: VehicleKind? = nil
+    /// The time of every lap, for the shared sessions; nil in indexes from before 0.10.0, filled in
+    /// from the session file when they are shared.
+    var lapTimes: [Double]? = nil
+
+    var vehicle: VehicleKind { kind ?? .car }
 
     /// The layout's name, when it has one.
     var layoutName: String? {

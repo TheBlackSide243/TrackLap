@@ -31,7 +31,7 @@ struct CarEditorView: View {
     init(car: Car?, onSave: @escaping (Car) -> Void = { _ in }) {
         original = car
         self.onSave = onSave
-        let c = car ?? Car()
+        let c = car ?? Car(kind: VehicleKind.preferred)
         _car = State(initialValue: c)
         _year = State(initialValue: c.year.map(String.init) ?? "")
         _power = State(initialValue: c.power.map { Fmt.power($0) } ?? "")
@@ -46,10 +46,14 @@ struct CarEditorView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     photo
-                    SectionLabel(L("L'auto"))
+                    SectionLabel(L("Il veicolo"))
+                    Picker(L("Tipo di veicolo"), selection: Binding(get: { car.vehicle }, set: { car.kind = $0 })) {
+                        ForEach(VehicleKind.allCases) { k in Text(k.title).tag(k) }
+                    }
+                    .pickerStyle(.segmented)
                     Panel(padding: 6) {
                         VStack(spacing: 0) {
-                            row(icon: "car.fill") {
+                            row(icon: car.vehicle.symbol) {
                                 TextField(L("Marca e modello"), text: limited($car.name, Car.maxName))
                                     .textInputAutocapitalization(.words)
                                     .focused($focus, equals: .name)
@@ -100,7 +104,7 @@ struct CarEditorView: View {
                             dismiss()
                             model.deleteCar(car.id)
                         } label: {
-                            Label("Elimina l'auto", systemImage: "trash")
+                            Label("Elimina il veicolo", systemImage: "trash")
                         }
                         .buttonStyle(SecondaryButtonStyle(color: Theme.bad))
                         .padding(.top, 8)
@@ -111,7 +115,7 @@ struct CarEditorView: View {
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .background(Theme.bg.ignoresSafeArea())
-            .navigationTitle(original == nil ? L("Nuova auto") : L("Modifica auto"))
+            .navigationTitle(original == nil ? L("Nuovo veicolo") : L("Modifica veicolo"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {

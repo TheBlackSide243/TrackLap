@@ -54,10 +54,12 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardUp = true }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardUp = false }
         .task { model.runShowcase() }
-        .task { PushNotifications.shared.start(model) }
         .task {
+            guard Edition.online else { return }
+            PushNotifications.shared.start(model)
             await model.account.refresh()
             model.garage.publishSoon(now: true)
+            model.sharedSessions.publishSoon(now: true)
         }
         .sheet(item: $model.shownGarage) { link in
             PublicGarageView(link: link)
@@ -117,8 +119,10 @@ struct RootView: View {
             TracksView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.tracks)
             SessionsView().id(model.units).toolbar(.hidden, for: .tabBar).tag(AppTab.sessions)
             ZStack {
-                shared(.garage) { GarageView().id(model.units) }
-                shared(.friends) { FriendsView().id(model.units) }
+                if Edition.online {
+                    shared(.garage) { GarageView().id(model.units) }
+                    shared(.friends) { FriendsView().id(model.units) }
+                }
                 shared(.device) { DeviceView() }
             }
             .toolbar(.hidden, for: .tabBar)
@@ -141,6 +145,7 @@ struct RootView: View {
     /// An invitation to a group (tracklap://join/…) or to be friends (tracklap://friend/…), or a
     /// .tracklap file from a friend.
     private func open(_ url: URL) {
+        guard Edition.online else { return }
         if model.open(url) { return }
         guard url.isFileURL else { return }
         if url.pathExtension.lowercased() == "tracklapsetup" {

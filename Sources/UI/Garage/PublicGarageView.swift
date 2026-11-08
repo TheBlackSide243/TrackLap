@@ -93,7 +93,7 @@ struct PublicGarageView: View {
                 .background(Theme.accent, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(g.name).font(.title2.weight(.heavy)).foregroundStyle(Theme.text).lineLimit(1)
-                Text(g.cars.count == 1 ? L("1 auto") : L("\(g.cars.count) auto"))
+                Text(g.cars.count == 1 ? L("1 veicolo") : L("\(g.cars.count) veicoli"))
                     .font(.subheadline)
                     .foregroundStyle(Theme.sub)
             }
@@ -103,8 +103,8 @@ struct PublicGarageView: View {
             Panel(padding: 22) {
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: "car.side").font(.system(size: 28, weight: .bold)).foregroundStyle(Theme.sub)
-                    Text("Nessuna auto in questo garage").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
-                    Text("Le auto compaiono qui quando il pilota le mostra a tutti.")
+                    Text("Nessun veicolo in questo garage").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
+                    Text("I veicoli compaiono qui quando il pilota li mostra a tutti.")
                         .font(.subheadline)
                         .foregroundStyle(Theme.sub)
                 }
@@ -119,6 +119,7 @@ struct PublicGarageView: View {
                 }
             }
         }
+        SharedSessionsSection(code: g.code)
     }
 
     private var hiddenNotice: some View {
@@ -126,7 +127,7 @@ struct PublicGarageView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: "eye.slash").font(.system(size: 28, weight: .bold)).foregroundStyle(Theme.sub)
                 Text("Hai nascosto questo garage").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
-                Text("Le sue auto non compaiono più nelle classifiche che apri.")
+                Text("I suoi veicoli non compaiono più nelle classifiche che apri.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.sub)
                 Button { hiddenRaw = HiddenGarages.removing(link.code, from: hiddenRaw) } label: {

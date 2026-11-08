@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import win.tbsgaming.tracklap.AppTab
+import win.tbsgaming.tracklap.Edition
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.LocalNav
 import win.tbsgaming.tracklap.data.Export
@@ -69,6 +70,8 @@ import win.tbsgaming.tracklap.model.SessionSummary
 import win.tbsgaming.tracklap.model.pointAtDistance
 import win.tbsgaming.tracklap.timing.Corners
 import win.tbsgaming.tracklap.timing.GForce
+import win.tbsgaming.tracklap.timing.leanAngle
+import kotlin.math.roundToInt
 import java.io.File
 import java.util.Locale
 import kotlin.math.abs
@@ -83,7 +86,10 @@ fun SessionsScreen() {
     val list = m.sessions.summaries
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ScreenHeader(Icons.Filled.BarChart, L("Sessioni"), if (list.size == 1) L("1 sessione") else L("%lld sessioni", list.size))
-        FriendsRow()
+        if (Edition.online) {
+            FriendsRow()
+            SharingPanel()
+        }
         if (list.isEmpty()) {
             Panel(padding = 24.dp) {
                 Text(L("Ancora nessuna sessione"), fontSize = 20.sp, fontWeight = FontWeight.Black, color = Theme.text)
@@ -173,7 +179,7 @@ fun SessionDetailScreen(id: String) {
                 RoundIconButton(Icons.Filled.Share) { share = true }
                 DropdownMenu(share, { share = false }, containerColor = Theme.panel) {
                     if (session != null) {
-                        session.best?.let { b ->
+                        session.best?.takeIf { Edition.online }?.let { b ->
                             DropdownMenuItem({ Text(L("Condividi il giro migliore"), color = Theme.text) }, { share = false; sharing = b },
                                 leadingIcon = { Icon(Icons.Filled.Groups, null, tint = Theme.accent) })
                         }
@@ -227,7 +233,7 @@ private fun SessionBody(s: Session, share: (Lap) -> Unit) {
     val refs = remember(s.id) {
         s.laps.map { Ref(it, L("Giro %lld", it.number) + " · " + Fmt.lap(it.time), it.id) } +
             others.map { Ref(it.lap, Fmt.dayShort(it.session.date) + " · " + Fmt.lap(it.lap.time), "other-" + it.lap.id) } +
-            m.friends.laps(s.trackID).mapNotNull { f -> m.friends.lap(f.id)?.let { Ref(it, f.title, "friend-" + f.id) } }
+            (if (Edition.online) m.friends.laps(s.trackID) else emptyList()).mapNotNull { f -> m.friends.lap(f.id)?.let { Ref(it, f.title, "friend-" + f.id) } }
     }
     val lap = s.laps.firstOrNull { it.id == lapID } ?: best
     var refID by remember { mutableStateOf<String?>(null) }
@@ -360,7 +366,7 @@ private fun SessionBody(s: Session, share: (Lap) -> Unit) {
             }
         }
         SectionLabel(L("Accelerazioni"))
-        GGDiagram(lap)
+        GGDiagram(lap, s.vehicle.onTwoWheels)
         SectionLabel(L("Giri"))
         Panel(padding = 4.dp) {
             for ((i, l) in s.laps.withIndex()) {
@@ -448,14 +454,15 @@ private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?) {
 
 /** The friction circle: every point of the lap, with the strongest of each kind. */
 @Composable
-private fun GGDiagram(lap: Lap) {
+private fun GGDiagram(lap: Lap, twoWheels: Boolean) {
     val g = remember(lap.id) { GForce.along(lap.trace) }
     val lateral = g.maxOfOrNull { abs(it.lateral) } ?: 0.0
     val braking = -(g.minOfOrNull { it.longitudinal } ?: 0.0)
     val accel = g.maxOfOrNull { it.longitudinal } ?: 0.0
     Panel {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile(L("Laterale"), String.format(Locale.US, "%.2f", lateral), Modifier.weight(1f), unit = "g")
+            if (twoWheels) StatTile(L("Piega max"), "${leanAngle(lateral).roundToInt()}°", Modifier.weight(1f))
+            else StatTile(L("Laterale"), String.format(Locale.US, "%.2f", lateral), Modifier.weight(1f), unit = "g")
             StatTile(L("Frenata"), String.format(Locale.US, "%.2f", max(0.0, braking)), Modifier.weight(1f), unit = "g")
             StatTile(L("Spinta"), String.format(Locale.US, "%.2f", max(0.0, accel)), Modifier.weight(1f), unit = "g")
         }

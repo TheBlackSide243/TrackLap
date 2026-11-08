@@ -46,12 +46,12 @@ struct CarDetailView: View {
             }
             .navigationDestination(for: SetupRef.self) { SetupDetailView(setupID: $0.id) }
             .confirmationDialog(L("Eliminare \(car.displayName)?"), isPresented: $confirmDelete, titleVisibility: .visible) {
-                Button(L("Elimina l'auto"), role: .destructive) {
+                Button(L("Elimina il veicolo"), role: .destructive) {
                     dismiss()
                     model.deleteCar(car.id)
                 }
             } message: {
-                Text("Le sessioni restano, senza il collegamento all'auto.")
+                Text("Le sessioni restano, senza il collegamento al veicolo.")
             }
         } else {
             Color.clear.onAppear { dismiss() }
@@ -68,7 +68,7 @@ struct CarDetailView: View {
                         .foregroundStyle(Theme.accent)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("La stai usando in Live").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                        Text("Le prossime sessioni e i tempi in classifica sono con quest'auto.")
+                        Text("Le prossime sessioni e i tempi in classifica sono con questo veicolo.")
                             .font(.caption)
                             .foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
@@ -78,7 +78,7 @@ struct CarDetailView: View {
             }
         } else {
             Button { withAnimation { model.setActiveCar(car.id) } } label: {
-                Label("Usa quest'auto in Live", systemImage: "steeringwheel")
+                Label("Usa questo veicolo in Live", systemImage: "steeringwheel")
             }
             .buttonStyle(PrimaryButtonStyle())
         }
@@ -124,7 +124,7 @@ struct CarDetailView: View {
             .compactMap { _, list in list.min { ($0.best ?? .infinity) < ($1.best ?? .infinity) } }
             .sorted { $0.date > $1.date }
         if !best.isEmpty {
-            SectionLabel(L("I tuoi migliori tempi con quest'auto"))
+            SectionLabel(L("I tuoi migliori tempi con questo veicolo"))
             VStack(spacing: 8) {
                 ForEach(best) { s in
                     let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -160,7 +160,7 @@ struct CarDetailView: View {
         let records = model.drags.records(car: car.id)
         let measures = DragMeasure.all().filter { records[$0.name] != nil }
         if !measures.isEmpty {
-            SectionLabel(L("I tuoi migliori Drag con quest'auto"))
+            SectionLabel(L("I tuoi migliori Drag con questo veicolo"))
             Panel(padding: 6) {
                 VStack(spacing: 0) {
                     ForEach(Array(measures.enumerated()), id: \.element.id) { i, m in
@@ -199,7 +199,7 @@ struct CarDetailView: View {
             ShareLink(item: Server.garageURL(code: code, car: car.id.uuidString),
                       subject: Text(car.displayName),
                       message: Text(L("\(car.displayName) nel mio garage su TrackLap"))) {
-                Label("Condividi quest'auto", systemImage: "square.and.arrow.up")
+                Label("Condividi questo veicolo", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(SecondaryButtonStyle())
         }
@@ -221,7 +221,7 @@ struct PublicCarView: View {
                 .foregroundStyle(Theme.sub)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ShareLink(item: Server.garageURL(code: code, car: info.id), subject: Text(info.name)) {
-                Label("Condividi quest'auto", systemImage: "square.and.arrow.up")
+                Label("Condividi questo veicolo", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(SecondaryButtonStyle())
         }
@@ -249,7 +249,7 @@ extension View {
     /// Reasons to report a garage or one of its cars, and a thank-you once it is sent.
     func reportDialog(isPresented: Binding<Bool>, code: String, car: String?, thanks: Binding<Bool>) -> some View {
         confirmationDialog(L("Perché lo segnali?"), isPresented: isPresented, titleVisibility: .visible) {
-            ForEach([L("Foto inadatta"), L("Testo offensivo"), L("Non è la sua auto"), L("Spam")], id: \.self) { reason in
+            ForEach([L("Foto inadatta"), L("Testo offensivo"), L("Non è il suo veicolo"), L("Spam")], id: \.self) { reason in
                 Button(reason) {
                     Task {
                         try? await Server.report(code: code, car: car, reason: reason)

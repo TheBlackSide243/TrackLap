@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import win.tbsgaming.tracklap.AppTab
+import win.tbsgaming.tracklap.Edition
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.LocalNav
 import win.tbsgaming.tracklap.SourceKind
@@ -135,7 +136,7 @@ private fun DragHeader() {
             GpsPill()
             StatusPill(m.source.icon, m.source.short)
             if (m.dragRollout) StatusPill(Icons.Filled.Straighten, "Rollout", Theme.yellow)
-            ActiveCarChip()
+            if (Edition.online) ActiveCarChip()
         }
     }
 }
@@ -347,7 +348,7 @@ private fun RecordsCard() {
     val measures = DragMeasure.all().filter { records[it.name] != null }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionLabel(if (car != null && !allCars) L("I tuoi record con %@", car.displayName) else L("I tuoi record"))
-        if (car != null) Segmented(listOf(L("Quest'auto") to false, L("Tutte") to true), allCars) { allCars = it }
+        if (car != null) Segmented(listOf(L("Questo veicolo") to false, L("Tutte") to true), allCars) { allCars = it }
         Panel(padding = 4.dp) {
             for ((i, mm) in measures.withIndex()) {
                 val rec = records.getValue(mm.name)

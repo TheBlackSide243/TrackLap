@@ -45,6 +45,12 @@ data class SetupValues(
     val barRear: String = "",
     val wing: String = "",
     val brakeBias: Double? = null,
+    /** Two wheels (0.10.0): spring preload and sag in millimetres, and the gearing as written ("15/43"). */
+    val preloadFront: Double? = null,
+    val preloadRear: Double? = null,
+    val sagFront: Double? = null,
+    val sagRear: Double? = null,
+    val gearing: String? = null,
     /** Anything else, as a name and a value. */
     val extra: List<SetupItem> = emptyList(),
     val notes: String = "",
@@ -122,15 +128,26 @@ class SetupField(
     val pressure: Boolean = false,
     val unit: String = "",
     val decimals: Int = 0,
+    /** Which vehicles have it: camber and wings are for cars, preload and sag for bikes. */
+    val wheels: Wheels = Wheels.any,
 ) {
+    enum class Wheels { any, four, two }
+
+    fun fits(kind: VehicleKind): Boolean = when (wheels) {
+        Wheels.any -> true
+        Wheels.four -> !kind.onTwoWheels
+        Wheels.two -> kind.onTwoWheels
+    }
+
     enum class Group {
-        tyres, geometry, dampers, aero;
+        tyres, geometry, dampers, drivetrain, aero;
 
         val title: String
             get() = when (this) {
                 tyres -> L("Gomme")
                 geometry -> L("Geometria")
                 dampers -> L("Ammortizzatori e molle")
+                drivetrain -> L("Trasmissione")
                 aero -> L("Aero e freni")
             }
     }
@@ -157,27 +174,32 @@ class SetupField(
         }.format(x)
 
         private fun num(id: String, g: Group, title: String, get: (SetupValues) -> Double?, set: (SetupValues, Double?) -> SetupValues,
-                        pressure: Boolean = false, unit: String = "", decimals: Int = 0) =
-            SetupField(id, g, title, number = get, setNumber = set, pressure = pressure, unit = unit, decimals = decimals)
+                        pressure: Boolean = false, unit: String = "", decimals: Int = 0, wheels: Wheels = Wheels.any) =
+            SetupField(id, g, title, number = get, setNumber = set, pressure = pressure, unit = unit, decimals = decimals, wheels = wheels)
 
-        private fun txt(id: String, g: Group, title: String, get: (SetupValues) -> String, set: (SetupValues, String) -> SetupValues) =
-            SetupField(id, g, title, text = get, setText = set)
+        private fun txt(id: String, g: Group, title: String, get: (SetupValues) -> String, set: (SetupValues, String) -> SetupValues, wheels: Wheels = Wheels.any) =
+            SetupField(id, g, title, text = get, setText = set, wheels = wheels)
+
+        /** The fields of the editor for a vehicle. */
+        fun fields(kind: VehicleKind): List<SetupField> = all.filter { it.fits(kind) }
 
         val all: List<SetupField> by lazy {
             val t = Group.tyres
             val g = Group.geometry
             val d = Group.dampers
             val a = Group.aero
+            val four = Wheels.four
+            val two = Wheels.two
             listOf(
                 txt("tyres", t, L("Gomme"), { it.tyres }, { v, x -> v.copy(tyres = x) }),
                 num("pfc", t, L("Pressione ant. a freddo"), { it.pressureFrontCold }, { v, x -> v.copy(pressureFrontCold = x) }, pressure = true),
                 num("prc", t, L("Pressione post. a freddo"), { it.pressureRearCold }, { v, x -> v.copy(pressureRearCold = x) }, pressure = true),
                 num("pfh", t, L("Pressione ant. a caldo"), { it.pressureFrontHot }, { v, x -> v.copy(pressureFrontHot = x) }, pressure = true),
                 num("prh", t, L("Pressione post. a caldo"), { it.pressureRearHot }, { v, x -> v.copy(pressureRearHot = x) }, pressure = true),
-                num("cf", g, L("Campanatura ant."), { it.camberFront }, { v, x -> v.copy(camberFront = x) }, unit = "°", decimals = 1),
-                num("cr", g, L("Campanatura post."), { it.camberRear }, { v, x -> v.copy(camberRear = x) }, unit = "°", decimals = 1),
-                num("tf", g, L("Convergenza ant."), { it.toeFront }, { v, x -> v.copy(toeFront = x) }, unit = "mm", decimals = 1),
-                num("tr", g, L("Convergenza post."), { it.toeRear }, { v, x -> v.copy(toeRear = x) }, unit = "mm", decimals = 1),
+                num("cf", g, L("Campanatura ant."), { it.camberFront }, { v, x -> v.copy(camberFront = x) }, unit = "°", decimals = 1, wheels = four),
+                num("cr", g, L("Campanatura post."), { it.camberRear }, { v, x -> v.copy(camberRear = x) }, unit = "°", decimals = 1, wheels = four),
+                num("tf", g, L("Convergenza ant."), { it.toeFront }, { v, x -> v.copy(toeFront = x) }, unit = "mm", decimals = 1, wheels = four),
+                num("tr", g, L("Convergenza post."), { it.toeRear }, { v, x -> v.copy(toeRear = x) }, unit = "mm", decimals = 1, wheels = four),
                 num("hf", g, L("Altezza ant."), { it.heightFront }, { v, x -> v.copy(heightFront = x) }, unit = "mm"),
                 num("hr", g, L("Altezza post."), { it.heightRear }, { v, x -> v.copy(heightRear = x) }, unit = "mm"),
                 num("bf", d, L("Compressione ant."), { it.bumpFront }, { v, x -> v.copy(bumpFront = x) }, unit = L("click")),
@@ -186,10 +208,15 @@ class SetupField(
                 num("rr", d, L("Estensione post."), { it.reboundRear }, { v, x -> v.copy(reboundRear = x) }, unit = L("click")),
                 num("sf", d, L("Molle ant."), { it.springFront }, { v, x -> v.copy(springFront = x) }, unit = "N/mm"),
                 num("sr", d, L("Molle post."), { it.springRear }, { v, x -> v.copy(springRear = x) }, unit = "N/mm"),
-                txt("arbf", d, L("Barra ant."), { it.barFront }, { v, x -> v.copy(barFront = x) }),
-                txt("arbr", d, L("Barra post."), { it.barRear }, { v, x -> v.copy(barRear = x) }),
-                txt("wing", a, L("Ala"), { it.wing }, { v, x -> v.copy(wing = x) }),
-                num("bias", a, L("Ripartizione di frenata (ant.)"), { it.brakeBias }, { v, x -> v.copy(brakeBias = x) }, unit = "%", decimals = 1),
+                num("plf", d, L("Precarico ant."), { it.preloadFront }, { v, x -> v.copy(preloadFront = x) }, unit = "mm", decimals = 1, wheels = two),
+                num("plr", d, L("Precarico post."), { it.preloadRear }, { v, x -> v.copy(preloadRear = x) }, unit = "mm", decimals = 1, wheels = two),
+                num("sagf", d, L("Sag ant."), { it.sagFront }, { v, x -> v.copy(sagFront = x) }, unit = "mm", wheels = two),
+                num("sagr", d, L("Sag post."), { it.sagRear }, { v, x -> v.copy(sagRear = x) }, unit = "mm", wheels = two),
+                txt("arbf", d, L("Barra ant."), { it.barFront }, { v, x -> v.copy(barFront = x) }, wheels = four),
+                txt("arbr", d, L("Barra post."), { it.barRear }, { v, x -> v.copy(barRear = x) }, wheels = four),
+                txt("gear", Group.drivetrain, L("Rapporto (pignone/corona)"), { it.gearing ?: "" }, { v, x -> v.copy(gearing = x.ifEmpty { null }) }, wheels = two),
+                txt("wing", a, L("Ala"), { it.wing }, { v, x -> v.copy(wing = x) }, wheels = four),
+                num("bias", a, L("Ripartizione di frenata (ant.)"), { it.brakeBias }, { v, x -> v.copy(brakeBias = x) }, unit = "%", decimals = 1, wheels = four),
             )
         }
     }

@@ -7,7 +7,8 @@
 # The app has push notifications (Support/TrackLap.entitlements): the App ID on the Apple Developer
 # site needs the Push Notifications capability.
 # The app on the Store has its own bundle ID, win.shadowbyte.tracklap, apart from the Feather
-# build (com.local.tracklap).
+# build (com.local.tracklap). TrackLap Lite (edition: lite) is another app on App Store Connect,
+# win.shadowbyte.tracklap.lite, without push notifications.
 name: TestFlight
 
 on:
@@ -15,9 +16,14 @@ on:
     tags: ['v*']
   workflow_dispatch:
     inputs:
+      edition:
+        description: TrackLap (full) or TrackLap Lite (lite)
+        type: choice
+        options: [full, lite]
+        default: full
       bundle:
-        description: Bundle ID on App Store Connect
-        default: win.shadowbyte.tracklap
+        description: Bundle ID on App Store Connect (empty for the edition's own)
+        default: ''
 
 permissions:
   contents: read
@@ -27,7 +33,8 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 60
     env:
-      BUNDLE: ${{ inputs.bundle || 'win.shadowbyte.tracklap' }}
+      BUNDLE: ${{ inputs.bundle || (inputs.edition == 'lite' && 'win.shadowbyte.tracklap.lite' || 'win.shadowbyte.tracklap') }}
+      APP: ${{ inputs.edition == 'lite' && 'TrackLapLite' || 'TrackLap' }}
       TEAM: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -88,18 +95,19 @@ jobs:
       - name: Archive
         run: |
           set -o pipefail
-          xcodebuild -project TrackLap.xcodeproj -scheme TrackLap -configuration Release \
+          xcodebuild -project TrackLap.xcodeproj -scheme "$APP" -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$PWD/build/TrackLap.xcarchive" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE" DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION="$BUILD" \
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
-          test -d build/TrackLap.xcarchive/Products/Applications/TrackLap.app || { grep -E "error" build.log | head -60; exit 1; }
+          test -d "build/TrackLap.xcarchive/Products/Applications/$APP.app" || { grep -E "error" build.log | head -60; exit 1; }
 
       # An unsigned archive has no entitlements, and the export would sign it without them. A
       # signature of its own carries them (push notifications) to the export, which signs it for
       # the App Store and keeps them.
       - name: Entitlements
+        if: env.APP == 'TrackLap'
         run: |
           set -eu
           APP=build/TrackLap.xcarchive/Products/Applications/TrackLap.app

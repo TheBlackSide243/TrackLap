@@ -74,7 +74,7 @@ struct DragRunView: View {
                     if let car = model.garage.car(r.carID) {
                         Button { showingCar = car.id } label: {
                             HStack(spacing: 10) {
-                                CarPhotoView(photo: car.info.photo)
+                                CarPhotoView(photo: car.info.photo, kind: car.vehicle)
                                     .frame(width: 44, height: 33)
                                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 VStack(alignment: .leading, spacing: 1) {
