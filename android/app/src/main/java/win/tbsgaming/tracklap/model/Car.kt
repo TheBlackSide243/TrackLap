@@ -23,15 +23,18 @@ data class Car(
     /** Its photo: a JPEG in the garage folder, under the same id on the server. A new photo always gets a new id. */
     val photo: String? = null,
     val added: Double = nowSeconds(),
+    /** Car, motorcycle or scooter (0.10.0); null in garages from before, which were all cars. */
+    val kind: VehicleKind? = null,
 ) {
-    val displayName: String get() = name.trim().ifEmpty { L("Auto senza nome") }
+    val vehicle: VehicleKind get() = kind ?: VehicleKind.car
+    val displayName: String get() = name.trim().ifEmpty { vehicle.unnamed }
 
     val info: CarInfo
-        get() = CarInfo(id, displayName, year, power, weight, mods, notes, photo?.let { CarPhoto.Local(it) } ?: CarPhoto.Empty)
+        get() = CarInfo(id, displayName, year, power, weight, mods, notes, photo?.let { CarPhoto.Local(it) } ?: CarPhoto.Empty, vehicle)
 
     /** What goes to the server: the same fields, the modifications without empty lines. */
     val published: Car
-        get() = copy(name = displayName.take(MAX_NAME), mods = mods.map { it.trim() }.filter { it.isNotEmpty() }, notes = notes.trim())
+        get() = copy(name = displayName.take(MAX_NAME), mods = mods.map { it.trim() }.filter { it.isNotEmpty() }, notes = notes.trim(), kind = vehicle)
 
     companion object {
         const val MAX_NAME = 40
@@ -52,6 +55,7 @@ data class CarInfo(
     val mods: List<String>,
     val notes: String,
     val photo: CarPhoto,
+    val kind: VehicleKind = VehicleKind.car,
 ) {
     /** Kilograms (or pounds) for each horsepower: the number drivers compare cars by. */
     val ratio: Double? get() = if (power != null && weight != null && power > 0) weight.toDouble() / power else null
@@ -90,10 +94,12 @@ data class PublicGarage(
         val mods: List<String> = emptyList(),
         val notes: String? = null,
         val photo: String? = null,
+        val kind: String? = null,
     )
 
     fun info(e: Entry, photoURL: (String) -> String) =
-        CarInfo(e.id, e.name, e.year, e.power, e.weight, e.mods, e.notes ?: "", e.photo?.let { CarPhoto.Remote(photoURL(it)) } ?: CarPhoto.Empty)
+        CarInfo(e.id, e.name, e.year, e.power, e.weight, e.mods, e.notes ?: "", e.photo?.let { CarPhoto.Remote(photoURL(it)) } ?: CarPhoto.Empty,
+            VehicleKind.of(e.kind) ?: VehicleKind.car)
 }
 
 /** Power, weight and their ratio in the units of the settings. */

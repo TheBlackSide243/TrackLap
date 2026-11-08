@@ -27,11 +27,16 @@ struct DeviceView: View {
                     SectionLabel(L("Cronometro"))
                     SettingsPanel()
 
-                    SectionLabel(L("Account"))
-                    AccountPanel()
+                    if Edition.online {
+                        SectionLabel(L("Account"))
+                        AccountPanel()
 
-                    SectionLabel(L("Tu e gli amici"))
-                    FriendsPanel()
+                        SectionLabel(L("Tu e gli amici"))
+                        FriendsPanel()
+                    } else {
+                        SectionLabel(L("TrackLap completa"))
+                        FullAppPanel()
+                    }
 
                     SectionLabel(L("Informazioni"))
                     AboutPanel()
@@ -316,6 +321,18 @@ private struct SettingsPanel: View {
     var body: some View {
         Panel {
             VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Con cosa giri").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Picker("Con cosa giri", selection: Binding(get: { model.vehicleKind }, set: { model.setVehicleKind($0) })) {
+                        ForEach(VehicleKind.allCases) { Text(verbatim: $0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(Edition.online ? L("Quando in Live non scegli un veicolo del garage. Su moto e scooter il cronometro mostra anche la piega.")
+                         : L("Su moto e scooter il cronometro mostra anche la piega."))
+                        .font(.caption)
+                        .foregroundStyle(Theme.sub)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Stepper(value: Binding(get: { model.minLapTime }, set: { model.setMinLapTime($0) }), in: 5...180, step: 5) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Giro minimo: \(Int(model.minLapTime)) s").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
@@ -393,7 +410,7 @@ private struct FriendsPanel: View {
                 Toggle(isOn: Binding(get: { p.publishLaps }, set: { p.setPublish($0) })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Pubblica i miei best").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                        Text("Il giro migliore di ogni sessione va nella classifica online della sua pista, con il nome del tuo account e l'auto in uso. Mai i giri della Demo.")
+                        Text("Il giro migliore di ogni sessione va nella classifica online della sua pista, con il nome del tuo account e il veicolo in uso. Mai i giri della Demo.")
                             .font(.caption)
                             .foregroundStyle(Theme.sub)
                     }
@@ -405,10 +422,43 @@ private struct FriendsPanel: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.yellow)
                 }
-                Text("I gruppi live, le classifiche e il garage pubblico passano dal server di TrackLap: riceve il nome, l'auto, i tempi, le auto che mostri con le loro foto e, solo mentre sei in un gruppo, la posizione in pista.")
+                Text("I gruppi live, le classifiche e il garage pubblico passano dal server di TrackLap: riceve il nome, il veicolo, i tempi, i veicoli che mostri con le loro foto e, solo mentre sei in un gruppo, la posizione in pista.")
                     .font(.caption)
                     .foregroundStyle(Theme.sub)
             }
+        }
+    }
+}
+
+/// TrackLap Lite: what the full app adds, all of it through the server.
+private struct FullAppPanel: View {
+    var body: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Questa è TrackLap Lite: cronometro, drag, piste e sessioni, tutto sul telefono e senza account.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    feature("person.2.fill", L("Amici e sfide sui loro giri"))
+                    feature("trophy.fill", L("Classifiche online di ogni pista"))
+                    feature("dot.radiowaves.left.and.right", L("Gruppi live in pista"))
+                    feature("car.fill", L("Garage con auto, moto, scooter e assetti"))
+                    feature("square.and.arrow.up", L("Sessioni condivise con tutti o con gli amici"))
+                }
+                Text("Sono nell'app TrackLap completa, un'app a parte: le sessioni di Lite restano su questo telefono.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.sub)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func feature(_ symbol: String, _ title: String) -> some View {
+        Label {
+            Text(title).font(.subheadline).foregroundStyle(Theme.text)
+        } icon: {
+            Image(systemName: symbol).foregroundStyle(Theme.accent)
         }
     }
 }
@@ -420,7 +470,7 @@ private struct AboutPanel: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         Panel {
             VStack(alignment: .leading, spacing: 8) {
-                row(L("Versione"), version)
+                row(L("Versione"), Edition.isLite ? "Lite \(version)" : version)
                 row(L("Protocollo BLE"), "TrackLap v1")
                 row(L("Mappe e piste"), "© OpenStreetMap")
                 Text("Il cronometraggio interpola il passaggio sulla linea tra due fix GPS: a 10 Hz la precisione è di qualche centesimo.")

@@ -233,7 +233,7 @@ private fun tabItems() = listOf(
     TabItem(AppTab.garage, L("Garage"), Icons.Filled.DirectionsCar),
     TabItem(AppTab.friends, L("Amici"), Icons.Filled.People),
     TabItem(AppTab.device, L("Dispositivo"), Icons.Filled.Sensors),
-)
+).filter { Edition.online || (it.tab != AppTab.garage && it.tab != AppTab.friends) }
 
 @Composable
 private fun Tabs() {

@@ -41,11 +41,14 @@ The phones do all the timing: the server only stores and relays.
 | `POST /v1/me/password` | `{old, new}` → a new token; every other token stops working |
 | `DELETE /v1/me` | `{password}`: the account goes, with its garage and its laps |
 | `POST /v1/me/garage` | your garage's code (made the first time): `{"code":"K7P2QX9M"}` |
-| `GET /v1/garages/<code>` | the garage: `{code, name, cars: [{id, name, year, power, weight, mods, notes, photo}], mine, audience}`; for its owner also the photos still `missing`; 403 `friends only` for anyone but the owner's friends when `audience` is `friends` |
+| `GET /v1/garages/<code>` | the garage: `{code, name, cars: [{id, name, year, power, weight, mods, notes, photo, kind}], mine, audience}` (`kind`: `car`, `motorcycle` or `scooter`); for its owner also the photos still `missing`; 403 `friends only` for anyone but the owner's friends when `audience` is `friends` |
 | `PUT /v1/garages/<code>` | the owner's cars, all of them, and `audience`: `all` (the default) or `friends`; the answer lists the `missing` photos; photos of cars that went are deleted |
 | `PUT /v1/garages/<code>/photos/<id>` | a JPEG for a car of the garage, owner only |
 | `GET /v1/garages/<code>/photos/<id>` | the photo, cached for good (a new photo gets a new id) |
 | `POST /v1/garages/<code>/report` | `{reason, car}` from anyone |
+| `PUT /v1/garages/<code>/sessions` | the owner's shared sessions, at most 300 and 256 KB: `{audience: "all"\|"friends", sessions: [{id, track, date, laps, car, kind, source}]}`; `date` in milliseconds, `laps` the lap times in seconds (at most 200), `best` is worked out |
+| `GET /v1/garages/<code>/sessions` | `{code, name, audience, sessions, updated, mine}`, newest first; 403 `friends only` when `audience` is `friends` and you are not a friend; an empty list when nothing is shared |
+| `DELETE /v1/garages/<code>/sessions` | the owner shares no sessions any more |
 | `GET /g/<code>` | the garage's page, in Italian or English, with a preview for chats |
 | `POST /v1/me/invite` | your invitation: `{code, expires}`, the same one while it has more than a day left; `{"renew": true}` makes a new one and the old one stops working |
 | `GET /v1/invites/<code>` | who an invitation is from, while it is good: `{name, expires}` |
@@ -57,7 +60,7 @@ The phones do all the timing: the server only stores and relays.
 | `PUT /v1/me/push` | `{platform: "ios"\|"android", token}`: this phone's token from Apple or Google, tied to the session (signing out there stops it); up to 10 phones |
 | `DELETE /v1/me/push` | `{token}`: that phone gets nothing more |
 | `GET /v1/boards?lat=&lon=&len=` | the leaderboard of the circuit whose start line is there (`len` = a lap in metres, to pick the layout); each lap has `name`, `vehicle`, `garage` and `car`, and yours `"mine":true` when signed in |
-| `POST /v1/laps` | signed in: `{source: "device"\|"phone", time, distance, sectors, date, track: {name, lat, lon}, car}`; the name is the account's, and `car` links the lap only if it is in your garage |
+| `POST /v1/laps` | signed in: `{source: "device"\|"phone", time, distance, sectors, date, track: {name, lat, lon}, car, kind}`; the name is the account's, `car` links the lap only if it is in your garage, and `kind` (`car`, `motorcycle`, `scooter`) comes back on the board |
 
 Signed-in calls carry `Authorization: Bearer <token>`.
 

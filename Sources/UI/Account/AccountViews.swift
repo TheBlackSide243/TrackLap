@@ -30,7 +30,7 @@ struct AccountSheet: View {
                         Text(creating ? L("Crea il tuo account") : L("Accedi a TrackLap"))
                             .font(.system(size: 24, weight: .heavy, design: .rounded))
                             .foregroundStyle(Theme.text)
-                        Text("Per mostrare il garage a tutti e mettere i tuoi tempi nelle classifiche delle piste, con l'auto con cui li hai fatti.")
+                        Text("Per mostrare il garage a tutti e mettere i tuoi tempi nelle classifiche delle piste, con il veicolo con cui li hai fatti.")
                             .font(.subheadline)
                             .foregroundStyle(Theme.sub)
                             .multilineTextAlignment(.center)
@@ -218,7 +218,7 @@ struct AccountPanel: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto.")
+                    Text("Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e il tuo veicolo.")
                         .font(.subheadline)
                         .foregroundStyle(Theme.sub)
                         .fixedSize(horizontal: false, vertical: true)
@@ -262,7 +262,7 @@ struct PasswordSheet: View {
                                 Label("Non si torna indietro", systemImage: "exclamationmark.triangle.fill")
                                     .font(.headline)
                                     .foregroundStyle(Theme.bad)
-                                Text("Vengono cancellati dal server l'account, il garage online con le foto e tutti i tuoi tempi nelle classifiche. Le auto e le sessioni sul telefono restano.")
+                                Text("Vengono cancellati dal server l'account, il garage online con le foto e tutti i tuoi tempi nelle classifiche. I veicoli e le sessioni sul telefono restano.")
                                     .font(.subheadline)
                                     .foregroundStyle(Theme.sub)
                                     .fixedSize(horizontal: false, vertical: true)

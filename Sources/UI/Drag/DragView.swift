@@ -91,8 +91,10 @@ private struct DragHeader: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
                     pills
-                    ActiveCarChip()
-                    ActiveSetupChip()
+                    if Edition.online {
+                        ActiveCarChip()
+                        ActiveSetupChip()
+                    }
                     Spacer(minLength: 0)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -100,10 +102,12 @@ private struct DragHeader: View {
                         pills
                         Spacer(minLength: 0)
                     }
-                    HStack(spacing: 8) {
-                        ActiveCarChip()
-                        ActiveSetupChip()
-                        Spacer(minLength: 0)
+                    if Edition.online {
+                        HStack(spacing: 8) {
+                            ActiveCarChip()
+                            ActiveSetupChip()
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
             }
@@ -474,7 +478,7 @@ private struct RecordsCard: View {
                     SectionLabel(car != nil && !allCars ? L("I tuoi record con \(car!.displayName)") : L("I tuoi record"))
                     if car != nil {
                         Picker("", selection: $allCars) {
-                            Text("Quest'auto").tag(false)
+                            Text("Questo veicolo").tag(false)
                             Text("Tutte").tag(true)
                         }
                         .pickerStyle(.segmented)

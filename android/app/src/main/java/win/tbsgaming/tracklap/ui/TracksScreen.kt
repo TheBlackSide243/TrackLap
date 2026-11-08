@@ -75,6 +75,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import win.tbsgaming.tracklap.AppTab
+import win.tbsgaming.tracklap.Edition
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.LocalNav
 import win.tbsgaming.tracklap.LocalPermissions
@@ -224,7 +225,7 @@ private fun TrackCard(track: Track, selected: Boolean, onUse: () -> Unit, onEdit
             RoundIconButton(Icons.Filled.MoreVert, Theme.sub) { menu = true }
             DropdownMenu(menu, { menu = false }, containerColor = Theme.panel) {
                 DropdownMenuItem({ Text(L("Modifica"), color = Theme.text) }, { menu = false; onEdit() }, leadingIcon = { Icon(Icons.Filled.Edit, null, tint = Theme.accent) })
-                if (track.isReady && !track.isDemo) {
+                if (track.isReady && !track.isDemo && Edition.online) {
                     DropdownMenuItem({ Text(L("Classifica online"), color = Theme.text) }, { menu = false; onBoard() }, leadingIcon = { Icon(Icons.Filled.EmojiEvents, null, tint = Theme.yellow) })
                 }
                 DropdownMenuItem({ Text(L("Elimina"), color = Theme.bad) }, { menu = false; onDelete() }, leadingIcon = { Icon(Icons.Filled.Delete, null, tint = Theme.bad) })

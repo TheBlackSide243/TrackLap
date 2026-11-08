@@ -79,7 +79,7 @@ fun SignInScreen(tab: AppTab) {
     Column(Modifier.fillMaxSize()) {
         TopBar(if (creating) L("Crea il tuo account") else L("Accedi a TrackLap"), onBack = { nav.pop(tab) })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(L("Per mostrare il garage a tutti e mettere i tuoi tempi nelle classifiche delle piste, con l'auto con cui li hai fatti."), fontSize = 14.sp, color = Theme.sub)
+            Text(L("Per mostrare il garage a tutti e mettere i tuoi tempi nelle classifiche delle piste, con il veicolo con cui li hai fatti."), fontSize = 14.sp, color = Theme.sub)
             Segmented(listOf(L("Accedi") to false, L("Nuovo account") to true), creating) { creating = it; error = null }
             OutlinedTextField(
                 name, { name = it.take(20) }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(L("Nome utente")) },
@@ -143,7 +143,7 @@ fun AccountPanel() {
             Text(L("Elimina l'account"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Theme.bad,
                 modifier = Modifier.clickableNoRipple { passwordMode = "delete" })
         } else {
-            Text(L("Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e la tua auto."), fontSize = 13.sp, color = Theme.sub)
+            Text(L("Con un account mostri il garage a tutti e i tuoi tempi entrano nelle classifiche delle piste con il tuo nome e il tuo veicolo."), fontSize = 13.sp, color = Theme.sub)
             Spacer(Modifier.height(12.dp))
             PrimaryButton(L("Accedi o crea un account"), Icons.Filled.Person) { nav.push(AppTab.device, "account") }
         }
@@ -177,7 +177,7 @@ private fun PasswordDialog(delete: Boolean, done: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (delete) {
                     Note(Icons.Filled.Warning, Theme.bad, L("Non si torna indietro"))
-                    Text(L("Vengono cancellati dal server l'account, il garage online con le foto e tutti i tuoi tempi nelle classifiche. Le auto e le sessioni sul telefono restano."), fontSize = 13.sp, color = Theme.sub)
+                    Text(L("Vengono cancellati dal server l'account, il garage online con le foto e tutti i tuoi tempi nelle classifiche. I veicoli e le sessioni sul telefono restano."), fontSize = 13.sp, color = Theme.sub)
                 }
                 OutlinedTextField(
                     current, { current = it }, Modifier.fillMaxWidth(), singleLine = true,
@@ -229,14 +229,14 @@ fun FriendsPanel() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(L("Pubblica i miei best"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.text)
-                    Text(L("Il giro migliore di ogni sessione va nella classifica online della sua pista, con il nome del tuo account e l'auto in uso. Mai i giri della Demo."), fontSize = 12.sp, color = Theme.sub)
+                    Text(L("Il giro migliore di ogni sessione va nella classifica online della sua pista, con il nome del tuo account e il veicolo in uso. Mai i giri della Demo."), fontSize = 12.sp, color = Theme.sub)
                 }
                 Switch(p.publishLaps, { p.setPublish(it) }, enabled = m.account.isSignedIn,
                     colors = SwitchDefaults.colors(checkedTrackColor = Theme.accent, checkedThumbColor = Color.Black))
             }
             if (!m.account.isSignedIn) Text(L("Per pubblicare i tempi serve un account: lo crei qui sopra."), fontSize = 12.sp, color = Theme.yellow)
             Text(
-                L("I gruppi live, le classifiche e il garage pubblico passano dal server di TrackLap: riceve il nome, l'auto, i tempi, le auto che mostri con le loro foto e, solo mentre sei in un gruppo, la posizione in pista."),
+                L("I gruppi live, le classifiche e il garage pubblico passano dal server di TrackLap: riceve il nome, il veicolo, i tempi, i veicoli che mostri con le loro foto e, solo mentre sei in un gruppo, la posizione in pista."),
                 fontSize = 12.sp, color = Theme.sub,
             )
         }

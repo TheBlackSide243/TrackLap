@@ -32,7 +32,7 @@ struct TracksView: View {
                         }
                         .contextMenu {
                             Button { path.append(track.id) } label: { Label("Modifica", systemImage: "pencil") }
-                            if track.isReady {
+                            if track.isReady && Edition.online {
                                 Button { leaderboard = track } label: { Label("Classifica online", systemImage: "trophy.fill") }
                             }
                             Button(role: .destructive) { model.deleteTrack(track.id) } label: { Label("Elimina", systemImage: "trash") }

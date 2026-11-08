@@ -69,6 +69,7 @@ import win.tbsgaming.tracklap.model.SetupItem
 import win.tbsgaming.tracklap.model.SetupRevision
 import win.tbsgaming.tracklap.model.SetupValues
 import win.tbsgaming.tracklap.model.SetupWeather
+import win.tbsgaming.tracklap.model.VehicleKind
 import win.tbsgaming.tracklap.model.SharedSetup
 import java.io.File
 import java.text.NumberFormat
@@ -284,9 +285,13 @@ fun SetupEditorScreen(carID: String, setupID: String) {
             Field(draft.track, L("Pista (facoltativa)")) { draft = draft.copy(track = it.take(60)) }
             Text(L("Condizioni"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.text)
             Segmented(SetupWeather.entries.map { it.title to it }, draft.weather) { draft = draft.copy(weather = it) }
+            val kind = m.garage.car(carID)?.vehicle ?: VehicleKind.car
             for (g in SetupField.Group.entries) {
+                val fields = SetupField.fields(kind).filter { it.group == g }
+                // The extras come after the last group, also on a bike without wings.
+                if (fields.isEmpty() && g != SetupField.Group.aero) continue
                 SectionLabel(g.title)
-                for (f in SetupField.all.filter { it.group == g }) {
+                for (f in fields) {
                     if (f.text != null) {
                         Field(f.text.invoke(draft.values), f.title) { t -> draft = draft.copy(values = f.setText!!(draft.values, t.take(60))) }
                     } else {
@@ -333,7 +338,7 @@ fun SetupImportDialog(shared: SharedSetup, done: () -> Unit) {
                 Text(shared.setup.displayName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Theme.text)
                 if (shared.car.isNotBlank()) Text(L("Assetto per %@", shared.car), fontSize = 13.sp, color = Theme.sub)
                 if (m.garage.cars.isEmpty()) {
-                    Text(L("Aggiungi prima un'auto nel Garage: l'assetto va con un'auto."), fontSize = 13.sp, color = Theme.yellow)
+                    Text(L("Aggiungi prima un veicolo nel Garage: l'assetto va con un veicolo."), fontSize = 13.sp, color = Theme.yellow)
                 } else {
                     Text(L("Aggiungilo a"), fontSize = 13.sp, color = Theme.sub)
                     for (c in m.garage.cars) {

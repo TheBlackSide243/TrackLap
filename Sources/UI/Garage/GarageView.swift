@@ -21,7 +21,7 @@ struct GarageView: View {
                                     .frame(width: 40, height: 40)
                                     .background(Theme.accent, in: Circle())
                             }
-                            .accessibilityLabel(L("Aggiungi un'auto"))
+                            .accessibilityLabel(L("Aggiungi un veicolo"))
                         }
                     }
 
@@ -70,7 +70,7 @@ struct GarageView: View {
             .contextMenu { menu(for: active) }
         }
         if !others.isEmpty {
-            if active != nil { SectionLabel(L("Le altre auto")) }
+            if active != nil { SectionLabel(L("Gli altri veicoli")) }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 158), spacing: 12)], spacing: 12) {
                 ForEach(others) { car in
                     NavigationLink(value: car.id) {
@@ -82,7 +82,7 @@ struct GarageView: View {
             }
         }
         if model.garage.isFull {
-            Text("Il garage ha posto per \(Car.maxCars) auto.")
+            Text("Il garage ha posto per \(Car.maxCars) veicoli.")
                 .font(.caption)
                 .foregroundStyle(Theme.sub)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,7 +92,7 @@ struct GarageView: View {
     @ViewBuilder
     private func menu(for car: Car) -> some View {
         if car.id == model.activeCarID {
-            Button { model.setActiveCar(nil) } label: { Label("Non usarla più in Live", systemImage: "car.side") }
+            Button { model.setActiveCar(nil) } label: { Label("Non usarlo più in Live", systemImage: "car.side") }
         } else {
             Button { model.setActiveCar(car.id) } label: { Label("Usa in Live", systemImage: "steeringwheel") }
         }
@@ -104,8 +104,8 @@ struct GarageView: View {
 
     private var subtitle: String {
         let n = model.garage.cars.count
-        if n == 0 { return L("Le auto con cui giri in pista") }
-        return n == 1 ? L("1 auto") : L("\(n) auto")
+        if n == 0 { return L("Auto, moto e scooter con cui giri in pista") }
+        return n == 1 ? L("1 veicolo") : L("\(n) veicoli")
     }
 }
 
@@ -149,12 +149,12 @@ private struct EmptyGarage: View {
                         .foregroundStyle(Theme.accent)
                 }
                 Text("Il tuo garage è vuoto").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
-                Text("Aggiungi le auto con cui giri in pista: una foto, i cavalli, il peso e tutte le modifiche. Scegli quella che usi in Live e i tuoi tempi in classifica porteranno a lei.")
+                Text("Aggiungi auto, moto o scooter con cui giri in pista: una foto, i cavalli, il peso e tutte le modifiche. Scegli quello che usi in Live e i tuoi tempi in classifica porteranno a lui.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.sub)
                     .fixedSize(horizontal: false, vertical: true)
                 Button(action: onAdd) {
-                    Label("Aggiungi la prima auto", systemImage: "plus")
+                    Label("Aggiungi il primo veicolo", systemImage: "plus")
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 .padding(.top, 4)
@@ -182,11 +182,11 @@ private struct PublishPanel: View {
                         Group {
                             switch garage.audience {
                             case .nobody:
-                                Text("Le auto restano su questo telefono: non le vede nessuno.")
+                                Text("I veicoli restano su questo telefono: non li vede nessuno.")
                             case .friends:
                                 Text("Con il nome \(name). Lo vedono solo i tuoi amici di TrackLap, nella scheda Amici e dalle classifiche.")
                             case .everyone:
-                                Text("Con il nome \(name). Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano all'auto con cui li hai fatti.")
+                                Text("Con il nome \(name). Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano al veicolo con cui li hai fatti.")
                             }
                         }
                         .font(.caption)
@@ -199,7 +199,7 @@ private struct PublishPanel: View {
                             let url = Server.garageURL(code: code)
                             HStack(spacing: 10) {
                                 ShareLink(item: url, subject: Text(L("Il mio garage su TrackLap")),
-                                          message: Text(L("Le mie auto da pista, con tutte le modifiche"))) {
+                                          message: Text(L("I miei veicoli da pista, con tutte le modifiche"))) {
                                     Label("Condividi il link", systemImage: "square.and.arrow.up")
                                 }
                                 .buttonStyle(PrimaryButtonStyle())
@@ -225,7 +225,7 @@ private struct PublishPanel: View {
                             .foregroundStyle(Theme.accent)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Fallo vedere a tutti").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                            Text("Con un account TrackLap il garage ha un link da condividere, e le tue auto compaiono accanto ai tuoi tempi nelle classifiche delle piste.")
+                            Text("Con un account TrackLap il garage ha un link da condividere, e i tuoi veicoli compaiono accanto ai tuoi tempi nelle classifiche delle piste.")
                                 .font(.caption)
                                 .foregroundStyle(Theme.sub)
                                 .fixedSize(horizontal: false, vertical: true)

@@ -93,6 +93,7 @@ import win.tbsgaming.tracklap.model.Car
 import win.tbsgaming.tracklap.model.CarFmt
 import win.tbsgaming.tracklap.model.CarInfo
 import win.tbsgaming.tracklap.model.CarPhoto
+import win.tbsgaming.tracklap.model.VehicleKind
 import win.tbsgaming.tracklap.model.DragMeasure
 import win.tbsgaming.tracklap.model.PublicGarage
 import java.net.HttpURLConnection
@@ -124,7 +125,7 @@ private object RemoteImages {
 
 /** A car's photo filling its box, or a car icon on a dark gradient when there is none. */
 @Composable
-fun CarPhotoView(photo: CarPhoto, modifier: Modifier) {
+fun CarPhotoView(photo: CarPhoto, modifier: Modifier, kind: VehicleKind = VehicleKind.car) {
     val m = LocalModel.current
     val bitmap by produceState<Bitmap?>(null, photo) {
         value = when (photo) {
@@ -136,7 +137,7 @@ fun CarPhotoView(photo: CarPhoto, modifier: Modifier) {
     Box(modifier.background(Brush.verticalGradient(listOf(Theme.input, Theme.panel))), contentAlignment = Alignment.Center) {
         val b = bitmap
         if (b != null) Image(b.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-        else Icon(Icons.Filled.DirectionsCar, null, tint = Theme.sub.copy(alpha = 0.5f), modifier = Modifier.size(44.dp))
+        else Icon(kind.icon, null, tint = Theme.sub.copy(alpha = 0.5f), modifier = Modifier.size(44.dp))
     }
 }
 
@@ -148,7 +149,7 @@ fun GarageScreen() {
     val cars = g.cars
     val active = m.activeCar
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        ScreenHeader(Icons.Filled.DirectionsCar, L("Garage"), if (cars.size == 1) L("1 auto") else L("%lld auto", cars.size)) {
+        ScreenHeader(Icons.Filled.DirectionsCar, L("Garage"), if (cars.size == 1) L("1 veicolo") else L("%lld veicoli", cars.size)) {
             if (!g.isFull) RoundIconButton(Icons.Filled.Add) { nav.push(AppTab.garage, "editor:new") }
         }
         if (cars.isEmpty()) {
@@ -157,15 +158,15 @@ fun GarageScreen() {
                 Spacer(Modifier.height(10.dp))
                 Text(L("Il tuo garage è vuoto"), fontSize = 20.sp, fontWeight = FontWeight.Black, color = Theme.text)
                 Spacer(Modifier.height(6.dp))
-                Text(L("Aggiungi le auto con cui giri in pista: una foto, i cavalli, il peso e tutte le modifiche. Scegli quella che usi in Live e i tuoi tempi in classifica porteranno a lei."), fontSize = 14.sp, color = Theme.sub)
+                Text(L("Aggiungi auto, moto o scooter con cui giri in pista: una foto, i cavalli, il peso e tutte le modifiche. Scegli quello che usi in Live e i tuoi tempi in classifica porteranno a lui."), fontSize = 14.sp, color = Theme.sub)
                 Spacer(Modifier.height(14.dp))
-                PrimaryButton(L("Aggiungi la prima auto"), Icons.Filled.Add) { nav.push(AppTab.garage, "editor:new") }
+                PrimaryButton(L("Aggiungi il primo veicolo"), Icons.Filled.Add) { nav.push(AppTab.garage, "editor:new") }
             }
         } else {
             active?.let { CarHero(it) { nav.push(AppTab.garage, "car:${it.id}") } }
             val others = cars.filter { it.id != active?.id }
             if (others.isNotEmpty()) {
-                SectionLabel(if (active == null) L("Le auto con cui giri in pista") else L("Le altre auto"))
+                SectionLabel(if (active == null) L("Auto, moto e scooter con cui giri in pista") else L("Gli altri veicoli"))
                 for (row in others.chunked(2)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         for (c in row) CarCard(c, Modifier.weight(1f)) { nav.push(AppTab.garage, "car:${c.id}") }
@@ -173,8 +174,8 @@ fun GarageScreen() {
                     }
                 }
             }
-            if (g.isFull) Text(L("Il garage ha posto per %lld auto.", Car.MAX_CARS), fontSize = 12.sp, color = Theme.sub)
-            else SecondaryButton(L("Aggiungi un'auto"), Icons.Filled.Add) { nav.push(AppTab.garage, "editor:new") }
+            if (g.isFull) Text(L("Il garage ha posto per %lld veicoli.", Car.MAX_CARS), fontSize = 12.sp, color = Theme.sub)
+            else SecondaryButton(L("Aggiungi un veicolo"), Icons.Filled.Add) { nav.push(AppTab.garage, "editor:new") }
         }
         PublicPanel()
     }
@@ -186,7 +187,7 @@ private fun CarHero(car: Car, open: () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
     val info = car.info
     Box(Modifier.fillMaxWidth().aspectRatio(1.45f).clip(shape).border(1.5.dp, Theme.accent.copy(alpha = 0.7f), shape).clickable(onClick = open)) {
-        CarPhotoView(info.photo, Modifier.fillMaxSize())
+        CarPhotoView(info.photo, Modifier.fillMaxSize(), info.kind)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)), startY = 200f)))
         Box(Modifier.padding(12.dp)) { Badge(L("In uso in Live")) }
         Column(Modifier.align(Alignment.BottomStart).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -218,7 +219,7 @@ fun CarCard(car: Car, modifier: Modifier, open: () -> Unit) = InfoCard(car.info,
 fun InfoCard(info: CarInfo, modifier: Modifier, open: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Column(modifier.clip(shape).background(Theme.panel).border(1.dp, Theme.line.copy(alpha = 0.8f), shape).clickable(onClick = open)) {
-        CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.3f))
+        CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.3f), info.kind)
         Column(Modifier.padding(10.dp)) {
             Text(info.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Theme.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val mods = info.mods.size
@@ -241,7 +242,7 @@ private fun PublicPanel() {
         if (!account.isSignedIn) {
             Text(L("Fallo vedere a tutti"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Theme.text)
             Spacer(Modifier.height(4.dp))
-            Text(L("Con un account TrackLap il garage ha un link da condividere, e le tue auto compaiono accanto ai tuoi tempi nelle classifiche delle piste."), fontSize = 13.sp, color = Theme.sub)
+            Text(L("Con un account TrackLap il garage ha un link da condividere, e i tuoi veicoli compaiono accanto ai tuoi tempi nelle classifiche delle piste."), fontSize = 13.sp, color = Theme.sub)
             Spacer(Modifier.height(12.dp))
             PrimaryButton(L("Accedi o crea un account"), Icons.Filled.Person) { nav.push(AppTab.garage, "account") }
             return@Panel
@@ -250,9 +251,9 @@ private fun PublicPanel() {
         Spacer(Modifier.height(8.dp))
         Text(
             when (g.audience) {
-                GarageAudience.nobody -> L("Le auto restano su questo telefono: non le vede nessuno.")
+                GarageAudience.nobody -> L("I veicoli restano su questo telefono: non li vede nessuno.")
                 GarageAudience.friends -> L("Con il nome %@. Lo vedono solo i tuoi amici di TrackLap, nella scheda Amici e dalle classifiche.", account.name ?: "")
-                GarageAudience.everyone -> L("Con il nome %@. Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano all'auto con cui li hai fatti.", account.name ?: "")
+                GarageAudience.everyone -> L("Con il nome %@. Chi ha il link lo vede anche senza l'app, e in classifica i tuoi tempi portano al veicolo con cui li hai fatti.", account.name ?: "")
             },
             fontSize = 12.sp, color = Theme.sub,
         )
@@ -353,19 +354,19 @@ fun CarDetailScreen(id: String) {
                     DropdownMenuItem({ Text(L("Modifica"), color = Theme.text) }, { menu = false; nav.push(AppTab.garage, "editor:${car.id}") }, leadingIcon = { Icon(Icons.Filled.Edit, null, tint = Theme.accent) })
                     val code = m.account.garage
                     if (m.garage.isPublic && code != null) {
-                        DropdownMenuItem({ Text(L("Condividi quest'auto"), color = Theme.text) }, {
+                        DropdownMenuItem({ Text(L("Condividi questo veicolo"), color = Theme.text) }, {
                             menu = false
                             shareText(context, L("%@ nel mio garage su TrackLap", info.name) + "\n" + Server.garageURL(code, car.id))
                         }, leadingIcon = { Icon(Icons.Filled.Share, null, tint = Theme.accent) })
                     }
                     DropdownMenuItem({ Text(L("Sposta prima"), color = Theme.text) }, { menu = false; m.garage.move(car.id, -1) }, leadingIcon = { Icon(Icons.Filled.ArrowUpward, null, tint = Theme.sub) })
                     DropdownMenuItem({ Text(L("Sposta dopo"), color = Theme.text) }, { menu = false; m.garage.move(car.id, 1) }, leadingIcon = { Icon(Icons.Filled.ArrowDownward, null, tint = Theme.sub) })
-                    DropdownMenuItem({ Text(L("Elimina l'auto"), color = Theme.bad) }, { menu = false; confirmDelete = true }, leadingIcon = { Icon(Icons.Filled.Delete, null, tint = Theme.bad) })
+                    DropdownMenuItem({ Text(L("Elimina il veicolo"), color = Theme.bad) }, { menu = false; confirmDelete = true }, leadingIcon = { Icon(Icons.Filled.Delete, null, tint = Theme.bad) })
                 }
             }
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)))
+            CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)), info.kind)
             Column {
                 if (active) Badge(L("In uso in Live"))
                 Text(info.name, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Theme.text)
@@ -373,10 +374,10 @@ fun CarDetailScreen(id: String) {
             }
             SpecGrid(info)
             if (active) {
-                Note(Icons.Filled.CheckCircle, Theme.good, L("La stai usando in Live") + ". " + L("Le prossime sessioni e i tempi in classifica sono con quest'auto."))
-                SecondaryButton(L("Non usarla più in Live"), Icons.Filled.Close, Theme.sub) { m.setActiveCar(null) }
+                Note(Icons.Filled.CheckCircle, Theme.good, L("La stai usando in Live") + ". " + L("Le prossime sessioni e i tempi in classifica sono con questo veicolo."))
+                SecondaryButton(L("Non usarlo più in Live"), Icons.Filled.Close, Theme.sub) { m.setActiveCar(null) }
             } else {
-                PrimaryButton(L("Usa quest'auto in Live"), Icons.Filled.Timer) { m.setActiveCar(car.id) }
+                PrimaryButton(L("Usa questo veicolo in Live"), Icons.Filled.Timer) { m.setActiveCar(car.id) }
             }
             ModsPanel(info)
             SetupsSection(car)
@@ -387,8 +388,8 @@ fun CarDetailScreen(id: String) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false }, containerColor = Theme.panel,
             title = { Text(L("Eliminare %@?", info.name), color = Theme.text) },
-            text = { Text(L("Le sessioni restano, senza il collegamento all'auto."), color = Theme.sub) },
-            confirmButton = { TextButton({ confirmDelete = false; m.deleteCar(car.id); nav.pop(AppTab.garage) }) { Text(L("Elimina l'auto"), color = Theme.bad) } },
+            text = { Text(L("Le sessioni restano, senza il collegamento al veicolo."), color = Theme.sub) },
+            confirmButton = { TextButton({ confirmDelete = false; m.deleteCar(car.id); nav.pop(AppTab.garage) }) { Text(L("Elimina il veicolo"), color = Theme.bad) } },
             dismissButton = { TextButton({ confirmDelete = false }) { Text(L("Annulla"), color = Theme.accent) } },
         )
     }
@@ -421,7 +422,7 @@ private fun BestTimes(car: Car) {
     val bests = m.sessions.summaries.filter { it.carID == car.id && it.best != null }
         .groupBy { it.trackID }.mapNotNull { (_, list) -> list.minByOrNull { it.best ?: Double.MAX_VALUE } }.sortedBy { it.trackName }
     if (bests.isNotEmpty()) {
-        SectionLabel(L("I tuoi migliori tempi con quest'auto"))
+        SectionLabel(L("I tuoi migliori tempi con questo veicolo"))
         Panel(padding = 4.dp) {
             for ((i, s) in bests.withIndex()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -438,7 +439,7 @@ private fun BestTimes(car: Car) {
     val records = m.drags.records(car.id)
     val measures = DragMeasure.all().filter { it.headline && records[it.name] != null }
     if (measures.isNotEmpty()) {
-        SectionLabel(L("I tuoi migliori Drag con quest'auto"))
+        SectionLabel(L("I tuoi migliori Drag con questo veicolo"))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             for (mm in measures) {
                 val r = records.getValue(mm.name).result
@@ -460,7 +461,7 @@ fun CarEditorScreen(id: String) {
     val nav = LocalNav.current
     val scope = rememberCoroutineScope()
     val existing = m.garage.car(id)
-    var draft by remember { mutableStateOf(existing ?: Car()) }
+    var draft by remember { mutableStateOf(existing ?: Car(kind = m.vehicleKind)) }
     var year by remember { mutableStateOf(existing?.year?.toString() ?: "") }
     var power by remember { mutableStateOf(existing?.power?.let { CarFmt.power(it) } ?: "") }
     var weight by remember { mutableStateOf(existing?.weight?.let { CarFmt.weight(it) } ?: "") }
@@ -497,7 +498,7 @@ fun CarEditorScreen(id: String) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar(if (existing == null) L("Nuova auto") else L("Modifica auto"), onBack = { close(false) }) {
+        TopBar(if (existing == null) L("Nuovo veicolo") else L("Modifica veicolo"), onBack = { close(false) }) {
             Text(L("Salva"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Theme.accent, modifier = Modifier.clickable { close(true) })
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -505,7 +506,7 @@ fun CarEditorScreen(id: String) {
                 Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)).border(1.dp, Theme.line, RoundedCornerShape(22.dp))
                     .clickable { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
             ) {
-                CarPhotoView(draft.photo?.let { CarPhoto.Local(it) } ?: CarPhoto.Empty, Modifier.fillMaxSize())
+                CarPhotoView(draft.photo?.let { CarPhoto.Local(it) } ?: CarPhoto.Empty, Modifier.fillMaxSize(), draft.vehicle)
                 Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
                     Row(
                         Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 12.dp, vertical = 6.dp),
@@ -518,7 +519,8 @@ fun CarEditorScreen(id: String) {
                 }
                 if (loadingPhoto) CircularProgressIndicator(Modifier.align(Alignment.Center), color = Theme.accent)
             }
-            SectionLabel(L("L'auto"))
+            SectionLabel(L("Il veicolo"))
+            Segmented(VehicleKind.entries.map { it.title to it }, draft.vehicle) { draft = draft.copy(kind = it) }
             Field(draft.name, L("Marca e modello")) { draft = draft.copy(name = it.take(Car.MAX_NAME)) }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Field(year, L("Anno"), Modifier.weight(1f), number = true) { year = it.filter(Char::isDigit).take(4) }
@@ -611,7 +613,7 @@ fun PublicGarageScreen(link: GarageLink, onClose: () -> Unit) {
             g == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Theme.accent) }
             car != null -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 val info = g.info(car) { Server.photoURL(g.code, it) }
-                CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)))
+                CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)), info.kind)
                 Text(L("Dal garage di %@", g.name), fontSize = 13.sp, color = Theme.sub)
                 Text(info.name, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Theme.text)
                 SpecGrid(info)
@@ -620,11 +622,11 @@ fun PublicGarageScreen(link: GarageLink, onClose: () -> Unit) {
             }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(L("Il garage di %@", g.name), fontSize = 24.sp, fontWeight = FontWeight.Black, color = Theme.text)
-                Text(if (g.cars.size == 1) L("1 auto") else L("%lld auto", g.cars.size), fontSize = 14.sp, color = Theme.sub)
+                Text(if (g.cars.size == 1) L("1 veicolo") else L("%lld veicoli", g.cars.size), fontSize = 14.sp, color = Theme.sub)
                 if (g.cars.isEmpty()) {
                     Panel {
-                        Text(L("Nessuna auto in questo garage"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Theme.text)
-                        Text(L("Le auto compaiono qui quando il pilota le mostra a tutti."), fontSize = 13.sp, color = Theme.sub)
+                        Text(L("Nessun veicolo in questo garage"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Theme.text)
+                        Text(L("I veicoli compaiono qui quando il pilota li mostra a tutti."), fontSize = 13.sp, color = Theme.sub)
                     }
                 }
                 for (row in g.cars.chunked(2)) {
@@ -633,6 +635,7 @@ fun PublicGarageScreen(link: GarageLink, onClose: () -> Unit) {
                         if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
+                SharedSessionsSection(g.code)
                 if (g.mine != true) SecondaryButton(L("Segnala"), Icons.Filled.Flag, Theme.bad) { reporting = true }
             }
         }
@@ -644,7 +647,7 @@ fun PublicGarageScreen(link: GarageLink, onClose: () -> Unit) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(L("La segnalazione arriva a chi gestisce TrackLap. Con più segnalazioni il garage viene nascosto finché non viene controllato."), fontSize = 13.sp, color = Theme.sub)
-                    for ((key, reason) in listOf("photo" to L("Foto inadatta"), "text" to L("Testo offensivo"), "notTheirs" to L("Non è la sua auto"), "spam" to L("Spam"))) {
+                    for ((key, reason) in listOf("photo" to L("Foto inadatta"), "text" to L("Testo offensivo"), "notTheirs" to L("Non è il suo veicolo"), "spam" to L("Spam"))) {
                         Text(reason, fontSize = 15.sp, color = Theme.accent, modifier = Modifier.fillMaxWidth().clickable {
                             reporting = false
                             scope.launch { runCatching { Server.report(g.code, openCar, key) }; reported = true }
@@ -678,18 +681,18 @@ fun ActiveCarChip() {
                 .clickable { open = true }.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(Icons.Filled.DirectionsCar, null, tint = if (car != null) Theme.accent else Theme.sub, modifier = Modifier.size(14.dp))
-            Text(car?.displayName ?: L("Scegli l'auto"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Theme.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(car?.vehicle?.icon ?: m.drivenKind.icon, null, tint = if (car != null) Theme.accent else Theme.sub, modifier = Modifier.size(14.dp))
+            Text(car?.displayName ?: L("Scegli il veicolo"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Theme.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         DropdownMenu(open, { open = false }, containerColor = Theme.panel) {
-            Text(L("Auto in uso"), fontSize = 12.sp, color = Theme.sub, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+            Text(L("Veicolo in uso"), fontSize = 12.sp, color = Theme.sub, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
             DropdownMenuItem({ Text(L("Nessuna"), color = Theme.text) }, { open = false; m.setActiveCar(null) },
                 leadingIcon = { if (car == null) Icon(Icons.Filled.CheckCircle, null, tint = Theme.accent) })
             for (c in m.garage.cars) {
                 DropdownMenuItem({ Text(c.displayName, color = Theme.text) }, { open = false; m.setActiveCar(c.id) },
                     leadingIcon = { if (c.id == car?.id) Icon(Icons.Filled.CheckCircle, null, tint = Theme.accent) })
             }
-            DropdownMenuItem({ Text(if (m.garage.cars.isEmpty()) L("Aggiungi un'auto al garage") else L("Apri il garage"), color = Theme.accent) },
+            DropdownMenuItem({ Text(if (m.garage.cars.isEmpty()) L("Aggiungi un veicolo al garage") else L("Apri il garage"), color = Theme.accent) },
                 { open = false; m.tab = AppTab.garage }, leadingIcon = { Icon(Icons.Filled.DirectionsCar, null, tint = Theme.accent) })
         }
     }

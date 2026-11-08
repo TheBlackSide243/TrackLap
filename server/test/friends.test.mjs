@@ -180,7 +180,7 @@ test("a friend's best laps and numbers, for friends only", async () => {
 
   // The leaderboards look the same as before.
   const board = await call('GET', `/v1/boards?lat=${mugello.lat}&lon=${mugello.lon}&len=5200`);
-  assert.deepEqual(Object.keys(board.body.laps[0]).sort(), ['car', 'date', 'garage', 'mine', 'name', 'rank', 'source', 'time', 'vehicle']);
+  assert.deepEqual(Object.keys(board.body.laps[0]).sort(), ['car', 'date', 'garage', 'kind', 'mine', 'name', 'rank', 'source', 'time', 'vehicle']);
 });
 
 test('deleting an account ends its friendships and its invitation', async () => {
@@ -207,4 +207,68 @@ test('the invitation page: who it is from, escaped, and the button for the app',
   const en = await call('GET', `/f/${code.toLowerCase()}`, { headers: { 'Accept-Language': 'en-GB' } });
   assert.match(en.body, /Luca_R invites you to TrackLap/);
   assert.equal((await call('GET', '/f/<script>')).status, 404);
+});
+
+test('shared sessions: everyone, friends only or nobody, on their own beside the garage', async () => {
+  const { call, signUp } = server();
+  const luca = await signUp('Luca');
+  const marco = await signUp('Marco');
+  const anna = await signUp('Anna');
+  const { code } = (await call('POST', '/v1/me/garage', { token: luca.token })).body;
+  // The garage itself is shown to nobody: the sessions do not care.
+  await call('PUT', `/v1/garages/${code}`, { token: luca.token, body: { cars: [] } });
+  const sessions = [
+    { id: 'sess-old-00001', track: 'Vallelunga', date: 1797000000000, laps: [99.2, 98.4, 2, 'x'], car: 'Ducati Panigale V4', kind: 'motorcycle', source: 'device' },
+    { id: 'sess-new-00002', track: 'Mugello', date: 1798000000000, laps: [116.0, 113.9], car: 'Clio RS', kind: 'tank', source: 'demo' },
+  ];
+  assert.equal((await call('PUT', `/v1/garages/${code}/sessions`, { token: marco.token, body: { sessions } })).status, 403, 'only the owner');
+  assert.equal((await call('PUT', `/v1/garages/${code}/sessions`, { token: luca.token, body: { sessions: 'nope' } })).status, 400);
+  const dup = [sessions[0], sessions[0]];
+  assert.equal((await call('PUT', `/v1/garages/${code}/sessions`, { token: luca.token, body: { sessions: dup } })).status, 400, 'one id once');
+
+  const put = await call('PUT', `/v1/garages/${code}/sessions`, { token: luca.token, body: { sessions, audience: 'everybody' } });
+  assert.equal(put.status, 200);
+  assert.equal(put.body.count, 2);
+  const open = await call('GET', `/v1/garages/${code}/sessions`);
+  assert.equal(open.status, 200);
+  assert.equal(open.body.audience, 'all');
+  assert.equal(open.body.name, 'Luca');
+  assert.deepEqual(open.body.sessions.map(s => [s.id, s.track, s.best, s.laps.length, s.kind, s.source]), [
+    ['sess-new-00002', 'Mugello', 113.9, 2, null, 'phone'],
+    ['sess-old-00001', 'Vallelunga', 98.4, 2, 'motorcycle', 'device'],
+  ]);
+
+  // Friends only: Marco becomes a friend and reads them, Anna and nobody signed in do not.
+  await call('PUT', `/v1/garages/${code}/sessions`, { token: luca.token, body: { sessions, audience: 'friends' } });
+  const inv = (await call('POST', '/v1/me/invite', { token: luca.token })).body;
+  await call('POST', '/v1/friends', { token: marco.token, body: { code: inv.code } });
+  assert.equal((await call('GET', `/v1/garages/${code}/sessions`, { token: marco.token })).body.sessions.length, 2);
+  assert.equal((await call('GET', `/v1/garages/${code}/sessions`, { token: luca.token })).body.mine, true);
+  for (const token of [anna.token, undefined]) {
+    const refused = await call('GET', `/v1/garages/${code}/sessions`, { token });
+    assert.equal(refused.status, 403);
+    assert.deepEqual(refused.body, { error: 'friends only' });
+  }
+
+  // Nobody: taken back.
+  assert.equal((await call('DELETE', `/v1/garages/${code}/sessions`, { token: marco.token })).status, 403);
+  assert.equal((await call('DELETE', `/v1/garages/${code}/sessions`, { token: luca.token })).status, 200);
+  assert.deepEqual((await call('GET', `/v1/garages/${code}/sessions`, { token: marco.token })).body.sessions, []);
+});
+
+test('the vehicle of a car and of a lap: car, motorcycle or scooter', async () => {
+  const { call, signUp } = server();
+  const luca = await signUp('Luca');
+  const { code } = (await call('POST', '/v1/me/garage', { token: luca.token })).body;
+  const cars = [
+    { id: 'car-ducati-001', name: 'Panigale V4', kind: 'motorcycle' },
+    { id: 'car-vespa-0002', name: 'Vespa GTS', kind: 'scooter' },
+    { id: 'car-civic-0003', name: 'Civic' },
+  ];
+  await call('PUT', `/v1/garages/${code}`, { token: luca.token, body: { cars } });
+  assert.deepEqual((await call('GET', `/v1/garages/${code}`)).body.cars.map(c => c.kind), ['motorcycle', 'scooter', 'car']);
+  const mugello = { name: 'Mugello', lat: 43.99752, lon: 11.37147 };
+  await call('POST', '/v1/laps', { token: luca.token, body: { source: 'device', time: 110.2, distance: 5240, date: 1798000000000, track: mugello, kind: 'motorcycle' } });
+  const board = await call('GET', `/v1/boards?lat=${mugello.lat}&lon=${mugello.lon}&len=5200`);
+  assert.equal(board.body.laps[0].kind, 'motorcycle');
 });

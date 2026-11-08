@@ -53,7 +53,10 @@ struct SideTabBar: View {
     let layout: SideTabsLayout
     let insets: EdgeInsets
 
-    static let tabs: [(tab: AppTab, title: LocalizedStringKey, symbol: String)] = [
+    /// TrackLap Lite has no Garage and no Friends: five tabs.
+    static let tabs = all.filter { Edition.online || ($0.tab != .garage && $0.tab != .friends) }
+
+    private static let all: [(tab: AppTab, title: LocalizedStringKey, symbol: String)] = [
         (.live, "Live", "stopwatch.fill"),
         (.drag, "Drag", "speedometer"),
         (.tracks, "Piste", "map.fill"),

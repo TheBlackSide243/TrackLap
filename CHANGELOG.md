@@ -2,6 +2,52 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.10.0 (not released yet)
+
+TrackLap Lite, motorcycles and scooters, and shared sessions. / TrackLap Lite, moto e scooter, e le
+sessioni condivise.
+
+### English
+
+**New**
+- **TrackLap Lite**: a free app of its own, next to the full one. It has the timer, Drag, the tracks
+  and the sessions, all on the phone and without an account. Friends, the online leaderboards, live
+  groups and the garage are in the full app. On iPhone it is `TrackLapLite` (bundle
+  `com.local.tracklap.lite`); on Android `win.shadowbyte.tracklap.lite`, installed next to the full app.
+- **Motorcycles and scooters**: a vehicle in the garage is a car, a motorcycle or a scooter. On two
+  wheels Live shows the **lean angle**, the lap analysis shows the maximum lean, and a setup has
+  spring preload, sag and gearing instead of camber, toe, anti-roll bars and wings. In Device,
+  **What you ride or drive** sets the kind when no vehicle of the garage is chosen (and always in Lite).
+  Leaderboards and friends' laps show the kind of vehicle.
+- **Shared sessions**: in Sessions, **Sharing** shows your sessions to **All**, **Friends only** or
+  **None**, apart from who sees the garage. Your friends (or everyone who opens your garage) see the
+  track, the day, the vehicle and every lap time; never traces or positions. Demo sessions are not
+  shared.
+
+**Server**
+- `PUT`, `GET` and `DELETE /v1/garages/<code>/sessions`: the shared sessions, with their own audience.
+- Laps on the leaderboards and the garage's vehicles keep their kind (`car`, `motorcycle`, `scooter`).
+
+### Italiano
+
+**Novità**
+- **TrackLap Lite**: un'app gratuita a parte, accanto a quella completa. Ha il cronometro, il Drag,
+  le piste e le sessioni, tutto sul telefono e senza account. Amici, classifiche online, gruppi live
+  e garage sono nell'app completa. Su iPhone è `TrackLapLite` (bundle `com.local.tracklap.lite`); su
+  Android `win.shadowbyte.tracklap.lite`, che si installa accanto all'app completa.
+- **Moto e scooter**: un veicolo del garage è un'auto, una moto o uno scooter. Su due ruote Live
+  mostra la **piega**, l'analisi del giro la piega massima, e l'assetto ha precarico, sag e rapporto
+  al posto di campanatura, convergenza, barre e ala. In Dispositivo, **Con cosa giri** sceglie il tipo
+  quando non usi un veicolo del garage (e sempre in Lite). Le classifiche e i giri degli amici
+  mostrano il tipo di veicolo.
+- **Sessioni condivise**: in Sessioni, **Condivisione** mostra le tue sessioni a **Tutti**, **Solo
+  amici** o **Nessuno**, a parte da chi vede il garage. I tuoi amici (o chiunque apra il tuo garage)
+  vedono pista, giorno, veicolo e il tempo di ogni giro; mai tracciati o posizioni. Le sessioni della
+  Demo non vengono condivise.
+
+**Server**
+- `PUT`, `GET` e `DELETE /v1/garages/<codice>/sessions`: le sessioni condivise, con il loro pubblico.
+- I giri in classifica e i veicoli del garage tengono il tipo (`car`, `motorcycle`, `scooter`).
 ## Firmware 0.9.3 (2026-11-06)
 
 A new board, the Waveshare ESP32-C6-LCD-1.69. The apps stay at 0.9.2. / Una scheda nuova, la

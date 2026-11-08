@@ -44,6 +44,13 @@ const INVITE = /^[A-HJ-NP-Z2-9]{8}$/;
 const INVITE_TTL = 7 * 24 * 3600 * 1000;
 const MAX_FRIENDS = 200;
 const AUDIENCES = ['all', 'friends'];
+// What a garage's vehicle is; a car when it does not say.
+const KINDS = ['car', 'motorcycle', 'scooter'];
+// Sessions shown from the phone, with the garage: their lap times and what they were driven with,
+// never the traces. Shown to everyone or to friends only, like the garage but on their own.
+const MAX_SHARED_SESSIONS = 300;
+const MAX_SESSION_LAPS = 200;
+const MAX_SESSIONS_JSON = 256 * 1024;
 const INTERNAL = /^x-tracklap-(account|name|garage|car|car-name|is-admin|admin|friend)$/i;
 
 export default {
@@ -433,6 +440,7 @@ export class Boards {
       driver,
       name: text(who.name) || 'Driver',
       vehicle: longText(who.vehicle, 40),
+      kind: KINDS.includes(b.kind) ? b.kind : null,
       garage: clean(who.garage, GARAGE) || '',
       car: clean(who.car, ID) || '',
       source: b.source,
@@ -462,7 +470,7 @@ export class Boards {
     const ranks = {};
     const laps = entries.map(e => {
       ranks[e.source] = (ranks[e.source] || 0) + 1;
-      return { rank: ranks[e.source], name: e.name, vehicle: e.vehicle, garage: e.garage || '', car: e.car || '', source: e.source, time: e.time, date: e.date, mine: e.driver === driver };
+      return { rank: ranks[e.source], name: e.name, vehicle: e.vehicle, kind: e.kind || null, garage: e.garage || '', car: e.car || '', source: e.source, time: e.time, date: e.date, mine: e.driver === driver };
     });
     const shown = laps.filter(e => e.rank <= BOARD_SIZE || e.mine);
     return { track: { id: track.id, name: track.name, length: track.length }, laps: shown };
@@ -488,6 +496,7 @@ export class Boards {
           last: e.last || e.date,
           sessions: e.sessions || 1,
           vehicle: e.vehicle || '',
+          kind: e.kind || null,
           garage: e.garage || '',
           car: e.car || '',
           rank: same.indexOf(e) + 1,
@@ -879,7 +888,7 @@ export class Garage {
     }
     const meta = await storage.get('meta');
     if (!meta) return json({ error: 'no such garage' }, 404);
-    const m = url.pathname.match(/^\/v1\/garages\/([^/]+)(?:\/photos\/([^/]+)|\/(report|restore))?$/);
+    const m = url.pathname.match(/^\/v1\/garages\/([^/]+)(?:\/photos\/([^/]+)|\/(report|restore|sessions))?$/);
     if (!m) return json({ error: 'not found' }, 404);
     const code = m[1].toUpperCase();
     const account = header(request, 'X-TrackLap-Account');
@@ -918,6 +927,7 @@ export class Garage {
       await storage.put('meta', { ...meta, hidden: false, reports: {} });
       return json({ ok: true });
     }
+    if (m[3] === 'sessions') return this.sessions(request, { meta, code, mine, admin, friend, visible });
     if (m[3]) return json({ error: 'not found' }, 404);
 
     if (method === 'GET') {
@@ -959,6 +969,41 @@ export class Garage {
       if (!mine && !admin) return json({ error: 'not yours' }, 403);
       await storage.deleteAll();
       console.log('garage deleted', code, admin ? 'by the admin' : 'by its owner');
+      return json({ ok: true });
+    }
+    return json({ error: 'not found' }, 404);
+  }
+
+  /// The sessions shown with the garage. GET answers like the garage, by their own audience; PUT
+  /// (the owner) replaces them all; DELETE takes them all back, for "nobody".
+  async sessions(request, { meta, code, mine, admin, friend, visible }) {
+    const storage = this.state.storage;
+    const method = request.method;
+    if (method === 'GET') {
+      if (!visible) return json({ error: 'hidden' }, 404);
+      const shared = (await storage.get('sessions')) || { audience: 'all', sessions: [], updated: 0 };
+      if (shared.audience === 'friends' && !mine && !admin && !friend) return json({ error: 'friends only', owner: meta.owner }, 403);
+      const garage = await storage.get('garage');
+      return json({ code, name: garage?.name || '', audience: shared.audience, sessions: shared.sessions, updated: shared.updated, mine });
+    }
+    if (method === 'PUT') {
+      if (!mine) return json({ error: 'not yours' }, 403);
+      const raw = await request.text();
+      if (raw.length > MAX_SESSIONS_JSON) return json({ error: 'too big' }, 413);
+      let b;
+      try {
+        b = JSON.parse(raw);
+      } catch {
+        return json({ error: 'bad sessions' }, 400);
+      }
+      const shared = cleanSessions(b);
+      if (!shared) return json({ error: 'bad sessions' }, 400);
+      await storage.put('sessions', shared);
+      return json({ code, count: shared.sessions.length });
+    }
+    if (method === 'DELETE') {
+      if (!mine) return json({ error: 'not yours' }, 403);
+      await storage.delete('sessions');
       return json({ ok: true });
     }
     return json({ error: 'not found' }, 404);
@@ -1351,9 +1396,37 @@ function cleanGarage(b, name) {
       mods: Array.isArray(c.mods) ? c.mods.slice(0, MAX_MODS).map(m => longText(m, 80)).filter(Boolean) : [],
       notes: longText(c.notes, 600, true),
       photo: clean(c.photo, ID),
+      kind: KINDS.includes(c.kind) ? c.kind : 'car',
     });
   }
   return { name: text(name), cars, audience: AUDIENCES.includes(b.audience) ? b.audience : 'all', updated: Date.now() };
+}
+
+/// The sessions as the owner sent them, newest first; null if the whole thing makes no sense. A
+/// session keeps its track, its day, its lap times and the vehicle, nothing else.
+function cleanSessions(b) {
+  if (!b || typeof b !== 'object' || !Array.isArray(b.sessions) || b.sessions.length > MAX_SHARED_SESSIONS) return null;
+  const ids = new Set();
+  const sessions = [];
+  for (const s of b.sessions) {
+    const id = s && typeof s === 'object' ? clean(s.id, ID) : null;
+    if (!id || ids.has(id)) return null;
+    ids.add(id);
+    const laps = Array.isArray(s.laps) ? s.laps.slice(0, MAX_SESSION_LAPS).map(time).filter(t => t !== null) : [];
+    const date = Math.round(+s.date);
+    sessions.push({
+      id,
+      track: longText(s.track, 60) || 'Track',
+      date: Number.isFinite(date) && date > 0 && date < 4102444800000 ? date : 0,
+      laps,
+      best: laps.length ? Math.min(...laps) : null,
+      car: longText(s.car, 40),
+      kind: KINDS.includes(s.kind) ? s.kind : null,
+      source: SOURCES.includes(s.source) ? s.source : 'phone',
+    });
+  }
+  sessions.sort((x, y) => y.date - x.date);
+  return { audience: AUDIENCES.includes(b.audience) ? b.audience : 'all', sessions, updated: Date.now() };
 }
 
 function html(body, status = 200) {

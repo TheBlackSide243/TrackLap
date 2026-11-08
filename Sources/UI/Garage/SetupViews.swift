@@ -358,6 +358,9 @@ struct SetupEditorView: View {
     /// The numbers as they were shown: a field left alone keeps its value to the last decimal.
     private let shownAtStart: [String: String]
 
+    /// The vehicle the setup is for: a bike has preload and sag instead of camber and wings.
+    private var kind: VehicleKind { model.garage.car(setup.carID)?.vehicle ?? .car }
+
     init(setup: CarSetup?, carID: UUID) {
         original = setup
         let s = setup ?? CarSetup(carID: carID)
@@ -400,13 +403,15 @@ struct SetupEditorView: View {
                     .pickerStyle(.segmented)
 
                     ForEach(SetupField.Group.allCases) { group in
-                        SectionLabel(group.title)
-                        Panel(padding: 6) {
-                            VStack(spacing: 0) {
-                                let fields = SetupField.all.filter { $0.group == group }
-                                ForEach(Array(fields.enumerated()), id: \.element.id) { i, f in
-                                    if i > 0 { Rectangle().fill(Theme.line.opacity(0.5)).frame(height: 0.5).padding(.leading, 12) }
-                                    row(f)
+                        let fields = SetupField.fields(for: kind).filter { $0.group == group }
+                        if !fields.isEmpty {
+                            SectionLabel(group.title)
+                            Panel(padding: 6) {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(fields.enumerated()), id: \.element.id) { i, f in
+                                        if i > 0 { Rectangle().fill(Theme.line.opacity(0.5)).frame(height: 0.5).padding(.leading, 12) }
+                                        row(f)
+                                    }
                                 }
                             }
                         }
@@ -551,7 +556,7 @@ struct SetupImportSheet: View {
                         }
                     }
                     if model.garage.cars.isEmpty {
-                        Text("Aggiungi prima un'auto nel Garage: l'assetto va con un'auto.")
+                        Text("Aggiungi prima un veicolo nel Garage: l'assetto va con un veicolo.")
                             .font(.subheadline)
                             .foregroundStyle(Theme.sub)
                     } else {
@@ -564,7 +569,7 @@ struct SetupImportSheet: View {
                             } label: {
                                 let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 HStack(spacing: 12) {
-                                    CarPhotoView(photo: car.info.photo)
+                                    CarPhotoView(photo: car.info.photo, kind: car.vehicle)
                                         .frame(width: 56, height: 42)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     Text(car.displayName).font(.headline).foregroundStyle(Theme.text)

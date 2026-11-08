@@ -27,6 +27,7 @@ struct FriendDetailView: View {
                     garageSection
                     SectionLabel(L("Giri migliori"))
                     laps(profile.laps)
+                    if let code = profile.garage { SharedSessionsSection(code: code) }
                 } else if let error {
                     Panel {
                         VStack(alignment: .leading, spacing: 10) {
@@ -137,8 +138,8 @@ struct FriendDetailView: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "car.side").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.sub)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Nessuna auto da vedere").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                        Text(garageError ?? L("\(friend.name) non mostra il garage, oppure non ci ha ancora messo auto."))
+                        Text("Nessun veicolo da vedere").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                        Text(garageError ?? L("\(friend.name) non mostra il garage, oppure non ci ha ancora messo veicoli."))
                             .font(.caption)
                             .foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
@@ -197,7 +198,7 @@ struct FriendDetailView: View {
     /// The car of the lap, which opens it when it is in the garage you can see.
     @ViewBuilder
     private func vehicle(_ lap: FriendProfile.Best) -> some View {
-        let label = Label(lap.vehicle, systemImage: "car.fill").font(.caption.weight(.semibold))
+        let label = Label(lap.vehicle, systemImage: lap.vehicleKind?.symbol ?? "car.fill").font(.caption.weight(.semibold))
         if let garage, garage.code == lap.garage, garage.cars.contains(where: { $0.id == lap.car }) {
             NavigationLink(value: FriendCarRef(id: lap.car)) { label.foregroundStyle(Theme.accent) }
         } else {

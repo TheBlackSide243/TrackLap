@@ -80,6 +80,8 @@ final class AppModel {
     let demoDrag = DemoDrag()
     let account = AccountStore()
     let garage = GarageStore()
+    /// Your sessions shown in your garage, to everyone, to your friends or to nobody.
+    let sharedSessions = SharedSessionStore()
     /// The drivers you are friends with on TrackLap (the friends' laps above are files they sent).
     let friendList = FriendStore()
 
@@ -123,7 +125,11 @@ final class AppModel {
     @ObservationIgnored private var sentPlace: [Int] = []
 
     var selectedTrack: Track? { tracks.track(selectedTrackID) }
-    var activeCar: Car? { garage.car(activeCarID) }
+    var activeCar: Car? { Edition.online ? garage.car(activeCarID) : nil }
+    /// What you drive now: the chosen vehicle of the garage, else the kind set in Device.
+    var drivenKind: VehicleKind { activeCar?.vehicle ?? vehicleKind }
+    /// Car, motorcycle or scooter when no vehicle of the garage is chosen.
+    private(set) var vehicleKind: VehicleKind = VehicleKind.preferred
     var activeSetup: CarSetup? { garage.setup(activeSetupID).flatMap { $0.carID == activeCarID ? $0 : nil } }
     var canStart: Bool { selectedTrack?.isReady == true }
 
@@ -147,6 +153,10 @@ final class AppModel {
         if let s = d.string(forKey: "activeCar"), let id = UUID(uuidString: s), garage.car(id) != nil { activeCarID = id }
         if let s = d.string(forKey: "activeSetup"), let id = UUID(uuidString: s), garage.setup(id)?.carID == activeCarID { activeSetupID = id }
         garage.account = account
+        sharedSessions.account = account
+        sharedSessions.sessions = sessions
+        sharedSessions.garage = garage
+        sessions.onChange = { [weak self] in self?.sharedSessions.publishSoon() }
         friendList.account = account
         account.onChange = { [weak self] in self?.accountChanged() }
         engine.minLapTime = minLapTime
@@ -266,6 +276,7 @@ final class AppModel {
         s.carName = activeCar?.displayName
         s.layout = track.layout?.key
         s.setup = activeSetup?.snapshot
+        s.kind = drivenKind
         session = s
         currentSessionID = s.id
         isRunning = true
@@ -294,11 +305,12 @@ final class AppModel {
         group.finished(lap)
         if voiceOn, let e = engine.lastEvent { voice.announce(e, place: group.isOn ? group.place : nil) }
         // The best lap of each session goes to the leaderboard, which keeps it if it is your best there.
-        if profile.publishLaps, source != .demo, engine.lastEvent?.isBest == true, let track = selectedTrack,
+        if Edition.online, profile.publishLaps, source != .demo, engine.lastEvent?.isBest == true, let track = selectedTrack,
            let token = account.token {
             let kind = source
             let car = session?.carID
-            Task { try? await Server.submit(lap, source: kind, track: track, car: car, token: token) }
+            let vehicle = session?.vehicle ?? drivenKind
+            Task { try? await Server.submit(lap, source: kind, track: track, car: car, kind: vehicle, token: token) }
         }
     }
 
@@ -586,11 +598,17 @@ final class AppModel {
             group.profileChanged()
         }
         garage.accountChanged()
+        sharedSessions.accountChanged()
         friendList.accountChanged()
         Task { @MainActor in PushNotifications.shared.sync() }
     }
 
     // MARK: - Settings
+
+    func setVehicleKind(_ k: VehicleKind) {
+        vehicleKind = k
+        UserDefaults.standard.set(k.rawValue, forKey: "vehicleKind")
+    }
 
     func setUnits(_ u: Units) {
         units = u

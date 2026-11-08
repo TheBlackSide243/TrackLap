@@ -47,11 +47,23 @@ struct SetupValues: Codable, Hashable {
     var barRear = ""
     var wing = ""
     var brakeBias: Double? = nil
+    /// Two wheels (0.10.0): spring preload and sag in millimetres, and the gearing as written
+    /// ("15/43"). Optional, so setups saved before still read.
+    var preloadFront: Double? = nil
+    var preloadRear: Double? = nil
+    var sagFront: Double? = nil
+    var sagRear: Double? = nil
+    var gearing: String? = nil
     /// Anything else, as a name and a value.
     var extra: [SetupItem] = []
     var notes = ""
 
     var isEmpty: Bool { self == SetupValues() }
+
+    var gearingText: String {
+        get { gearing ?? "" }
+        set { gearing = newValue.isEmpty ? nil : newValue }
+    }
 }
 
 struct SetupItem: Codable, Hashable, Identifiable {
@@ -110,7 +122,7 @@ struct SessionSetup: Codable, Hashable, Identifiable {
 /// order of the editor and of the setup page.
 struct SetupField: Identifiable {
     enum Group: String, CaseIterable, Identifiable {
-        case tyres, geometry, dampers, aero
+        case tyres, geometry, dampers, drivetrain, aero
 
         var id: String { rawValue }
 
@@ -119,6 +131,7 @@ struct SetupField: Identifiable {
             case .tyres: L("Gomme")
             case .geometry: L("Geometria")
             case .dampers: L("Ammortizzatori e molle")
+            case .drivetrain: L("Trasmissione")
             case .aero: L("Aero e freni")
             }
         }
@@ -128,10 +141,14 @@ struct SetupField: Identifiable {
             case .tyres: "circle.circle"
             case .geometry: "angle"
             case .dampers: "arrow.up.and.down.circle"
+            case .drivetrain: "gearshape.2"
             case .aero: "wind"
             }
         }
     }
+
+    /// Which vehicles have it: camber and wings are for cars, preload and sag for bikes.
+    enum Wheels { case any, four, two }
 
     let id: String
     let group: Group
@@ -142,6 +159,18 @@ struct SetupField: Identifiable {
     var pressure = false
     var unit = ""
     var decimals = 0
+    var wheels: Wheels = .any
+
+    func fits(_ kind: VehicleKind) -> Bool {
+        switch wheels {
+        case .any: true
+        case .four: !kind.onTwoWheels
+        case .two: kind.onTwoWheels
+        }
+    }
+
+    /// The fields of the editor for a vehicle.
+    static func fields(for kind: VehicleKind) -> [SetupField] { all.filter { $0.fits(kind) } }
 
     static let all: [SetupField] = [
         .init(id: "tyres", group: .tyres, title: L("Gomme"), text: \.tyres),
@@ -149,10 +178,10 @@ struct SetupField: Identifiable {
         .init(id: "prc", group: .tyres, title: L("Pressione post. a freddo"), number: \.pressureRearCold, pressure: true),
         .init(id: "pfh", group: .tyres, title: L("Pressione ant. a caldo"), number: \.pressureFrontHot, pressure: true),
         .init(id: "prh", group: .tyres, title: L("Pressione post. a caldo"), number: \.pressureRearHot, pressure: true),
-        .init(id: "cf", group: .geometry, title: L("Campanatura ant."), number: \.camberFront, unit: "°", decimals: 1),
-        .init(id: "cr", group: .geometry, title: L("Campanatura post."), number: \.camberRear, unit: "°", decimals: 1),
-        .init(id: "tf", group: .geometry, title: L("Convergenza ant."), number: \.toeFront, unit: "mm", decimals: 1),
-        .init(id: "tr", group: .geometry, title: L("Convergenza post."), number: \.toeRear, unit: "mm", decimals: 1),
+        .init(id: "cf", group: .geometry, title: L("Campanatura ant."), number: \.camberFront, unit: "°", decimals: 1, wheels: .four),
+        .init(id: "cr", group: .geometry, title: L("Campanatura post."), number: \.camberRear, unit: "°", decimals: 1, wheels: .four),
+        .init(id: "tf", group: .geometry, title: L("Convergenza ant."), number: \.toeFront, unit: "mm", decimals: 1, wheels: .four),
+        .init(id: "tr", group: .geometry, title: L("Convergenza post."), number: \.toeRear, unit: "mm", decimals: 1, wheels: .four),
         .init(id: "hf", group: .geometry, title: L("Altezza ant."), number: \.heightFront, unit: "mm"),
         .init(id: "hr", group: .geometry, title: L("Altezza post."), number: \.heightRear, unit: "mm"),
         .init(id: "bf", group: .dampers, title: L("Compressione ant."), number: \.bumpFront, unit: L("click")),
@@ -161,10 +190,15 @@ struct SetupField: Identifiable {
         .init(id: "rr", group: .dampers, title: L("Estensione post."), number: \.reboundRear, unit: L("click")),
         .init(id: "sf", group: .dampers, title: L("Molle ant."), number: \.springFront, unit: "N/mm"),
         .init(id: "sr", group: .dampers, title: L("Molle post."), number: \.springRear, unit: "N/mm"),
-        .init(id: "arbf", group: .dampers, title: L("Barra ant."), text: \.barFront),
-        .init(id: "arbr", group: .dampers, title: L("Barra post."), text: \.barRear),
-        .init(id: "wing", group: .aero, title: L("Ala"), text: \.wing),
-        .init(id: "bias", group: .aero, title: L("Ripartizione di frenata (ant.)"), number: \.brakeBias, unit: "%", decimals: 1),
+        .init(id: "plf", group: .dampers, title: L("Precarico ant."), number: \.preloadFront, unit: "mm", decimals: 1, wheels: .two),
+        .init(id: "plr", group: .dampers, title: L("Precarico post."), number: \.preloadRear, unit: "mm", decimals: 1, wheels: .two),
+        .init(id: "sagf", group: .dampers, title: L("Sag ant."), number: \.sagFront, unit: "mm", wheels: .two),
+        .init(id: "sagr", group: .dampers, title: L("Sag post."), number: \.sagRear, unit: "mm", wheels: .two),
+        .init(id: "arbf", group: .dampers, title: L("Barra ant."), text: \.barFront, wheels: .four),
+        .init(id: "arbr", group: .dampers, title: L("Barra post."), text: \.barRear, wheels: .four),
+        .init(id: "gear", group: .drivetrain, title: L("Rapporto (pignone/corona)"), text: \.gearingText, wheels: .two),
+        .init(id: "wing", group: .aero, title: L("Ala"), text: \.wing, wheels: .four),
+        .init(id: "bias", group: .aero, title: L("Ripartizione di frenata (ant.)"), number: \.brakeBias, unit: "%", decimals: 1, wheels: .four),
     ]
 
     var shownUnit: String { pressure ? (Units.current == .metric ? "bar" : "psi") : unit }

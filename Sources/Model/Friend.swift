@@ -35,7 +35,15 @@ struct FriendProfile: Decodable {
         var car: String
         var rank: Int
         var of: Int
+        /// "car", "motorcycle" or "scooter"; nil for laps from before 0.10.0.
+        var vehicleType: String?
 
+        enum CodingKeys: String, CodingKey {
+            case track, source, time, date, last, sessions, vehicle, garage, car, rank, of
+            case vehicleType = "kind"
+        }
+
+        var vehicleKind: VehicleKind? { vehicleType.flatMap(VehicleKind.init(rawValue:)) }
         var id: String { track.id + "/" + source }
         var kind: SourceKind? { SourceKind(rawValue: source) }
         var lastDay: Date { Date(timeIntervalSince1970: last / 1000) }

@@ -33,6 +33,9 @@ data class Sample(
     val g: GPoint? = null,
 )
 
+/** Degrees from upright a bike leans at this lateral g, on a flat corner. */
+fun leanAngle(lateralG: Double): Double = Math.toDegrees(kotlin.math.atan(kotlin.math.abs(lateralG)))
+
 enum class SectorState { best, faster, slower }
 
 data class LiveSector(
@@ -77,6 +80,9 @@ class LapEngine {
     var position by mutableStateOf<Coord?>(null); private set
     var heading by mutableStateOf(0.0); private set
     var lapDistance by mutableStateOf(0.0); private set
+    /** Lateral g now, + turning right: from the board's accelerometer, else from the turn of the heading. Smoothed; it gives the lean angle on two wheels. */
+    var lateralG by mutableStateOf(0.0); private set
+    private var lastHeading: Pair<Double, Double>? = null
 
     /** The fastest lap on this track from earlier sessions, if any. */
     @set:JvmName("assignRecord") var record by mutableStateOf<Lap?>(null); private set
@@ -191,6 +197,16 @@ class LapEngine {
         speed = s.speed
         position = s.coord
         heading = s.heading
+        var g: Double? = s.g?.lateral
+        val last = lastHeading
+        if (g == null && last != null && s.t - last.first > 0 && s.t - last.first < 3) {
+            var turn = s.heading - last.second
+            if (turn > 180) turn -= 360
+            if (turn < -180) turn += 360
+            g = if (s.speed > 3) s.speed * Math.toRadians(turn) / (s.t - last.first) / 9.81 else 0.0
+        }
+        lastHeading = s.t to s.heading
+        if (g != null) lateralG = lateralG * 0.6 + g.coerceIn(-2.5, 2.5) * 0.4
     }
 
     fun ingest(s: Sample) {
