@@ -45,8 +45,11 @@ data class FriendProfile(
         val car: String = "",
         val rank: Int,
         val of: Int,
+        /** "car", "motorcycle" or "scooter"; null for laps from before 0.10.0. */
+        val kind: String? = null,
     ) {
         val id: String get() = track.id + "/" + source
+        val vehicleKind: VehicleKind? get() = VehicleKind.of(kind)
     }
 
     @Serializable
