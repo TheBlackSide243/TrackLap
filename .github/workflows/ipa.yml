@@ -1,5 +1,6 @@
 # Unsigned .ipa for Sideloadly/AltStore/Feather, built on a GitHub macOS runner. The .app gets an
-# ad-hoc signature only; the sideloading tool re-signs it with your Apple ID.
+# ad-hoc signature only; the sideloading tool re-signs it with your Apple ID. Two apps: TrackLap and
+# TrackLap Lite (the TrackLapLite target, built with LITE).
 name: iOS IPA
 
 on:
@@ -37,20 +38,26 @@ jobs:
       - name: Archive without signing
         run: |
           set -o pipefail
-          xcodebuild -project TrackLap.xcodeproj -scheme TrackLap -configuration Release \
-            -destination 'generic/platform=iOS' -archivePath "$PWD/build/TrackLap.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE" || true
-          test -d build/TrackLap.xcarchive/Products/Applications/TrackLap.app || { grep -E "error" build.log | head -60; exit 1; }
+          for APP in TrackLap TrackLapLite; do
+            xcodebuild -project TrackLap.xcodeproj -scheme "$APP" -configuration Release \
+              -destination 'generic/platform=iOS' -archivePath "$PWD/build/$APP.xcarchive" \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              archive 2>&1 | tee -a build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE" || true
+            test -d "build/$APP.xcarchive/Products/Applications/$APP.app" || { grep -E "error" build.log | head -60; exit 1; }
+          done
 
       - name: Package the .ipa
         run: |
           set -eu
-          rm -rf Payload && mkdir Payload
-          cp -R build/TrackLap.xcarchive/Products/Applications/TrackLap.app Payload/
-          codesign -f -s - Payload/TrackLap.app
-          VER="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Payload/TrackLap.app/Info.plist)"
-          zip -qry "TrackLap-$VER-unsigned.ipa" Payload
+          for APP in TrackLap TrackLapLite; do
+            rm -rf Payload && mkdir Payload
+            cp -R "build/$APP.xcarchive/Products/Applications/$APP.app" Payload/
+            codesign -f -s - "Payload/$APP.app"
+            VER="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "Payload/$APP.app/Info.plist")"
+            NAME=TrackLap
+            if [ "$APP" = TrackLapLite ]; then NAME=TrackLap-Lite; fi
+            zip -qry "$NAME-$VER-unsigned.ipa" Payload
+          done
           ls -la ./*.ipa
 
       - uses: actions/upload-artifact@v4
