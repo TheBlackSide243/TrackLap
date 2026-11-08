@@ -29,6 +29,7 @@ import win.tbsgaming.tracklap.data.GarageStore
 import win.tbsgaming.tracklap.data.LayoutMatch
 import win.tbsgaming.tracklap.data.Server
 import win.tbsgaming.tracklap.data.SessionStore
+import win.tbsgaming.tracklap.data.SharedSessionStore
 import win.tbsgaming.tracklap.data.TrackStore
 import win.tbsgaming.tracklap.gps.BleManager
 import win.tbsgaming.tracklap.gps.DemoDrag
@@ -45,6 +46,7 @@ import win.tbsgaming.tracklap.model.SharedLap
 import win.tbsgaming.tracklap.model.SharedSetup
 import win.tbsgaming.tracklap.model.Track
 import win.tbsgaming.tracklap.model.Units
+import win.tbsgaming.tracklap.model.VehicleKind
 import win.tbsgaming.tracklap.model.nowSeconds
 import win.tbsgaming.tracklap.multiplayer.GroupSession
 import win.tbsgaming.tracklap.timing.DragEngine
@@ -116,6 +118,8 @@ class AppModel(context: Context) {
     val friends: FriendLapStore
     val account: AccountStore
     val garage: GarageStore
+    /** Your sessions shown in your garage, to everyone, to your friends or to nobody. */
+    val sharedSessions: SharedSessionStore
     /** The drivers you are friends with on TrackLap (the friends' laps above are files they sent). */
     val friendList: FriendStore
     val profile: DriverProfile
@@ -150,6 +154,8 @@ class AppModel(context: Context) {
     @set:JvmName("assignActiveCarID") var activeCarID by mutableStateOf<String?>(null); private set
     /** The setup of the active car you drive with: sessions keep it as it was that day. */
     @set:JvmName("assignActiveSetupID") var activeSetupID by mutableStateOf<String?>(null); private set
+    /** Car, motorcycle or scooter when no vehicle of the garage is chosen (and always in Lite). */
+    @set:JvmName("assignVehicleKind") var vehicleKind by mutableStateOf(VehicleKind.car); private set
     /** Someone's public garage opened from a link or a leaderboard. */
     var shownGarage by mutableStateOf<GarageLink?>(null)
     /** A setup file opened from another app, waiting for you to pick its car. */
@@ -167,7 +173,9 @@ class AppModel(context: Context) {
 
     val selectedTrack: Track? get() = tracks.track(selectedTrackID)
     val canStart: Boolean get() = selectedTrack?.isReady == true
-    val activeCar: Car? get() = garage.car(activeCarID)
+    val activeCar: Car? get() = if (Edition.online) garage.car(activeCarID) else null
+    /** What you drive now: the chosen vehicle of the garage, else the kind set in Device. */
+    val drivenKind: VehicleKind get() = activeCar?.vehicle ?: vehicleKind
     val activeSetup: CarSetup? get() = garage.setup(activeSetupID)?.takeIf { it.carID == activeCarID }
 
     init {
@@ -184,6 +192,7 @@ class AppModel(context: Context) {
         friendList = FriendStore()
         account = AccountStore(app)
         garage = GarageStore(app)
+        sharedSessions = SharedSessionStore(app)
         profile = DriverProfile(app)
         group = GroupSession(app, profile)
         voice = LapVoice(app)
@@ -194,15 +203,20 @@ class AppModel(context: Context) {
         dragRollout = prefs.getBoolean("dragRollout", false)
         dragManualStart = prefs.getBoolean("dragManualStart", true)
         introSeen = prefs.getBoolean("introSeen", false)
+        vehicleKind = VehicleKind.of(prefs.getString("vehicleKind", null)) ?: VehicleKind.car
         deltaReference = prefs.getString("deltaReference", null)?.let { runCatching { DeltaReference.valueOf(it) }.getOrNull() } ?: DeltaReference.session
         val saved = prefs.getString("track", null)
         selectedTrackID = if (saved != null && tracks.track(saved) != null) saved else tracks.tracks.firstOrNull()?.id
         prefs.getString("activeCar", null)?.let { if (garage.car(it) != null) activeCarID = it }
         prefs.getString("activeSetup", null)?.let { if (garage.setup(it)?.carID == activeCarID) activeSetupID = it }
         garage.account = account
+        sharedSessions.account = account
+        sharedSessions.sessions = sessions
+        sharedSessions.garage = garage
+        sessions.onChange = { sharedSessions.publishSoon() }
         friendList.account = account
         account.onChange = { accountChanged() }
-        Push.sync(app, account)
+        if (Edition.online) Push.sync(app, account)
         engine.minLapTime = minLapTime
         prepareEngine(selectedTrack)
 
@@ -224,8 +238,13 @@ class AppModel(context: Context) {
         drag.source = source.name
         engine.onLap = { record(it) }
         group.onStandingsChange = { sendGroupToDevice() }
-        group.resume(selectedTrack)
-        scope.launch { account.refresh() }
+        if (Edition.online) {
+            group.resume(selectedTrack)
+            scope.launch {
+                account.refresh()
+                sharedSessions.publishSoon(now = true)
+            }
+        }
     }
 
     /** The activity is in front: the source it was left on starts again. */
@@ -335,6 +354,7 @@ class AppModel(context: Context) {
         session = Session(
             trackID = track.id, trackName = track.name, date = nowSeconds(), source = source.title, sectorCount = track.sectorCount,
             carID = activeCar?.id, carName = activeCar?.displayName, layout = track.layout?.key, setup = activeSetup?.snapshot,
+            kind = drivenKind,
         )
         isRunning = true
         when (source) {
@@ -361,10 +381,11 @@ class AppModel(context: Context) {
         // The best lap of each session goes to the leaderboard, which keeps it if it is your best there.
         val track = selectedTrack
         val token = account.token
-        if (profile.publishLaps && source != SourceKind.demo && engine.lastEvent?.isBest == true && track != null && token != null) {
+        if (Edition.online && profile.publishLaps && source != SourceKind.demo && engine.lastEvent?.isBest == true && track != null && token != null) {
             val kind = source.name
             val car = session?.carID
-            scope.launch { runCatching { Server.submit(lap, kind, track, car, token) } }
+            val vehicle = session?.vehicle ?: drivenKind
+            scope.launch { runCatching { Server.submit(lap, kind, track, car, vehicle, token) } }
         }
     }
 
@@ -393,7 +414,7 @@ class AppModel(context: Context) {
         if (s != null && s.laps.isNotEmpty()) {
             sessions.save(s)
             session = Session(trackID = track.id, trackName = track.name, date = nowSeconds(), source = s.source,
-                sectorCount = track.sectorCount, carID = s.carID, carName = s.carName, layout = found.key, setup = s.setup)
+                sectorCount = track.sectorCount, carID = s.carID, carName = s.carName, layout = found.key, setup = s.setup, kind = s.kind)
         } else {
             session = s?.copy(layout = found.key, sectorCount = track.sectorCount)
         }
@@ -410,6 +431,10 @@ class AppModel(context: Context) {
 
     /** A .tracklap or .tracklapsetup file opened from another app. */
     fun openFile(text: String) {
+        if (!Edition.online) {
+            notice = L("I giri e gli assetti degli amici si aprono nell'app TrackLap completa.")
+            return
+        }
         when (SharedSetup.kind(text)) {
             "lap" -> runCatching { importLap(SharedLap.decode(text)) }
                 .onSuccess { notice = L("1 giro aggiunto."); tab = AppTab.sessions }
@@ -423,6 +448,7 @@ class AppModel(context: Context) {
 
     /** tracklap://join/<code> from a group's QR code, tracklap://garage/<code> from a garage page. */
     fun openLink(uri: Uri): Boolean {
+        if (!Edition.online) return false
         GarageLink.parse(uri)?.let {
             shownGarage = it
             return true
@@ -654,8 +680,9 @@ class AppModel(context: Context) {
             group.profileChanged()
         }
         garage.accountChanged()
+        sharedSessions.accountChanged()
         friendList.accountChanged()
-        Push.sync(app, account)
+        if (Edition.online) Push.sync(app, account)
     }
 
     /** Notifications are asked for once, the first time Friends opens signed in. */
@@ -693,6 +720,11 @@ class AppModel(context: Context) {
     fun setDeltaScale(v: Double) {
         deltaScale = v
         prefs.edit().putFloat("deltaScale", v.toFloat()).apply()
+    }
+
+    fun setVehicleKind(k: VehicleKind) {
+        vehicleKind = k
+        prefs.edit().putString("vehicleKind", k.name).apply()
     }
 
     fun setIntroSeen(seen: Boolean) {

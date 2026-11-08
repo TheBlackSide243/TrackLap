@@ -10,7 +10,7 @@ enum Server {
 
     enum Failure: LocalizedError {
         case offline, refused, signedOut, taken, wrongLogin, wrongPassword, badName, shortPassword, tooMany, notFound
-        case friendsOnly, noInvite, cannotBefriend, notFriend
+        case friendsOnly, noInvite, cannotBefriend, notFriend, sessionsFriendsOnly
 
         var errorDescription: String? {
             switch self {
@@ -28,6 +28,7 @@ enum Server {
             case .noInvite: L("Questo invito non vale più: chiedine uno nuovo a chi te lo ha mandato.")
             case .cannotBefriend: L("Non puoi accettare questo invito: è il tuo, oppure uno di voi ha già 200 amici.")
             case .notFriend: L("Non siete più amici.")
+            case .sessionsFriendsOnly: L("Questo pilota mostra le sessioni solo ai suoi amici.")
             }
         }
     }
@@ -67,7 +68,7 @@ enum Server {
     /// A lap for the leaderboard: the server keeps it if it is your best there with that GPS, under
     /// your account's name and linked to the car, if that car is in your public garage.
     @discardableResult
-    static func submit(_ lap: Lap, source: SourceKind, track: Track, car: UUID?, token: String) async throws -> Submitted {
+    static func submit(_ lap: Lap, source: SourceKind, track: Track, car: UUID?, kind: VehicleKind, token: String) async throws -> Submitted {
         guard let start = track.start, source != .demo else { throw Failure.refused }
         struct Body: Encodable {
             struct T: Encodable { var name: String; var lat: Double; var lon: Double }
@@ -77,11 +78,12 @@ enum Server {
             var date: Double
             var track: T
             var car: String?
+            var kind: String
         }
         let body = Body(source: source.rawValue, time: lap.time, distance: lap.distance, sectors: lap.sectors,
                         date: (lap.startedAt.timeIntervalSince1970 * 1000).rounded(),
                         track: .init(name: track.name, lat: start.mid.lat, lon: start.mid.lon),
-                        car: car?.uuidString)
+                        car: car?.uuidString, kind: kind.rawValue)
         return try await send(request("v1/laps", method: "POST", json: body, token: token), as: Submitted.self)
     }
 
@@ -182,6 +184,26 @@ enum Server {
     static func garage(code: String, token: String?) async throws -> PublicGarage {
         try await send(request("v1/garages/\(code)", token: token), as: PublicGarage.self) {
             $0 == 404 ? Failure.notFound : $0 == 403 ? Failure.friendsOnly : nil
+        }
+    }
+
+    /// Your sessions for everyone ("all") or for your friends only ("friends").
+    static func putSessions(code: String, sessions: [SharedSession], audience: String, token: String) async throws {
+        struct Body: Encodable { var sessions: [SharedSession]; var audience: String }
+        var req = request("v1/garages/\(code)/sessions", method: "PUT", json: Body(sessions: sessions, audience: audience), token: token)
+        req.timeoutInterval = 30
+        _ = try await send(req, as: OK.self)
+    }
+
+    /// Your sessions no longer shown to anyone.
+    static func deleteSessions(code: String, token: String) async throws {
+        _ = try await send(request("v1/garages/\(code)/sessions", method: "DELETE", token: token), as: OK.self) { $0 == 404 ? Failure.notFound : nil }
+    }
+
+    /// Someone's shared sessions: none when they share none.
+    static func sessions(code: String, token: String?) async throws -> SharedSessions {
+        try await send(request("v1/garages/\(code)/sessions", token: token), as: SharedSessions.self) {
+            $0 == 404 ? Failure.notFound : $0 == 403 ? Failure.sessionsFriendsOnly : nil
         }
     }
 
@@ -313,6 +335,27 @@ struct Leaderboard: Decodable {
         /// Milliseconds since 1970.
         var date: Double
         var mine: Bool
+        /// "car", "motorcycle" or "scooter"; nil for laps from before 0.10.0.
+        var vehicleKind: VehicleKind?
+
+        enum CodingKeys: String, CodingKey {
+            case rank, name, vehicle, garage, car, source, time, date, mine
+            case vehicleKind = "kind"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            rank = try c.decode(Int.self, forKey: .rank)
+            name = try c.decode(String.self, forKey: .name)
+            vehicle = try c.decode(String.self, forKey: .vehicle)
+            garage = try c.decodeIfPresent(String.self, forKey: .garage)
+            car = try c.decodeIfPresent(String.self, forKey: .car)
+            source = try c.decode(String.self, forKey: .source)
+            time = try c.decode(Double.self, forKey: .time)
+            date = try c.decode(Double.self, forKey: .date)
+            mine = try c.decode(Bool.self, forKey: .mine)
+            vehicleKind = (try? c.decodeIfPresent(String.self, forKey: .vehicleKind)).flatMap { VehicleKind(rawValue: $0) }
+        }
 
         var id: String { source + String(rank) }
         var day: Date { Date(timeIntervalSince1970: date / 1000) }

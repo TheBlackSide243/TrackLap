@@ -56,6 +56,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import win.tbsgaming.tracklap.BuildConfig
+import win.tbsgaming.tracklap.Edition
+import win.tbsgaming.tracklap.model.VehicleKind
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Share
 import win.tbsgaming.tracklap.DeltaReference
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.LocalPermissions
@@ -78,10 +85,15 @@ fun DeviceScreen() {
         }
         SectionLabel(L("Cronometro"))
         SettingsPanel()
-        SectionLabel(L("Account"))
-        AccountPanel()
-        SectionLabel(L("Tu e gli amici"))
-        FriendsPanel()
+        if (Edition.online) {
+            SectionLabel(L("Account"))
+            AccountPanel()
+            SectionLabel(L("Tu e gli amici"))
+            FriendsPanel()
+        } else {
+            SectionLabel(L("TrackLap completa"))
+            FullAppPanel()
+        }
         SectionLabel(L("Informazioni"))
         AboutPanel()
     }
@@ -268,6 +280,15 @@ private fun SettingsPanel() {
     val m = LocalModel.current
     Panel {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(L("Con cosa giri"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.text)
+                Segmented(VehicleKind.entries.map { it.title to it }, m.vehicleKind) { m.setVehicleKind(it) }
+                Text(
+                    if (Edition.online) L("Quando in Live non scegli un veicolo del garage. Su moto e scooter il cronometro mostra anche la piega.")
+                    else L("Su moto e scooter il cronometro mostra anche la piega."),
+                    fontSize = 12.sp, color = Theme.sub,
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(L("Giro minimo: %lld s", m.minLapTime.toInt()), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Theme.text)
@@ -320,12 +341,35 @@ private fun AboutPanel() {
     val m = LocalModel.current
     Panel {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            AboutRow(L("Versione"), "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+            AboutRow(L("Versione"), (if (Edition.isLite) "Lite " else "") + "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             AboutRow(L("Protocollo BLE"), "TrackLap v1")
             AboutRow(L("Mappe e piste"), "© OpenStreetMap")
             AboutRow(L("Immagini satellitari"), "© Esri, Maxar")
             Text(L("Il cronometraggio interpola il passaggio sulla linea tra due fix GPS: a 10 Hz la precisione è di qualche centesimo."), fontSize = 12.sp, color = Theme.sub)
             SecondaryButton(L("Rivedi l'introduzione"), Icons.Filled.AutoAwesome) { m.setIntroSeen(false) }
+        }
+    }
+}
+
+/** TrackLap Lite: what only the full app has, a separate app. */
+@Composable
+private fun FullAppPanel() {
+    Panel {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(L("Questa è TrackLap Lite: cronometro, drag, piste e sessioni, tutto sul telefono e senza account."), fontSize = 14.sp, color = Theme.text)
+            for ((icon, text) in listOf(
+                Icons.Filled.People to L("Amici e sfide sui loro giri"),
+                Icons.Filled.EmojiEvents to L("Classifiche online di ogni pista"),
+                Icons.Filled.Groups to L("Gruppi live in pista"),
+                Icons.Filled.DirectionsCar to L("Garage con auto, moto, scooter e assetti"),
+                Icons.Filled.Share to L("Sessioni condivise con tutti o con gli amici"),
+            )) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(icon, null, tint = Theme.accent, modifier = Modifier.size(18.dp))
+                    Text(text, fontSize = 13.sp, color = Theme.text)
+                }
+            }
+            Text(L("Sono nell'app TrackLap completa, un'app a parte: le sessioni di Lite restano su questo telefono."), fontSize = 12.sp, color = Theme.sub)
         }
     }
 }

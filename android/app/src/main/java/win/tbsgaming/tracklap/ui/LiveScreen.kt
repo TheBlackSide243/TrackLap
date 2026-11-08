@@ -66,6 +66,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import win.tbsgaming.tracklap.AppTab
+import win.tbsgaming.tracklap.Edition
+import win.tbsgaming.tracklap.timing.leanAngle
+import kotlin.math.roundToInt
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.SourceKind
 import win.tbsgaming.tracklap.gps.BleManager
@@ -108,7 +111,7 @@ fun LiveScreen() {
                         LiveStatsRow()
                         MiniMapCard(150)
                         SessionButton()
-                        MultiplayerCard()
+                        if (Edition.online) MultiplayerCard()
                     }
                 }
             } else {
@@ -118,7 +121,7 @@ fun LiveScreen() {
                 LiveStatsRow()
                 MiniMapCard(210)
                 SessionButton()
-                MultiplayerCard()
+                if (Edition.online) MultiplayerCard()
             }
         }
         AnimatedVisibility(
@@ -142,8 +145,10 @@ private fun LiveHeader() {
             GpsPill()
             StatusPill(m.source.icon, m.source.short)
             m.group.place?.let { StatusPill(Icons.Filled.Groups, "P${it.position}/${it.count}", Theme.yellow) }
-            ActiveCarChip()
-            ActiveSetupChip()
+            if (Edition.online) {
+                ActiveCarChip()
+                ActiveSetupChip()
+            }
         }
     }
 }
@@ -254,7 +259,7 @@ private fun DeltaCard() {
 @Composable
 private fun ChallengeMenu() {
     val m = LocalModel.current
-    val laps = m.friends.laps(m.selectedTrackID)
+    val laps = if (Edition.online) m.friends.laps(m.selectedTrackID) else emptyList()
     if (laps.isEmpty()) return
     var open by remember { mutableStateOf(false) }
     val c = m.challenge
@@ -352,11 +357,13 @@ private fun SectorChip(sector: LiveSector, modifier: Modifier) {
 
 @Composable
 private fun LiveStatsRow() {
-    val e = LocalModel.current.engine
+    val m = LocalModel.current
+    val e = m.engine
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         StatTile(L("Ultimo"), Fmt.lap(e.lastLap?.time), Modifier.weight(1f))
         StatTile(L("Best"), Fmt.lap(e.bestLap?.time), Modifier.weight(1f), color = if (e.bestLap == null) Theme.text else Theme.purple)
         StatTile(L("Velocità"), Fmt.speed(e.speed), Modifier.weight(1f), unit = Fmt.speedUnit)
+        if (m.drivenKind.onTwoWheels) StatTile(L("Piega"), "${leanAngle(e.lateralG).roundToInt()}°", Modifier.weight(1f))
     }
 }
 

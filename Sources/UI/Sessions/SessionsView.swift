@@ -10,7 +10,10 @@ struct SessionsView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     ScreenHeader(icon: "chart.bar.xaxis", title: L("Sessioni"), subtitle: subtitle)
-                    FriendsRow(count: model.friends.laps.count) { showFriends = true }
+                    if Edition.online {
+                        FriendsRow(count: model.friends.laps.count) { showFriends = true }
+                        SharingPanel()
+                    }
                     if model.sessions.summaries.isEmpty {
                         Panel(padding: 24) {
                             VStack(alignment: .leading, spacing: 10) {
@@ -85,6 +88,44 @@ private struct FriendsRow: View {
     }
 }
 
+/// Who sees your sessions in your garage: nobody, your friends or everyone, like the garage.
+private struct SharingPanel: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let shared = model.sharedSessions
+        Panel {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.2.wave.2.fill").foregroundStyle(Theme.accent)
+                    Text("Condivisione").font(.headline).foregroundStyle(Theme.text)
+                    Spacer(minLength: 0)
+                    if case .syncing = shared.sync { ProgressView().controlSize(.small) }
+                }
+                if model.account.isSignedIn {
+                    Picker(L("Chi vede le sessioni"), selection: Binding(get: { shared.audience }, set: { shared.setAudience($0) })) {
+                        ForEach(SessionAudience.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(shared.audience.summary)
+                        .font(.caption)
+                        .foregroundStyle(Theme.sub)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if case .failed(let message) = shared.sync {
+                        Text(message).font(.caption.weight(.semibold)).foregroundStyle(Theme.bad)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                } else {
+                    Text("Accedi al tuo account in Dispositivo per mostrare le sessioni a tutti o solo agli amici.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.sub)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
 private struct SessionCard: View {
     let summary: SessionSummary
     let live: Bool
@@ -105,7 +146,7 @@ private struct SessionCard: View {
                         .lineLimit(1)
                 }
                 if let car = summary.carName, !car.isEmpty {
-                    Label(car, systemImage: "car.fill")
+                    Label(car, systemImage: summary.vehicle.symbol)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)

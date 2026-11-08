@@ -64,7 +64,7 @@ struct SessionDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 if let session {
                     Menu {
-                        if let best = session.best {
+                        if Edition.online, let best = session.best {
                             Button { sharing = best } label: { Label("Condividi il giro migliore", systemImage: "person.2.fill") }
                         }
                         if let gpxURL {
@@ -103,7 +103,7 @@ struct SessionDetailView: View {
             // Laps to compare with: the same layout of the track only.
             let main = model.tracks.track(s.trackID)?.layouts?.first?.key
             others = model.sessions.bestLaps(on: s.trackID, layout: s.layout, main: s.layout == nil || s.layout == main, excluding: s.id)
-            friendLaps = model.friends.laps(on: s.trackID).compactMap { f in model.friends.lap(f.id).map { FriendRef(info: f, lap: $0) } }
+            friendLaps = !Edition.online ? [] : model.friends.laps(on: s.trackID).compactMap { f in model.friends.lap(f.id).map { FriendRef(info: f, lap: $0) } }
             othersLoaded = true
         }
         analyze()
@@ -200,7 +200,7 @@ struct SessionDetailView: View {
 
             SectionLabel(L("Accelerazioni"))
             Panel {
-                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace))
+                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace), twoWheels: s.vehicle.onTwoWheels)
             }
 
             SectionLabel(L("Giri"))
@@ -240,7 +240,7 @@ struct SessionDetailView: View {
             // What it was driven with: the car and its setup as it was that day.
             if s.carName != nil || s.setup != nil {
                 HStack(spacing: 8) {
-                    if let car = s.carName, !car.isEmpty { tag(Label(car, systemImage: "car.fill")) }
+                    if let car = s.carName, !car.isEmpty { tag(Label(car, systemImage: s.vehicle.symbol)) }
                     if let setup = s.setup {
                         Button { shownSetup = setup } label: {
                             tag(Label(L("\(setup.name) · v\(setup.version)"), systemImage: setup.weather.symbol))
@@ -786,6 +786,8 @@ private struct GGDiagram: View {
     let ref: [GPoint]
     /// From the board's accelerometer rather than the GPS.
     var measured = false
+    /// A motorcycle or a scooter: the lean angle in place of the lateral g.
+    var twoWheels = false
 
     var body: some View {
         let lateral = g.map { abs($0.lateral) }.max() ?? 0
@@ -795,7 +797,11 @@ private struct GGDiagram: View {
         let range = (peak * 1.1 * 2).rounded(.up) / 2
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                StatTile(title: L("Laterale"), value: String(format: "%.2f", lateral), unit: "g")
+                if twoWheels {
+                    StatTile(title: L("Piega max"), value: "\(Int(LapEngine.lean(lateral).rounded()))°")
+                } else {
+                    StatTile(title: L("Laterale"), value: String(format: "%.2f", lateral), unit: "g")
+                }
                 StatTile(title: L("Frenata"), value: String(format: "%.2f", max(0, braking)), unit: "g")
                 StatTile(title: L("Spinta"), value: String(format: "%.2f", max(0, accel)), unit: "g")
             }

@@ -158,7 +158,7 @@ fun LeaderboardScreen(trackID: String) {
             SectionLabel(L("I tuoi giri"))
             Panel {
                 if (!m.account.isSignedIn) {
-                    Text(L("Per entrare in classifica serve un account: il tuo nome utente è quello che vedono tutti, accanto al tempo e all'auto."), fontSize = 13.sp, color = Theme.sub)
+                    Text(L("Per entrare in classifica serve un account: il tuo nome utente è quello che vedono tutti, accanto al tempo e al veicolo."), fontSize = 13.sp, color = Theme.sub)
                     Spacer(Modifier.height(10.dp))
                     PrimaryButton(L("Accedi o crea un account"), Icons.Filled.Person) { nav.push(AppTab.tracks, "account") }
                 } else {
@@ -173,9 +173,9 @@ fun LeaderboardScreen(trackID: String) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         when {
-                            car == null -> L("Scegli in Live l'auto che usi: i tuoi tempi porteranno a lei.")
-                            m.garage.isShown -> L("I tuoi tempi portano a quest'auto del garage")
-                            else -> L("Rendi pubblico il garage perché i tempi portino all'auto")
+                            car == null -> L("Scegli in Live il veicolo che usi: i tuoi tempi porteranno a lui.")
+                            m.garage.isShown -> L("I tuoi tempi portano a questo veicolo del garage")
+                            else -> L("Rendi pubblico il garage perché i tempi portino al veicolo")
                         },
                         fontSize = 12.sp, color = Theme.sub,
                     )
@@ -186,7 +186,7 @@ fun LeaderboardScreen(trackID: String) {
                             sending = true
                             scope.launch {
                                 val kind = SourceKind.ofSession(record.session.source)
-                                runCatching { Server.submit(record.lap, kind.name, track, record.session.carID, token) }
+                                runCatching { Server.submit(record.lap, kind.name, track, record.session.carID, record.session.vehicle, token) }
                                     .onSuccess { r ->
                                         note = L("Sei %lld° su %lld con %@.", r.rank, r.of, if (kind == SourceKind.device) L("GPS esterno") else L("Telefono"))
                                         attempt += 1

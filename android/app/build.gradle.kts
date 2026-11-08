@@ -7,9 +7,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-// Push notifications through Firebase: with the project's google-services.json here, the build is
-// tied to it; without, the app has no notifications and builds the same.
-if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+// Push notifications through Firebase: with the project's google-services.json in src/full, the full
+// app is tied to it; without, it has no notifications and builds the same. TrackLap Lite has no
+// account and no notifications: its Firebase step is skipped (it has no google-services.json).
+if (file("src/full/google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+    tasks.configureEach {
+        if (name.startsWith("process") && name.contains("Lite") && name.endsWith("GoogleServices")) enabled = false
+    }
+}
 
 // The version follows the iPhone app's (project.yml): app and firmware share one number.
 val appVersion: String = Regex("MARKETING_VERSION: \"([^\"]+)\"")
@@ -32,6 +38,23 @@ android {
         targetSdk = 35
         versionCode = appBuild
         versionName = appVersion
+    }
+
+    // Two apps from the same code: the full TrackLap, and TrackLap Lite (timer, drag, tracks and
+    // sessions on the phone; no account, garage, friends, leaderboards or live groups).
+    flavorDimensions += "edition"
+    productFlavors {
+        create("full") {
+            dimension = "edition"
+            buildConfigField("boolean", "LITE", "false")
+            manifestPlaceholders["appLabel"] = "TrackLap"
+        }
+        create("lite") {
+            dimension = "edition"
+            applicationIdSuffix = ".lite"
+            buildConfigField("boolean", "LITE", "true")
+            manifestPlaceholders["appLabel"] = "TrackLap Lite"
+        }
     }
 
     signingConfigs {

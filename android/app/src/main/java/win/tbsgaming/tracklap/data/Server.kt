@@ -16,6 +16,7 @@ import win.tbsgaming.tracklap.model.FriendProfile
 import win.tbsgaming.tracklap.model.Lap
 import win.tbsgaming.tracklap.model.PublicGarage
 import win.tbsgaming.tracklap.model.Track
+import win.tbsgaming.tracklap.model.VehicleKind
 import win.tbsgaming.tracklap.ui.L
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -26,7 +27,7 @@ import kotlin.math.roundToLong
 
 /** Why the server said no, as the screens tell it. */
 class ServerFailure(val kind: Kind) : Exception() {
-    enum class Kind { offline, refused, signedOut, taken, wrongLogin, wrongPassword, badName, shortPassword, tooMany, notFound, friendsOnly, noInvite, cannotBefriend, notFriend }
+    enum class Kind { offline, refused, signedOut, taken, wrongLogin, wrongPassword, badName, shortPassword, tooMany, notFound, friendsOnly, noInvite, cannotBefriend, notFriend, sessionsFriendsOnly }
 
     override val message: String
         get() = when (kind) {
@@ -44,6 +45,7 @@ class ServerFailure(val kind: Kind) : Exception() {
             Kind.noInvite -> L("Questo invito non vale più: chiedine uno nuovo a chi te lo ha mandato.")
             Kind.cannotBefriend -> L("Non puoi accettare questo invito: è il tuo, oppure uno di voi ha già 200 amici.")
             Kind.notFriend -> L("Non siete più amici.")
+            Kind.sessionsFriendsOnly -> L("Questo pilota mostra le sessioni solo ai suoi amici.")
         }
 }
 
@@ -64,7 +66,10 @@ data class Leaderboard(val track: BoardTrack? = null, val laps: List<Entry> = em
         /** Milliseconds since 1970. */
         val date: Double,
         val mine: Boolean = false,
+        /** "car", "motorcycle" or "scooter"; null for laps from before 0.10.0. */
+        val kind: String? = null,
     ) {
+        val vehicleKind: VehicleKind? get() = VehicleKind.of(kind)
         val id: String get() = source + rank
         val carLink: GarageLink? get() = garage?.takeIf { it.isNotEmpty() }?.let { GarageLink(it, car?.takeIf { c -> c.isNotEmpty() }) }
     }
@@ -122,7 +127,7 @@ object Server {
     }
 
     /** A lap for the leaderboard: kept if it is your best there with that GPS, under your account, linked to the car. */
-    suspend fun submit(lap: Lap, source: String, track: Track, car: String?, token: String): Submitted {
+    suspend fun submit(lap: Lap, source: String, track: Track, car: String?, kind: VehicleKind, token: String): Submitted {
         val start = track.start ?: throw ServerFailure(ServerFailure.Kind.refused)
         if (source == "demo") throw ServerFailure(ServerFailure.Kind.refused)
         val body = buildJsonObject {
@@ -137,6 +142,7 @@ object Server {
                 put("lon", start.mid.lon)
             }
             if (car != null) put("car", car)
+            put("kind", kind.name)
         }
         return send("v1/laps", "POST", Submitted.serializer(), body, token)
     }
@@ -210,6 +216,30 @@ object Server {
             when (it) {
                 404 -> ServerFailure.Kind.notFound
                 403 -> ServerFailure.Kind.friendsOnly
+                else -> null
+            }
+        }
+
+    /** Your sessions for everyone ("all") or for your friends only ("friends"). */
+    suspend fun putSessions(code: String, sessions: List<SharedSession>, audience: String, token: String) {
+        val body = buildJsonObject {
+            put("sessions", Files.json.encodeToJsonElement(ListSerializer(SharedSession.serializer()), sessions))
+            put("audience", audience)
+        }
+        send<Unit>("v1/garages/$code/sessions", "PUT", null, body, token)
+    }
+
+    /** Your sessions no longer shown to anyone. */
+    suspend fun deleteSessions(code: String, token: String) {
+        send<Unit>("v1/garages/$code/sessions", "DELETE", null, token = token) { if (it == 404) ServerFailure.Kind.notFound else null }
+    }
+
+    /** Someone's shared sessions: none when they share none. */
+    suspend fun sessions(code: String, token: String?): SharedSessions =
+        send("v1/garages/$code/sessions", "GET", SharedSessions.serializer(), token = token) {
+            when (it) {
+                404 -> ServerFailure.Kind.notFound
+                403 -> ServerFailure.Kind.sessionsFriendsOnly
                 else -> null
             }
         }

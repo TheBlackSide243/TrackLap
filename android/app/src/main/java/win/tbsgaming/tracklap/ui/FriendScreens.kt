@@ -277,7 +277,7 @@ fun FriendDetailScreen(id: String) {
         if (car != null && g != null) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 val info = g.info(car) { Server.photoURL(g.code, it) }
-                CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)))
+                CarPhotoView(info.photo, Modifier.fillMaxWidth().aspectRatio(1.45f).clip(RoundedCornerShape(22.dp)), info.kind)
                 Text(L("Dal garage di %@", g.name), fontSize = 13.sp, color = Theme.sub)
                 Text(info.name, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Theme.text)
                 SpecGrid(info)
@@ -307,7 +307,7 @@ fun FriendDetailScreen(id: String) {
                             }
                         }
                     } else {
-                        Empty(Icons.Filled.DirectionsCar, L("Nessuna auto da vedere"), garageError ?: L("%@ non mostra il garage, oppure non ci ha ancora messo auto.", friend.name))
+                        Empty(Icons.Filled.DirectionsCar, L("Nessun veicolo da vedere"), garageError ?: L("%@ non mostra il garage, oppure non ci ha ancora messo veicoli.", friend.name))
                     }
                     SectionLabel(L("Giri migliori"))
                     if (p.laps.isEmpty()) {
@@ -315,6 +315,7 @@ fun FriendDetailScreen(id: String) {
                     } else {
                         for (lap in p.laps) BestRow(lap, g) { openCar = it }
                     }
+                    p.garage?.let { SharedSessionsSection(it) }
                 }
                 error != null -> Panel {
                     Text(error ?: "", fontSize = 14.sp, color = Theme.yellow)
@@ -384,7 +385,7 @@ private fun BestRow(lap: FriendProfile.Best, garage: PublicGarage?, openCar: (St
                 Modifier.then(if (visible) Modifier.clickable { openCar(lap.car) } else Modifier),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(Icons.Filled.DirectionsCar, null, tint = if (visible) Theme.accent else Theme.sub, modifier = Modifier.size(16.dp))
+                Icon(lap.vehicleKind?.icon ?: Icons.Filled.DirectionsCar, null, tint = if (visible) Theme.accent else Theme.sub, modifier = Modifier.size(16.dp))
                 Text(lap.vehicle, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (visible) Theme.accent else Theme.sub)
             }
         }

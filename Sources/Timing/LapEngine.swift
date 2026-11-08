@@ -66,6 +66,10 @@ final class LapEngine {
     private(set) var position: Coord? = nil
     private(set) var heading: Double = 0
     private(set) var lapDistance: Double = 0
+    /// Lateral g now, + turning right: from the board's accelerometer, else from the turn of the
+    /// heading. Smoothed; it gives the lean angle on two wheels.
+    private(set) var lateralG: Double = 0
+    @ObservationIgnored private var lastHeading: (t: Double, h: Double)? = nil
 
     /// The fastest lap on this track from earlier sessions, if any.
     private(set) var record: Lap? = nil
@@ -176,7 +180,19 @@ final class LapEngine {
         speed = s.speed
         position = s.coord
         heading = s.heading
+        var g: Double? = s.g?.lateral
+        if g == nil, let last = lastHeading, s.t - last.t > 0, s.t - last.t < 3 {
+            var turn = s.heading - last.h
+            if turn > 180 { turn -= 360 }
+            if turn < -180 { turn += 360 }
+            g = s.speed > 3 ? s.speed * (turn * .pi / 180) / (s.t - last.t) / 9.81 : 0
+        }
+        lastHeading = (s.t, s.heading)
+        if let g { lateralG = lateralG * 0.6 + max(-2.5, min(2.5, g)) * 0.4 }
     }
+
+    /// Degrees from upright a bike leans at this lateral g, on a flat corner.
+    static func lean(_ lateralG: Double) -> Double { atan(abs(lateralG)) * 180 / .pi }
 
     func ingest(_ s: Sample) {
         observe(s)
