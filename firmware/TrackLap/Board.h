@@ -20,6 +20,17 @@
 #define CHIP_NAME "ESP32-C5"
 #define GPS_RX_DEFAULT 4
 #define GPS_TX_DEFAULT 5
+#elif CONFIG_IDF_TARGET_ESP32C6 && defined(TRACKLAP_LCD169)
+// Waveshare ESP32-C6-LCD-1.69: the 240 × 280 screen on GPIO 1-5 (backlight 6), a QMI8658
+// accelerometer on I2C 8/7 (shared with the clock chip), GPIO 15 keeps the board on when it runs
+// from its battery; the GPS goes on the header pins marked RXD (17) and TXD (16).
+#define CHIP_NAME "ESP32-C6"
+#define BOARD_NAME "Waveshare ESP32-C6-LCD-1.69"
+#define GPS_RX_DEFAULT 17
+#define GPS_TX_DEFAULT 16
+#define TRACKLAP_IMU_SDA 8
+#define TRACKLAP_IMU_SCL 7
+#define TRACKLAP_POWER_HOLD 15
 #elif CONFIG_IDF_TARGET_ESP32C6 && defined(TRACKLAP_LCD147T)
 // Waveshare ESP32-C6-Touch-LCD-1.47: the screen on GPIO 1, 2, 14, 15, 22 (backlight 23) and a
 // QMI8658 accelerometer on I2C 18/19, shared with the touch panel; the GPS goes on the header pins
@@ -53,7 +64,7 @@
 #define BOARD_NAME CHIP_NAME
 #endif
 
-// The two Waveshare 1.47" boards have the same dashboard.
-#if defined(TRACKLAP_LCD147) || defined(TRACKLAP_LCD147T)
+// The boards with a screen: the two Waveshare 1.47" (320 × 172) and the 1.69" (280 × 240).
+#if defined(TRACKLAP_LCD147) || defined(TRACKLAP_LCD147T) || defined(TRACKLAP_LCD169)
 #define TRACKLAP_DISPLAY
 #endif
