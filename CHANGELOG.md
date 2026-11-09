@@ -2,7 +2,7 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
-## 0.10.0 (not released yet)
+## 0.10.0 (2026-11-09)
 
 TrackLap Lite, motorcycles and scooters, and shared sessions. / TrackLap Lite, moto e scooter, e le
 sessioni condivise.
@@ -48,6 +48,7 @@ sessioni condivise.
 **Server**
 - `PUT`, `GET` e `DELETE /v1/garages/<codice>/sessions`: le sessioni condivise, con il loro pubblico.
 - I giri in classifica e i veicoli del garage tengono il tipo (`car`, `motorcycle`, `scooter`).
+
 ## Firmware 0.9.3 (2026-11-06)
 
 A new board, the Waveshare ESP32-C6-LCD-1.69. The apps stay at 0.9.2. / Una scheda nuova, la
