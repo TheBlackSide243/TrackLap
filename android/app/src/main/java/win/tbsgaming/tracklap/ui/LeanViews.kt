@@ -70,7 +70,7 @@ fun LeanCard() {
                     Furthest(left = false, e.maxLeanRight)
                 }
             }
-            LeanDial(lean, e.maxLeanLeft, e.maxLeanRight, Modifier.width(150.dp).height(96.dp))
+            LeanDial(lean, e.maxLeanLeft, e.maxLeanRight, Modifier.width(168.dp).height(104.dp))
         }
     }
 }
@@ -103,16 +103,16 @@ fun LeanDial(lean: Double, maxLeft: Double, maxRight: Double, modifier: Modifier
         }
         val box = Size(r * 2, r * 2)
         val corner = Offset(pivot.x - r, pivot.y - r)
-        val thick = 8.dp.toPx()
+        val thick = 9.dp.toPx()
 
         // The ground.
         drawLine(Theme.line, Offset(pivot.x - r * 0.55f, pivot.y + 5.dp.toPx()), Offset(pivot.x + r * 0.55f, pivot.y + 5.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
 
-        drawArc(Theme.input, -90f - range, range * 2, false, corner, box, style = Stroke(thick, cap = StrokeCap.Round))
+        drawArc(Theme.line, -90f - range, range * 2, false, corner, box, style = Stroke(thick, cap = StrokeCap.Round))
         var tick = -range
         while (tick <= range) {
             drawLine(
-                if (tick == 0f) Theme.sub else Theme.line, point(tick, r - 9.dp.toPx()), point(tick, r - (if (tick == 0f) 17 else 13).dp.toPx()),
+                Theme.sub.copy(alpha = if (tick == 0f) 1f else 0.55f), point(tick, r - 10.dp.toPx()), point(tick, r - (if (tick == 0f) 19 else 15).dp.toPx()),
                 1.5.dp.toPx(), StrokeCap.Round,
             )
             tick += 15f
@@ -125,11 +125,11 @@ fun LeanDial(lean: Double, maxLeft: Double, maxRight: Double, modifier: Modifier
 
         for (mark in listOf(-min(maxLeft, range.toDouble()), min(maxRight, range.toDouble()))) {
             if (abs(mark) < 1) continue
-            drawLine(Theme.purple, point(mark.toFloat(), r - 7.dp.toPx()), point(mark.toFloat(), r + 7.dp.toPx()), 3.dp.toPx(), StrokeCap.Round)
+            drawLine(Theme.purple, point(mark.toFloat(), r - 8.dp.toPx()), point(mark.toFloat(), r + 8.dp.toPx()), 3.dp.toPx(), StrokeCap.Round)
         }
 
         // The bike: from where the tyre touches the ground up to just inside the arc.
-        val head = point(shown, max(0f, r - 22.dp.toPx()))
+        val head = point(shown, max(0f, r - 24.dp.toPx()))
         drawLine(Theme.text, pivot, head, 4.dp.toPx(), StrokeCap.Round)
         drawCircle(Theme.text, 5.dp.toPx(), pivot)
         drawCircle(color, 4.dp.toPx(), head)

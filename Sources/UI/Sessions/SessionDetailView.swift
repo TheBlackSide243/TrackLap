@@ -216,7 +216,7 @@ struct SessionDetailView: View {
 
             SectionLabel(L("Accelerazioni"))
             Panel {
-                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace), twoWheels: s.vehicle.onTwoWheels)
+                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace), lean: a.twoWheels ? a.maxLean : nil)
             }
 
             SectionLabel(L("Giri"))
@@ -359,6 +359,9 @@ private struct Analysis {
     let deltaSegments: [ColorSegment]
     /// A motorcycle or a scooter: the lean angle in place of the lateral g.
     let twoWheels: Bool
+    /// On two wheels: the lean at each point of the lap and of the reference, + leaning right.
+    let lean: [Double]
+    let refLean: [Double]
 
     init(lap: Lap, ref: Lap?, twoWheels: Bool = false) {
         self.lap = lap
@@ -367,6 +370,8 @@ private struct Analysis {
         self.cmp = cmp
         g = GForce.along(lap.trace, twoWheels: twoWheels)
         refG = ref.map { GForce.along($0.trace, twoWheels: twoWheels) } ?? []
+        lean = twoWheels ? GForce.lean(g, along: lap.trace) : []
+        refLean = twoWheels ? ref.map { GForce.lean(GForce.along($0.trace, twoWheels: true), along: $0.trace) } ?? [] : []
         apexes = Corners.apexes(lap.trace)
         speedSegments = ColorSegment.speed(lap.trace)
         deltaSegments = cmp.map(ColorSegment.delta) ?? []
@@ -374,6 +379,15 @@ private struct Analysis {
 
     func gForce(at d: Double) -> GPoint {
         g.isEmpty ? GPoint() : g[lap.trace.index(atDistance: d)]
+    }
+
+    func leanAngle(at d: Double) -> Double {
+        lean.isEmpty ? 0 : lean[lap.trace.index(atDistance: d)]
+    }
+
+    /// The furthest lean of the lap to each side.
+    var maxLean: (left: Double, right: Double) {
+        (max(0, -(lean.min() ?? 0)), max(0, lean.max() ?? 0))
     }
 }
 
@@ -471,7 +485,7 @@ private struct CursorReadout: View {
                         cell("Delta", Fmt.delta(d), d <= 0 ? Theme.good : Theme.bad)
                     }
                     if analysis.twoWheels {
-                        cell(L("Piega"), Lean.text(LapEngine.lean(g.lateral)), Theme.yellow)
+                        cell(L("Piega"), Lean.text(analysis.leanAngle(at: cursor)), Theme.yellow)
                     } else {
                         cell("G", String(format: "%.1f", g.total), Theme.yellow)
                     }
@@ -811,8 +825,10 @@ private struct GGDiagram: View {
     let ref: [GPoint]
     /// From the board's accelerometer rather than the GPS.
     var measured = false
-    /// A motorcycle or a scooter: the lean angle in place of the lateral g.
-    var twoWheels = false
+    /// A motorcycle or a scooter: the furthest lean to each side, in place of the lateral g.
+    var lean: (left: Double, right: Double)? = nil
+
+    private var twoWheels: Bool { lean != nil }
 
     var body: some View {
         let lateral = g.map { abs($0.lateral) }.max() ?? 0
@@ -821,13 +837,10 @@ private struct GGDiagram: View {
         let peak = max(1.0, (g + ref).map(\.total).max() ?? 1)
         let range = (peak * 1.1 * 2).rounded(.up) / 2
         VStack(alignment: .leading, spacing: 12) {
-            if twoWheels {
-                // The furthest lean to each side takes the place of the lateral g.
-                let left = LapEngine.lean(-(g.map(\.lateral).min() ?? 0))
-                let right = LapEngine.lean(g.map(\.lateral).max() ?? 0)
+            if let lean {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible())], spacing: 10) {
-                    StatTile(title: L("Piega sx"), value: "\(Int(left.rounded()))°", color: Theme.purple)
-                    StatTile(title: L("Piega dx"), value: "\(Int(right.rounded()))°", color: Theme.purple)
+                    StatTile(title: L("Piega sx"), value: "\(Int(lean.left.rounded()))°", color: Theme.purple)
+                    StatTile(title: L("Piega dx"), value: "\(Int(lean.right.rounded()))°", color: Theme.purple)
                     StatTile(title: L("Frenata"), value: String(format: "%.2f", max(0, braking)), unit: "g")
                     StatTile(title: L("Spinta"), value: String(format: "%.2f", max(0, accel)), unit: "g")
                 }
@@ -917,17 +930,16 @@ private struct LeanChart: View {
 
     var body: some View {
         let lap = analysis.lap
-        let mine = points(lap.trace, analysis.g, scale: 1)
-        let ref = analysis.cmp.map { points($0.ref.trace, analysis.refG, scale: $0.scale) } ?? []
+        let mine = points(lap.trace, analysis.lean, scale: 1)
+        let ref = analysis.cmp.map { points($0.ref.trace, analysis.refLean, scale: $0.scale) } ?? []
         let peak = (mine + ref).map { abs($0.lean) }.max() ?? 0
         let top = max(20, (peak / 10).rounded(.up) * 10)
-        let left = -(mine.map { $0.lean }.min() ?? 0)
-        let right = mine.map { $0.lean }.max() ?? 0
+        let furthest = analysis.maxLean
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 14) {
                 Text("Piega").font(.caption.weight(.heavy)).foregroundStyle(Theme.text)
                 Spacer(minLength: 0)
-                Text(verbatim: "← \(Int(max(0, left).rounded()))°   \(Int(max(0, right).rounded()))° →")
+                Text(verbatim: "← \(Int(furthest.left.rounded()))°   \(Int(furthest.right.rounded()))° →")
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Theme.purple)
@@ -980,10 +992,10 @@ private struct LeanChart: View {
     }
 
     /// Every third point, the reference stretched onto this lap's distance as in the delta.
-    private func points(_ trace: [TracePoint], _ g: [GPoint], scale: Double) -> [(d: Double, lean: Double)] {
-        guard g.count == trace.count else { return [] }
+    private func points(_ trace: [TracePoint], _ lean: [Double], scale: Double) -> [(d: Double, lean: Double)] {
+        guard lean.count == trace.count else { return [] }
         return trace.indices.compactMap { i in
-            i % 3 == 0 ? (d: trace[i].d / scale, lean: LapEngine.lean(g[i].lateral)) : nil
+            i % 3 == 0 ? (d: trace[i].d / scale, lean: lean[i]) : nil
         }
     }
 }

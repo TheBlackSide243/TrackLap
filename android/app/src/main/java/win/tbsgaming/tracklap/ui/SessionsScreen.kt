@@ -459,9 +459,9 @@ private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?, twoWheels: Boole
             StatTile("Delta", Fmt.delta(d), Modifier.weight(1f), color = if (d <= 0) Theme.good else Theme.bad)
         }
         if (twoWheels) {
-            val g = remember(lap.id) { GForce.along(lap.trace, twoWheels = true) }
+            val lean = remember(lap.id) { GForce.lean(lap.trace) }
             val i = lap.trace.indexOfFirst { it.d >= cursor }.let { if (it < 0) lap.trace.lastIndex else it }
-            if (i in g.indices) StatTile(L("Piega"), leanText(leanAngle(g[i].lateral)), Modifier.weight(1f), color = Theme.yellow)
+            if (i in lean.indices) StatTile(L("Piega"), leanText(lean[i]), Modifier.weight(1f), color = Theme.yellow)
         }
     }
 }
@@ -469,14 +469,13 @@ private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?, twoWheels: Boole
 /** The lean angle along the lap: right above the line, left below, with the reference lap. */
 @Composable
 private fun LeanChart(lap: Lap, ref: Lap?, cursor: Double?, onCursor: (Double?) -> Unit) {
-    val g = remember(lap.id) { GForce.along(lap.trace, twoWheels = true) }
+    val ys = remember(lap.id) { GForce.lean(lap.trace) }
     val xs = lap.trace.map { it.d }
-    val ys = g.map { leanAngle(it.lateral) }
     val series = arrayListOf(ChartSeries(thin(xs), thin(ys), Theme.accent, fill = true))
     if (ref != null) {
         val c = LapComparison(lap, ref)
-        val rg = remember(ref.id) { GForce.along(ref.trace, twoWheels = true) }
-        series.add(0, ChartSeries(thin(ref.trace.map { it.d / c.scale }), thin(rg.map { leanAngle(it.lateral) }), Theme.purple, 2f))
+        val rl = remember(ref.id) { GForce.lean(ref.trace) }
+        series.add(0, ChartSeries(thin(ref.trace.map { it.d / c.scale }), thin(rl), Theme.purple, 2f))
     }
     val left = -(ys.minOrNull() ?: 0.0)
     val right = ys.maxOrNull() ?: 0.0
@@ -505,8 +504,7 @@ private fun GGDiagram(lap: Lap, ref: Lap?, twoWheels: Boolean) {
     Panel {
         if (twoWheels) {
             // The furthest lean to each side takes the place of the lateral g.
-            val left = leanAngle(-(g.minOfOrNull { it.lateral } ?: 0.0))
-            val right = leanAngle(g.maxOfOrNull { it.lateral } ?: 0.0)
+            val (left, right) = remember(lap.id) { GForce.maxLean(lap.trace) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatTile(L("Piega sx"), "${left.roundToInt()}°", Modifier.weight(1f), color = Theme.purple)
                 StatTile(L("Piega dx"), "${right.roundToInt()}°", Modifier.weight(1f), color = Theme.purple)

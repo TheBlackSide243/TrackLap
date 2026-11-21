@@ -764,3 +764,6 @@
 "Ti hanno superato" = "Du wurdest überholt";
 "%@ ti ha superato a %@: %@." = "%@ hat dich in %@ überholt: %@.";
 "%@ ha un nuovo record a %@: %@." = "%@ hat einen neuen Rekord in %@: %@.";
+"Auto, moto e scooter" = "Autos, Motorräder und Roller";
+"Su due ruote vedi anche la piega, in pista e nell'analisi." = "Auf zwei Rädern siehst du auch die Schräglage, auf der Strecke und in der Analyse.";
+"0-100, quarto di miglio e frenata, con la partenza a un tocco." = "0-100, Viertelmeile und Bremsen, mit Start per Tipp.";

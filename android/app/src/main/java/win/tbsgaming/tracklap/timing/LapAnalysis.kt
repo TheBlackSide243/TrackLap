@@ -29,10 +29,38 @@ object GForce {
         return out
     }
 
+    /**
+     * The lean angle at each point, + leaning right: from the lateral g averaged over a second
+     * around it. A bike takes about that long to roll into a corner, and the GPS is too noisy from
+     * one fix to the next to tell an angle by itself.
+     */
+    fun lean(g: List<GPoint>, trace: List<TracePoint>): List<Double> {
+        if (g.size != trace.size) return emptyList()
+        val out = ArrayList<Double>(g.size)
+        var lo = 0
+        var hi = 0
+        var sum = 0.0
+        for (i in g.indices) {
+            while (hi < g.size && trace[hi].t - trace[i].t <= 0.5) {
+                sum += g[hi].lateral
+                hi += 1
+            }
+            while (trace[i].t - trace[lo].t > 0.5) {
+                sum -= g[lo].lateral
+                lo += 1
+            }
+            out.add(leanAngle(sum / (hi - lo)))
+        }
+        return out
+    }
+
+    /** The lean along a lap, from the GPS alone. */
+    fun lean(trace: List<TracePoint>): List<Double> = lean(fromGps(trace), trace)
+
     /** The furthest lean of a lap to each side, in degrees: left, then right. */
     fun maxLean(trace: List<TracePoint>): Pair<Double, Double> {
-        val g = fromGps(trace)
-        return leanAngle(-(g.minOfOrNull { it.lateral } ?: 0.0)) to leanAngle(g.maxOfOrNull { it.lateral } ?: 0.0)
+        val lean = lean(trace)
+        return max(0.0, -(lean.minOrNull() ?: 0.0)) to max(0.0, lean.maxOrNull() ?: 0.0)
     }
 
     /** Most of the lap measured by the accelerometer. */

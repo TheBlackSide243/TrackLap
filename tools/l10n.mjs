@@ -1220,6 +1220,9 @@ const strings = [
   ["Ti hanno superato", "You were passed", "Te han superado", "On vous a dépassé", "Du wurdest überholt", "Você foi superado"],
   ["%@ ti ha superato a %@: %@.", "%@ passed you at %@: %@.", "%@ te ha superado en %@: %@.", "%@ vous a dépassé à %@ : %@.", "%@ hat dich in %@ überholt: %@.", "%@ superou você em %@: %@."],
   ["%@ ha un nuovo record a %@: %@.", "%@ has a new record at %@: %@.", "%@ tiene un nuevo récord en %@: %@.", "%@ a un nouveau record à %@ : %@.", "%@ hat einen neuen Rekord in %@: %@.", "%@ tem um novo recorde em %@: %@."],
+  ["Auto, moto e scooter", "Cars, motorcycles and scooters", "Coches, motos y scooters", "Autos, motos et scooters", "Autos, Motorräder und Roller", "Carros, motos e scooters"],
+  ["Su due ruote vedi anche la piega, in pista e nell'analisi.", "On two wheels you also see the lean angle, on track and in the analysis.", "Sobre dos ruedas ves también la inclinación, en pista y en el análisis.", "Sur deux roues, vous voyez aussi l'angle, en piste et dans l'analyse.", "Auf zwei Rädern siehst du auch die Schräglage, auf der Strecke und in der Analyse.", "Em duas rodas você vê também a inclinação, na pista e na análise."],
+  ["0-100, quarto di miglio e frenata, con la partenza a un tocco.", "0-100, quarter mile and braking, with a one-tap start.", "0-100, cuarto de milla y frenada, con salida a un toque.", "0-100, quart de mile et freinage, avec un départ en un geste.", "0-100, Viertelmeile und Bremsen, mit Start per Tipp.", "0-100, quarto de milha e frenagem, com largada a um toque."],
 ];
 
 // The permission prompts, in Info.plist.

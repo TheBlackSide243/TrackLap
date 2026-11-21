@@ -14,7 +14,7 @@ struct ShareLapSheet: View {
                 HStack(spacing: 14) {
                     AppGlyph(symbol: "flag.checkered", color: Theme.purple)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(session.trackName).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
+                        Text(session.trackName).font(.headline).foregroundStyle(Theme.text).lineLimit(2).minimumScaleFactor(0.85)
                         Text(L("Giro \(lap.number)") + " · " + Fmt.dayShort.string(from: session.date))
                             .font(.caption)
                             .foregroundStyle(Theme.sub)

@@ -14,6 +14,7 @@ enum Theme {
     static let accent = Color(rgb: 34, 211, 238)
     static let purple = Color(rgb: 176, 102, 255)
     static let yellow = Color(rgb: 250, 204, 21)
+    static let blue = Color(rgb: 96, 165, 250)
 
     static func color(for state: SectorState) -> Color {
         switch state {

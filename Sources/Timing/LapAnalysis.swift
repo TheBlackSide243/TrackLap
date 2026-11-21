@@ -24,10 +24,33 @@ enum GForce {
         return out
     }
 
+    /// The lean angle at each point, + leaning right: from the lateral g averaged over a second
+    /// around it. A bike takes about that long to roll into a corner, and the GPS is too noisy from
+    /// one fix to the next to tell an angle by itself.
+    static func lean(_ g: [GPoint], along trace: [TracePoint]) -> [Double] {
+        guard g.count == trace.count else { return [] }
+        var out = [Double](repeating: 0, count: g.count)
+        var lo = 0
+        var hi = 0
+        var sum = 0.0
+        for i in g.indices {
+            while hi < g.count && trace[hi].t - trace[i].t <= 0.5 {
+                sum += g[hi].lateral
+                hi += 1
+            }
+            while trace[i].t - trace[lo].t > 0.5 {
+                sum -= g[lo].lateral
+                lo += 1
+            }
+            out[i] = LapEngine.lean(sum / Double(hi - lo))
+        }
+        return out
+    }
+
     /// The furthest lean of a lap to each side, in degrees.
     static func maxLean(_ trace: [TracePoint]) -> (left: Double, right: Double) {
-        let lateral = fromGPS(trace).map(\.lateral)
-        return (LapEngine.lean(-(lateral.min() ?? 0)), LapEngine.lean(lateral.max() ?? 0))
+        let angles = lean(fromGPS(trace), along: trace)
+        return (max(0, -(angles.min() ?? 0)), max(0, angles.max() ?? 0))
     }
 
     /// Most of the lap measured by the accelerometer.

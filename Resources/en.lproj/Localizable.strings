@@ -764,3 +764,6 @@
 "Ti hanno superato" = "You were passed";
 "%@ ti ha superato a %@: %@." = "%@ passed you at %@: %@.";
 "%@ ha un nuovo record a %@: %@." = "%@ has a new record at %@: %@.";
+"Auto, moto e scooter" = "Cars, motorcycles and scooters";
+"Su due ruote vedi anche la piega, in pista e nell'analisi." = "On two wheels you also see the lean angle, on track and in the analysis.";
+"0-100, quarto di miglio e frenata, con la partenza a un tocco." = "0-100, quarter mile and braking, with a one-tap start.";

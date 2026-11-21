@@ -34,7 +34,7 @@ struct LeanCard: View {
                 }
                 Spacer(minLength: 0)
                 LeanDial(lean: lean, maxLeft: engine.maxLeanLeft, maxRight: engine.maxLeanRight)
-                    .frame(width: 150, height: 96)
+                    .frame(width: 168, height: 104)
             }
             .animation(.snappy(duration: 0.25), value: lean)
         }
@@ -102,34 +102,34 @@ struct LeanDial: View, Animatable {
             ground.addLine(to: CGPoint(x: pivot.x + r * 0.55, y: pivot.y + 5))
             ctx.stroke(ground, with: .color(Theme.line), style: StrokeStyle(lineWidth: 2, lineCap: .round))
 
-            ctx.stroke(arc(-Self.range, Self.range), with: .color(Theme.input), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+            ctx.stroke(arc(-Self.range, Self.range), with: .color(Theme.line), style: StrokeStyle(lineWidth: 9, lineCap: .round))
             for tick in stride(from: -Self.range, through: Self.range, by: 15) {
                 var t = Path()
-                t.move(to: point(tick, r - 9))
-                t.addLine(to: point(tick, r - (tick == 0 ? 17 : 13)))
-                ctx.stroke(t, with: .color(tick == 0 ? Theme.sub : Theme.line), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                t.move(to: point(tick, r - 10))
+                t.addLine(to: point(tick, r - (tick == 0 ? 19 : 15)))
+                ctx.stroke(t, with: .color(Theme.sub.opacity(tick == 0 ? 1 : 0.55)), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
             }
 
             if abs(shown) > 0.5 {
                 var glow = ctx
                 glow.addFilter(.shadow(color: color.opacity(0.7), radius: 6))
-                glow.stroke(arc(min(0, shown), max(0, shown)), with: .color(color), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                glow.stroke(arc(min(0, shown), max(0, shown)), with: .color(color), style: StrokeStyle(lineWidth: 9, lineCap: .round))
             }
 
             for mark in [-min(maxLeft, Self.range), min(maxRight, Self.range)] where abs(mark) >= 1 {
                 var m = Path()
-                m.move(to: point(mark, r - 7))
-                m.addLine(to: point(mark, r + 7))
+                m.move(to: point(mark, r - 8))
+                m.addLine(to: point(mark, r + 8))
                 ctx.stroke(m, with: .color(Theme.purple), style: StrokeStyle(lineWidth: 3, lineCap: .round))
             }
 
             // The bike: from where the tyre touches the ground up to just inside the arc.
             var bike = Path()
             bike.move(to: pivot)
-            bike.addLine(to: point(shown, r - 22))
+            bike.addLine(to: point(shown, r - 24))
             ctx.stroke(bike, with: .color(Theme.text), style: StrokeStyle(lineWidth: 4, lineCap: .round))
             ctx.fill(Path(ellipseIn: CGRect(x: pivot.x - 5, y: pivot.y - 5, width: 10, height: 10)), with: .color(Theme.text))
-            let head = point(shown, r - 22)
+            let head = point(shown, r - 24)
             ctx.fill(Path(ellipseIn: CGRect(x: head.x - 4, y: head.y - 4, width: 8, height: 8)), with: .color(color))
         }
     }
