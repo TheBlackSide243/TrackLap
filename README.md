@@ -288,6 +288,12 @@ Bluetooth e non vanno bene.
   240 × 280 con gli angoli arrotondati, usato in orizzontale, e l'accelerometro QMI8658: lo stesso
   cruscotto, disposto per il suo schermo, e i g misurati come la Touch. A batteria si accende con il
   suo tasto PWR.
+- **Schermo dal verso giusto**: sulle tre Waveshare il tasto **BOOT** capovolge l'immagine, per
+  montare la scheda con il cavo dall'altra parte; la scelta resta anche da spenta. La Touch e la 1.69
+  poi lo fanno da sole con l'accelerometro: capovolgi la scheda e dopo un secondo l'immagine si gira.
+  Qual è il verso giusto lo imparano dalla prima posizione in cui stanno ferme in piedi; se è quella
+  sbagliata, premi BOOT una volta e da lì in poi vale quella. Sdraiata o in movimento l'immagine
+  resta com'è.
 - **LED**: sulle schede con il LED RGB è rosso senza GPS, giallo in attesa del fix e verde con il fix;
   lampeggia finché l'app non si collega.
 
@@ -321,7 +327,8 @@ quello che trasmette. Il VCC va al 3V3, o al 5V se il modulo lo chiede.
 Sulle Waveshare il GPS usa i pin RX e TX del connettore (su quella senza touch i GPIO 4
 e 5 vanno allo slot microSD). Se la scheda usa quei pin per altro (display, LED, la PSRAM dei moduli ESP32-WROVER su
 16 e 17), si cambiano dall'app (Dispositivo → ESP32 → Cambia pin) oppure dal monitor seriale USB a
-115200 baud con `pins <rx> <tx>`; `pins default` torna ai predefiniti, `info` mostra lo stato.
+115200 baud con `pins <rx> <tx>`; `pins default` torna ai predefiniti, `flip` capovolge lo schermo,
+`info` mostra lo stato.
 
 **Installazione**: apri https://esp32.tbsgaming.win da Chrome, Edge o Brave sul computer, collega
 la scheda via USB e premi Installa: "Qualsiasi ESP32 con Bluetooth" riconosce il chip da solo,

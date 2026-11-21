@@ -35,6 +35,10 @@ uint8_t address = 0;
 uint32_t lastRead = 0;
 Vec sum;
 uint16_t count = 0;
+// For the screen's way up: the readings smoothed over a twentieth and a quarter of a second, so an
+// idling engine's shaking averages out, and when the board last moved.
+Vec quick, slow;
+uint32_t movedAt = 0;
 
 // The mounting: gravity as the chip reads it standing still (it points up, about 1 g), and the
 // evidence for forward, the sum of the horizontal g times the GPS's own longitudinal g.
@@ -142,10 +146,24 @@ void Imu::poll() {
   if (now - lastRead < 5) return;
   lastRead = now;
   uint8_t b[6];
-  if (!readRegs(kAccelX, b, sizeof b)) return;
+  if (!readRegs(kAccelX, b, sizeof b)) {
+    movedAt = now;
+    return;
+  }
   Vec a = {(int16_t)(b[0] | b[1] << 8) / kPerG, (int16_t)(b[2] | b[3] << 8) / kPerG, (int16_t)(b[4] | b[5] << 8) / kPerG};
   sum = sum + a;
   if (count < 60000) count++;
+  quick = quick * 0.9f + a * 0.1f;
+  slow = slow * 0.98f + a * 0.02f;
+  if (fabsf(quick.length() - 1) > 0.12f || (quick - slow).length() > 0.12f) movedAt = now;
+}
+
+bool Imu::atRest(float& x, float& y, float& z) {
+  if (!address || millis() - movedAt < 600) return false;
+  x = slow.x;
+  y = slow.y;
+  z = slow.z;
+  return true;
 }
 
 void Imu::take(const Fix& f, int16_t& lateral, int16_t& longitudinal) {

@@ -195,9 +195,25 @@ bool dragMode = false;
 uint8_t dragState = 0;
 uint32_t dragStart = 0;
 char dragKey[16] = "";
+bool upsideDown = false;
 
 void clearMain() { gfx->fillRect(0, kMainY, W, kBottomY - kMainY, kBg); }
 void clearBottom() { gfx->fillRect(0, kBottomY, W, H - kBottomY, kBg); }
+
+// The background again, and everything on it forgotten: the next show() draws the whole screen.
+void repaint() {
+  gfx->fillScreen(kBg);
+  gfx->fillRect(0, 0, W, kTop, kPanel);
+  big.reset();
+  small.reset();
+  mainMode = None;
+  mainKey[0] = infoKey[0] = dragKey[0] = 0;
+  topLeft[0] = topRight[0] = topGroup[0] = 0;
+  topLink = -1;
+  bottomEvent = true;
+  eventUntil = 0;
+  lastDraw = 0;
+}
 
 void setMain(Mode m) {
   if (m == mainMode) return;
@@ -410,20 +426,24 @@ static void jd9853Setup(Arduino_DataBus* bus) {
 }
 #endif
 
-void Display::begin() {
+// Sideways with the picture as built, or the other way round.
+static uint8_t rotation() { return upsideDown ? 3 : 1; }
+
+void Display::begin(bool flipped) {
+  upsideDown = flipped;
   pinMode(kBacklight, OUTPUT);
   digitalWrite(kBacklight, HIGH);
   Arduino_DataBus* bus = new Arduino_HWSPI(kDC, kCS, kSCK, kMOSI);
 #ifdef TRACKLAP_LCD169
-  gfx = new Arduino_ST7789(bus, kRST, 1, true, 240, 280, 0, 20, 0, 20);
+  gfx = new Arduino_ST7789(bus, kRST, rotation(), true, 240, 280, 0, 20, 0, 20);
 #else
-  gfx = new Arduino_ST7789(bus, kRST, 1, true, 172, 320, 34, 0, 34, 0);
+  gfx = new Arduino_ST7789(bus, kRST, rotation(), true, 172, 320, 34, 0, 34, 0);
 #endif
 #ifdef TRACKLAP_LCD147T
   bool ok = gfx->begin(20000000);
   if (ok) {
     jd9853Setup(bus);
-    gfx->setRotation(1);
+    gfx->setRotation(rotation());
   }
 #else
   bool ok = gfx->begin();
@@ -435,6 +455,13 @@ void Display::begin() {
   gfx->fillScreen(kBg);
   gfx->fillRect(0, 0, W, kTop, kPanel);
   centered((kMainY + kBottomY) / 2 - 21, 4, kAccent, "TRACKLAP");
+}
+
+void Display::flip(bool flipped) {
+  if (!gfx || flipped == upsideDown) return;
+  upsideDown = flipped;
+  gfx->setRotation(rotation());
+  repaint();
 }
 
 void Display::show(const DashState& s) {

@@ -1,11 +1,12 @@
 // TrackLap firmware: reads a GPS module and sends every fix to the TrackLap app over Bluetooth LE
 // (protocol v1, see README), and times laps itself on the track the app sends, with the delta
 // against the best lap at every line. Runs on every ESP32 with Bluetooth LE: ESP32, ESP32-S3, C3,
-// C5, C6 and H2; on the Waveshare ESP32-C6-LCD-1.47 and its Touch version it also drives the screen
-// as a dashboard, and on the Touch version it sends the g-forces of its accelerometer.
+// C5, C6 and H2; on the Waveshare ESP32-C6-LCD-1.47, its Touch version and the ESP32-C6-LCD-1.69 it
+// also drives the screen as a dashboard, and on the last two it sends the g-forces of their
+// accelerometer and keeps the picture the right way up.
 //
 // USB serial at 115200: "pins <rx> <tx>" moves the GPS to other pins, "pins default" puts them
-// back, "info" prints the state.
+// back, "flip" turns the screen's picture over (as the BOOT button does), "info" prints the state.
 
 #include <Preferences.h>
 #include <driver/gpio.h>
@@ -16,8 +17,9 @@
 #include "Gps.h"
 #include "Imu.h"
 #include "Laps.h"
+#include "Screen.h"
 
-#define FW_VERSION "0.9.3"
+#define FW_VERSION "0.10.2"
 
 static Preferences prefs;
 static Gps gps;
@@ -132,12 +134,15 @@ static void readSerial() {
     int rx, tx;
     if (sscanf(line, "pins %d %d", &rx, &tx) == 2) setPins(rx, tx);
     else if (!strcmp(line, "pins default")) setPins(GPS_RX_DEFAULT, GPS_TX_DEFAULT);
+    else if (!strcmp(line, "flip")) Screen::flip();
     else if (line[0]) {
       publishInfo();
       char imu[80];
       Imu::describe(imu, sizeof imu);
       Serial.printf("Accelerometer: %s\n", imu);
-      Serial.println("Commands: pins <rx> <tx> | pins default | info");
+      Screen::describe(imu, sizeof imu);
+      Serial.printf("Screen: %s\n", imu);
+      Serial.println("Commands: pins <rx> <tx> | pins default | flip | info");
     }
   }
 }
@@ -204,7 +209,7 @@ void setup() {
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_BT);
   snprintf(deviceName, sizeof deviceName, "TrackLap-%02X%02X", mac[4], mac[5]);
-  Display::begin();
+  Screen::begin();
   if (Imu::begin()) Serial.println("Accelerometer QMI8658 found");
   Ble::begin(deviceName);
   gps.begin(gpsRx, gpsTx);
@@ -247,6 +252,7 @@ void loop() {
   if (gps.model() != infoModel || abs((int)gps.rate() - (int)infoRate) >= 2) publishInfo();
 
   Imu::poll();
+  Screen::poll(lastFix, now - lastFixAt < 1500);
   readSerial();
   showStatus();
   showDashboard(now);
