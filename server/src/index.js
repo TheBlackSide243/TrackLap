@@ -5,7 +5,7 @@
 // Garage per driver who shows their cars. The phones do all the timing: the server only keeps who is
 // in a group with their times, relays positions and laps, stores the best lap of each driver on each
 // track, and the cars they show. Friends who accept your invitation reach your phones as a push
-// notification (push.js).
+// notification, and so does a friend's new best lap on a track (push.js).
 
 import { goodPushToken, notify, pushPlatforms } from './push.js';
 
@@ -43,6 +43,9 @@ const REPORTS_TO_HIDE = 3;
 const INVITE = /^[A-HJ-NP-Z2-9]{8}$/;
 const INVITE_TTL = 7 * 24 * 3600 * 1000;
 const MAX_FRIENDS = 200;
+// A new best lap reaches the driver's friends as one notification, this long after the last
+// improvement on that track: a session that keeps getting faster is told once, with its best.
+const RECORD_DELAY = 20 * 60 * 1000;
 const AUDIENCES = ['all', 'friends'];
 // What a garage's vehicle is; a car when it does not say.
 const KINDS = ['car', 'motorcycle', 'scooter'];
@@ -158,7 +161,17 @@ async function boards(request, env) {
       if (found) Object.assign(internal, { 'X-TrackLap-Garage': account.garage, 'X-TrackLap-Car': car, 'X-TrackLap-Car-Name': found.name });
     }
   }
-  return leaderboards(env).fetch(await inward(request, internal));
+  const res = await leaderboards(env).fetch(await inward(request, internal));
+  if (request.method !== 'POST' || !res.ok) return res;
+  // A new best: the driver's friends hear about it later. Who was passed stays in the worker.
+  const { passed, ...answer } = await res.json();
+  if (answer.improved) {
+    await accounts(env).fetch(new Request('https://accounts/internal/record', {
+      method: 'POST',
+      body: JSON.stringify({ id: account.id, track: answer.track, source: answer.source, time: answer.time, passed: passed || [] }),
+    })).catch(e => console.log('record', e.message));
+  }
+  return json(answer, res.status);
 }
 
 /// A garage call. A garage shown to friends only answers 403 to anyone else: when the one asking is
@@ -451,6 +464,8 @@ export class Boards {
       sessions: 1,
     };
     entry.last = entry.date;
+    // The driver's best here until now; none the first time.
+    const before = i >= 0 ? entries[i].time : Infinity;
     if (i >= 0) {
       const old = entries[i];
       const seen = { sessions: (old.sessions || 1) + 1, last: Math.max(old.last || old.date, entry.date) };
@@ -462,7 +477,17 @@ export class Boards {
     entries.sort((x, y) => x.time - y.time);
     await storage.put(key, entries.slice(0, 1000));
     const same = entries.filter(e => e.source === b.source);
-    return json({ track: { id: found.id, name: found.name }, rank: same.findIndex(e => e.driver === driver) + 1, of: same.length });
+    // Who was ahead and now is behind, for the worker alone: their friends among them are told so.
+    const passed = t < before ? same.filter(e => e.driver !== driver && e.time > t && e.time <= before).map(e => e.driver) : [];
+    return json({
+      track: { id: found.id, name: found.name },
+      rank: same.findIndex(e => e.driver === driver) + 1,
+      of: same.length,
+      source: b.source,
+      time: t,
+      improved: t < before,
+      passed,
+    });
   }
 
   async board(track, driver) {
@@ -595,6 +620,7 @@ export class Accounts {
       const user = await this.byID(b.a);
       return json({ friends: !!user && (user.friends || []).some(f => f.id === b.b) });
     }
+    if (path === '/internal/record') return this.record(await request.json());
     const invited = path.match(/^\/v1\/invites\/([^/]+)$/);
     if (invited && method === 'GET') {
       const from = await this.invitation(invited[1]);
@@ -780,6 +806,59 @@ export class Accounts {
       data: { friend: user.id, name: user.name },
     }));
     return json(this.friendView(other, user), 201);
+  }
+
+  /// A driver's new best lap on a track: kept until the track has been quiet for a while, then
+  /// told to their friends once. A faster lap in the meantime takes its place and starts the wait again.
+  async record(b) {
+    const user = await this.byID(b?.id);
+    const t = time(b?.time);
+    const track = b?.track;
+    if (!user || t === null || !track || typeof track.id !== 'string' || !SOURCES.includes(b.source)) return json({ error: 'bad record' }, 400);
+    if (!(user.friends || []).length) return json({ ok: true });
+    const storage = this.state.storage;
+    const waiting = (await storage.get('records')) || {};
+    const key = [user.id, track.id, b.source].join('/');
+    const passed = (Array.isArray(b.passed) ? b.passed : []).filter(id => typeof id === 'string').slice(0, 1000);
+    waiting[key] = {
+      user: user.id,
+      track: text(track.name) || 'Track',
+      time: t,
+      passed: [...new Set([...(waiting[key]?.passed || []), ...passed])],
+      due: Date.now() + RECORD_DELAY,
+    };
+    await storage.put('records', waiting);
+    await storage.setAlarm(Math.min(...Object.values(waiting).map(r => r.due)));
+    return json({ ok: true });
+  }
+
+  /// The records whose wait is over go to the friends: "passed you" to the ones who were ahead on
+  /// that track, "a new best" to the others.
+  async alarm() {
+    const storage = this.state.storage;
+    const waiting = (await storage.get('records')) || {};
+    const now = Date.now();
+    const due = Object.entries(waiting).filter(([, r]) => r.due <= now);
+    for (const [key] of due) delete waiting[key];
+    await storage.put('records', waiting);
+    const left = Object.values(waiting).map(r => r.due);
+    if (left.length) await storage.setAlarm(Math.min(...left));
+    for (const [, r] of due) {
+      const user = await this.byID(r.user);
+      if (!user) continue;
+      for (const f of user.friends || []) {
+        const friend = await this.byID(f.id);
+        if (!friend) continue;
+        const passed = r.passed.includes(friend.id);
+        await this.notify(friend, {
+          kind: 'record',
+          title: passed ? 'Ti hanno superato' : 'Nuovo record',
+          body: passed ? '%@ ti ha superato a %@: %@.' : '%@ ha un nuovo record a %@: %@.',
+          args: [user.name, r.track, lapText(r.time)],
+          data: { friend: user.id, name: user.name, track: r.track, time: lapText(r.time), passed: passed ? '1' : '' },
+        }).catch(e => console.log('record', e.message));
+      }
+    }
   }
 
   /// A phone that wants notifications for this account: its token from Apple or Google, tied to the
@@ -1279,6 +1358,12 @@ function clean(s, re) {
 function text(s) {
   if (typeof s !== 'string') return '';
   return [...s.replace(/[\u0000-\u001f\u007f]/g, '').trim()].slice(0, 24).join('');
+}
+
+/// A lap time as the apps write it: 1:52.34.
+function lapText(t) {
+  const cs = Math.round(t * 100);
+  return Math.floor(cs / 6000) + ':' + String(Math.floor(cs / 100) % 60).padStart(2, '0') + '.' + String(cs % 100).padStart(2, '0');
 }
 
 /// A lap time in seconds, or null.

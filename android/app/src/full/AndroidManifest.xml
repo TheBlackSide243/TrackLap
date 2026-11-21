@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What only the full app has: links and files from friends, and notifications. TrackLap Lite, next
+     to it on the same phone, must not offer itself for any of them. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A friend who accepted your invitation; asked the first time Friends opens signed in. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <activity android:name=".MainActivity" android:exported="true">
+            <!-- tracklap://join/<code> from a group's QR code, tracklap://garage/<code> from a garage page,
+                 tracklap://friend/<code> from a friend invitation, tracklap://friends from a notification. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tracklap" />
+            </intent-filter>
+            <!-- A .tracklap lap or a .tracklapsetup setup sent by a friend, opened or shared from another app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+        </activity>
+
+        <!-- Firebase Cloud Messaging: the notifications and this phone's token. -->
+        <service
+            android:name=".data.PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

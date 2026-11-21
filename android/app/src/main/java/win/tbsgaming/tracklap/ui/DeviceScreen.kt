@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import win.tbsgaming.tracklap.BuildConfig
+import androidx.compose.material.icons.filled.Download
 import win.tbsgaming.tracklap.Edition
 import win.tbsgaming.tracklap.model.VehicleKind
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -354,6 +355,7 @@ private fun AboutPanel() {
 /** TrackLap Lite: what only the full app has, a separate app. */
 @Composable
 private fun FullAppPanel() {
+    val links = androidx.compose.ui.platform.LocalUriHandler.current
     Panel {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(L("Questa è TrackLap Lite: cronometro, drag, piste e sessioni, tutto sul telefono e senza account."), fontSize = 14.sp, color = Theme.text)
@@ -370,6 +372,7 @@ private fun FullAppPanel() {
                 }
             }
             Text(L("Sono nell'app TrackLap completa, un'app a parte: le sessioni di Lite restano su questo telefono."), fontSize = 12.sp, color = Theme.sub)
+            PrimaryButton(L("Scarica TrackLap"), Icons.Filled.Download) { runCatching { links.openUri(Edition.FULL_APP_URL) } }
         }
     }
 }

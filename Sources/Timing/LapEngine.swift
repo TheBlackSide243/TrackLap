@@ -67,9 +67,20 @@ final class LapEngine {
     private(set) var heading: Double = 0
     private(set) var lapDistance: Double = 0
     /// Lateral g now, + turning right: from the board's accelerometer, else from the turn of the
-    /// heading. Smoothed; it gives the lean angle on two wheels.
+    /// heading. Smoothed.
     private(set) var lateralG: Double = 0
-    @ObservationIgnored private var lastHeading: (t: Double, h: Double)? = nil
+    /// Lateral g now from the turn of the heading alone, + turning right. A bike leans by this: an
+    /// accelerometer that leans with it measures next to none in a corner.
+    private(set) var turnG: Double = 0
+    /// The furthest lean of this session to each side, in degrees.
+    private(set) var maxLeanLeft: Double = 0
+    private(set) var maxLeanRight: Double = 0
+    /// Headings of the last second or so: the turn rate is taken over about half a second, so the
+    /// noise of one fix at 10 Hz does not show.
+    @ObservationIgnored private var headings: [(t: Double, h: Double)] = []
+
+    /// Degrees from upright now, + leaning right.
+    var leanAngle: Double { LapEngine.lean(turnG) }
 
     /// The fastest lap on this track from earlier sessions, if any.
     private(set) var record: Lap? = nil
@@ -172,6 +183,8 @@ final class LapEngine {
         splits = [:]
         maxSpeed = 0
         lapDistance = 0
+        maxLeanLeft = 0
+        maxLeanRight = 0
         sectors = makeSectors(carry: [])
     }
 
@@ -180,19 +193,24 @@ final class LapEngine {
         speed = s.speed
         position = s.coord
         heading = s.heading
-        var g: Double? = s.g?.lateral
-        if g == nil, let last = lastHeading, s.t - last.t > 0, s.t - last.t < 3 {
-            var turn = s.heading - last.h
+        // Time going backwards or a long gap: another source, or the signal lost.
+        if let last = headings.last, s.t <= last.t || s.t - last.t > 3 { headings = [] }
+        headings.removeAll { s.t - $0.t > 1.5 }
+        // The newest fix at least 0.4 s old, else the oldest there is.
+        var turned: Double? = nil
+        if let from = headings.last(where: { s.t - $0.t >= 0.4 }) ?? headings.first {
+            var turn = s.heading - from.h
             if turn > 180 { turn -= 360 }
             if turn < -180 { turn += 360 }
-            g = s.speed > 3 ? s.speed * (turn * .pi / 180) / (s.t - last.t) / 9.81 : 0
+            turned = s.speed > 3 ? s.speed * (turn * .pi / 180) / (s.t - from.t) / 9.81 : 0
         }
-        lastHeading = (s.t, s.heading)
-        if let g { lateralG = lateralG * 0.6 + max(-2.5, min(2.5, g)) * 0.4 }
+        headings.append((s.t, s.heading))
+        if let turned { turnG = turnG * 0.5 + max(-2, min(2, turned)) * 0.5 }
+        if let g = s.g?.lateral ?? turned { lateralG = lateralG * 0.6 + max(-2.5, min(2.5, g)) * 0.4 }
     }
 
-    /// Degrees from upright a bike leans at this lateral g, on a flat corner.
-    static func lean(_ lateralG: Double) -> Double { atan(abs(lateralG)) * 180 / .pi }
+    /// Degrees from upright a bike leans at this lateral g on a flat corner, with the sign of the g.
+    static func lean(_ lateralG: Double) -> Double { atan(lateralG) * 180 / .pi }
 
     func ingest(_ s: Sample) {
         observe(s)
@@ -223,6 +241,10 @@ final class LapEngine {
             checkSplits(from: p, to: (s, xy), until: 1, dt: dt, step: step)
             lapDistance += step
             appendPoint(t: s.t, coord: s.coord, v: s.speed, g: s.g)
+        }
+        if lapStartT != nil {
+            maxLeanLeft = max(maxLeanLeft, -leanAngle)
+            maxLeanRight = max(maxLeanRight, leanAngle)
         }
         updateDelta(now: s.t)
     }

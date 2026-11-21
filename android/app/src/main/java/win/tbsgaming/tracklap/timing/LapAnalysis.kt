@@ -14,15 +14,25 @@ data class GPoint(val lateral: Double = 0.0, val longitudinal: Double = 0.0) {
 }
 
 object GForce {
-    /** One value per trace point: measured by the board's accelerometer where it has one, else from the GPS. */
-    fun along(trace: List<TracePoint>): List<GPoint> {
+    /**
+     * One value per trace point: measured by the board's accelerometer where it has one, else from
+     * the GPS. On two wheels the lateral always comes from the GPS: the accelerometer leans with the
+     * bike and measures next to none in a corner.
+     */
+    fun along(trace: List<TracePoint>, twoWheels: Boolean = false): List<GPoint> {
         val out = fromGps(trace).toMutableList()
         for ((i, p) in trace.withIndex()) {
             val lateral = p.glat
             val longitudinal = p.glon
-            if (lateral != null && longitudinal != null) out[i] = GPoint(clamp(lateral), clamp(longitudinal))
+            if (lateral != null && longitudinal != null) out[i] = GPoint(if (twoWheels) out[i].lateral else clamp(lateral), clamp(longitudinal))
         }
         return out
+    }
+
+    /** The furthest lean of a lap to each side, in degrees: left, then right. */
+    fun maxLean(trace: List<TracePoint>): Pair<Double, Double> {
+        val g = fromGps(trace)
+        return leanAngle(-(g.minOfOrNull { it.lateral } ?: 0.0)) to leanAngle(g.maxOfOrNull { it.lateral } ?: 0.0)
     }
 
     /** Most of the lap measured by the accelerometer. */

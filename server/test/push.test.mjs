@@ -1,5 +1,6 @@
-// Push notifications: the phones an account registers, and the notification that reaches whoever
-// sent an invitation when a friend accepts it, through APNs and FCM with fetch stood in for.
+// Push notifications: the phones an account registers, the notification that reaches whoever sent
+// an invitation when a friend accepts it, and a friend's new best lap, through APNs and FCM with
+// fetch stood in for.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -104,7 +105,17 @@ function server(extra = keys) {
     await settled();
     return res;
   };
-  return { call, signUp, befriend, settled };
+  // The alarm of the accounts, as if this much time had passed.
+  const later = async ms => {
+    const now = Date.now;
+    Date.now = () => now() + ms;
+    try {
+      for (const a of accounts) await a.alarm();
+    } finally {
+      Date.now = now;
+    }
+  };
+  return { call, signUp, befriend, settled, later };
 }
 
 function decode(part) {
@@ -194,4 +205,54 @@ test('signing out, a phone Apple forgot, and no keys: nothing goes', async () =>
   await off.call('PUT', '/v1/me/push', { token: a.token, body: { platform: 'ios', token: IPHONE } });
   assert.equal((await off.befriend(a, await off.signUp('Marco'))).status, 201);
   assert.equal(quiet.length, 0);
+});
+
+test('a new best lap reaches your friends once, after the session, and says who was passed', async () => {
+  const sent = network();
+  const { call, signUp, befriend, later } = server();
+  const luca = await signUp('Luca');
+  const marco = await signUp('Marco');
+  const anna = await signUp('Anna');
+  await call('PUT', '/v1/me/push', { token: luca.token, body: { platform: 'ios', token: IPHONE } });
+  await call('PUT', '/v1/me/push', { token: anna.token, body: { platform: 'android', token: ANDROID } });
+  await befriend(luca, marco);
+  await befriend(anna, marco);
+  sent.length = 0;
+
+  const mugello = { name: 'Mugello', lat: 43.99752, lon: 11.37147 };
+  const lap = time => ({ source: 'device', time, distance: 5240, sectors: [], date: 1798000000000, track: mugello });
+  // Luca was there first; he has no friend to tell but Marco, who has no phone registered.
+  await call('POST', '/v1/laps', { token: luca.token, body: lap(113.9) });
+  await later(21 * 60 * 1000);
+  assert.equal(sent.filter(s => s.kind !== 'google-auth').length, 0);
+
+  // Marco gets faster three times in one session, and passes Luca on the way.
+  const first = await call('POST', '/v1/laps', { token: marco.token, body: lap(114.6) });
+  assert.equal(first.body.improved, true);
+  assert.equal(first.body.passed, undefined, 'who was passed stays on the server');
+  await call('POST', '/v1/laps', { token: marco.token, body: lap(113.2) });
+  const slower = await call('POST', '/v1/laps', { token: marco.token, body: lap(115.0) });
+  assert.equal(slower.body.improved, false);
+  await call('POST', '/v1/laps', { token: marco.token, body: lap(112.34) });
+  await later(5 * 60 * 1000);
+  assert.equal(sent.filter(s => s.kind !== 'google-auth').length, 0, 'not while the session may still go on');
+
+  await later(21 * 60 * 1000);
+  const apns = sent.filter(s => s.kind === 'apns');
+  assert.equal(apns.length, 1, 'once, with the best');
+  assert.deepEqual(apns[0].json.aps.alert, {
+    'title-loc-key': 'Ti hanno superato',
+    'loc-key': '%@ ti ha superato a %@: %@.',
+    'loc-args': ['Marco', 'Mugello', '1:52.34'],
+  });
+  assert.equal(apns[0].json.kind, 'record');
+  const fcm = sent.filter(s => s.kind === 'fcm');
+  assert.equal(fcm.length, 1);
+  assert.deepEqual(fcm[0].json.message.data, {
+    kind: 'record', args: '["Marco","Mugello","1:52.34"]', friend: marco.account.id, name: 'Marco', track: 'Mugello', time: '1:52.34', passed: '',
+  });
+
+  // Told once: nothing more when the alarm rings again.
+  await later(60 * 60 * 1000);
+  assert.equal(sent.filter(s => s.kind !== 'google-auth').length, 2);
 });

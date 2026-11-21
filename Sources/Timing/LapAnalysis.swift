@@ -12,15 +12,22 @@ struct GPoint {
 
 enum GForce {
     /// One value per trace point: measured by the board's accelerometer where it has one, else from
-    /// the GPS.
-    static func along(_ trace: [TracePoint]) -> [GPoint] {
+    /// the GPS. On two wheels the lateral always comes from the GPS: the accelerometer leans with the
+    /// bike and measures next to none in a corner.
+    static func along(_ trace: [TracePoint], twoWheels: Bool = false) -> [GPoint] {
         var out = fromGPS(trace)
         for (i, p) in trace.enumerated() {
             if let lateral = p.glat, let longitudinal = p.glon {
-                out[i] = GPoint(lateral: clamp(lateral), longitudinal: clamp(longitudinal))
+                out[i] = GPoint(lateral: twoWheels ? out[i].lateral : clamp(lateral), longitudinal: clamp(longitudinal))
             }
         }
         return out
+    }
+
+    /// The furthest lean of a lap to each side, in degrees.
+    static func maxLean(_ trace: [TracePoint]) -> (left: Double, right: Double) {
+        let lateral = fromGPS(trace).map(\.lateral)
+        return (LapEngine.lean(-(lateral.min() ?? 0)), LapEngine.lean(lateral.max() ?? 0))
     }
 
     /// Most of the lap measured by the accelerometer.

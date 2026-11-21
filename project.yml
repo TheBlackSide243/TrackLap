@@ -29,7 +29,9 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Support/TrackLap.entitlements
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    scheme: {}
+    scheme:
+      testTargets:
+        - TrackLapTests
   # The free app: Live, Drag, Tracks, Sessions and Device, all on the phone. No account, no friends,
   # no leaderboards, no garage: the same sources built with LITE (see Edition.swift).
   TrackLapLite:
@@ -47,3 +49,18 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     scheme: {}
+  # The timer's tests (Tests/): laps, sectors and the lean angle on a made-up circuit. They run in
+  # the simulator inside the app (.github/workflows/tests.yml).
+  TrackLapTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: TrackLap
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.local.tracklap.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/TrackLap.app/TrackLap"
+        BUNDLE_LOADER: "$(TEST_HOST)"

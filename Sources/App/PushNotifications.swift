@@ -1,11 +1,11 @@
 import UIKit
 import UserNotifications
 
-/// Notifications from the server; for now one kind: a friend who accepted your invitation. iOS asks
-/// once, the first time you open Friends signed in. The token Apple gives this iPhone goes to the
-/// server with your account, and signing out stops them. The words come from Localizable.strings:
-/// the server sends the Italian key ("%@ ha accettato il tuo invito: ora siete amici.") and the name.
-/// Tapping one opens Friends.
+/// Notifications from the server: a friend who accepted your invitation, and a friend's new best lap
+/// on a track ("Marco ti ha superato a Mugello: 1:52.34."). iOS asks once, the first time you open
+/// Friends signed in. The token Apple gives this iPhone goes to the server with your account, and
+/// signing out stops them. The words come from Localizable.strings: the server sends the Italian key
+/// ("%@ ha accettato il tuo invito: ora siete amici.") and what goes in it. Tapping one opens Friends.
 @MainActor
 final class PushNotifications: NSObject, UNUserNotificationCenterDelegate {
     static let shared = PushNotifications()

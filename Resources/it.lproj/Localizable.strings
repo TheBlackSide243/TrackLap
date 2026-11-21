@@ -755,3 +755,12 @@
 "Chiunque apra il tuo garage vede pista, data e tempi di ogni sessione." = "Chiunque apra il tuo garage vede pista, data e tempi di ogni sessione.";
 "Mostra tutte (%lld)" = "Mostra tutte (%lld)";
 "I giri e gli assetti degli amici si aprono nell'app TrackLap completa." = "I giri e gli assetti degli amici si aprono nell'app TrackLap completa.";
+"Piega sx" = "Piega sx";
+"Piega dx" = "Piega dx";
+"La piega è calcolata dal GPS, da velocità e raggio della curva: è l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota." = "La piega è calcolata dal GPS, da velocità e raggio della curva: è l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota.";
+"Frenata e spinta sono misurate dall'accelerometro dell'ESP32." = "Frenata e spinta sono misurate dall'accelerometro dell'ESP32.";
+"Scarica TrackLap" = "Scarica TrackLap";
+"Record degli amici" = "Record degli amici";
+"Ti hanno superato" = "Ti hanno superato";
+"%@ ti ha superato a %@: %@." = "%@ ti ha superato a %@: %@.";
+"%@ ha un nuovo record a %@: %@." = "%@ ha un nuovo record a %@: %@.";
