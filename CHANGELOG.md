@@ -2,7 +2,7 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
-## 0.10.1 (not released yet)
+## 0.10.1 (2026-11-21)
 
 The lean angle put right, with a dial and a chart; a friend's new record as a notification. / La
 piega corretta, con un indicatore e un grafico; il nuovo record di un amico come notifica.
