@@ -2,6 +2,62 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## 0.10.1 (not released yet)
+
+The lean angle put right, with a dial and a chart; a friend's new record as a notification. / La
+piega corretta, con un indicatore e un grafico; il nuovo record di un amico come notifica.
+
+### English
+
+**Fixed**
+- **Lean angle with the boards that have an accelerometer** (Waveshare Touch-LCD-1.47 and LCD-1.69):
+  it read close to 0°. The accelerometer leans with the bike and feels next to no lateral g in a
+  corner, so on two wheels the lean now always comes from the GPS, from the speed and how fast the
+  heading turns. Braking and thrust still come from the accelerometer.
+- TrackLap Lite on Android no longer offers itself for `tracklap://` links, friends' files and
+  notifications: with both apps on the phone, Android asked which one to open and Lite did nothing.
+- In TrackLap Lite, "Share this lap" in the menu of a lap is gone: sharing is in the full app.
+
+**New**
+- **Lean dial in Live**: on a motorcycle or a scooter, a card with the lean now, the side it is on,
+  and the furthest lean to the left and to the right in the session.
+- **Lean in the analysis**: a chart of the lean along the lap (right above the line, left below)
+  with the reference lap, the lean at the cursor, the furthest lean to each side, and the furthest
+  lean of every lap in the list.
+- **A friend's new record**: when a friend improves their best on a track, your phones get one
+  notification, 20 minutes after their last improvement, with the time; it says so when they
+  passed you. Android has a channel of its own for them, to silence apart from the others.
+- TrackLap Lite: a button to get the full app in Device.
+
+**Under the bonnet**
+- Tests for the timer (laps, sectors, lean) and for the server run on GitHub at every push.
+
+### Italiano
+
+**Corretto**
+- **Piega con le schede che hanno l'accelerometro** (Waveshare Touch-LCD-1.47 e LCD-1.69): segnava
+  quasi 0°. L'accelerometro si inclina con la moto e in curva non sente quasi nessun g laterale,
+  quindi su due ruote la piega ora viene sempre dal GPS, dalla velocità e da quanto in fretta gira
+  la direzione. Frenata e spinta vengono ancora dall'accelerometro.
+- TrackLap Lite su Android non si propone più per i link `tracklap://`, i file degli amici e le
+  notifiche: con tutte e due le app sul telefono, Android chiedeva quale aprire e Lite non faceva nulla.
+- In TrackLap Lite non c'è più "Condividi questo giro" nel menu di un giro: la condivisione è
+  nell'app completa.
+
+**Novità**
+- **Indicatore di piega in Live**: su moto o scooter, una scheda con la piega di adesso, il lato, e
+  la piega massima a sinistra e a destra nella sessione.
+- **Piega nell'analisi**: il grafico della piega lungo il giro (destra sopra la linea, sinistra
+  sotto) con il giro di riferimento, la piega al cursore, la piega massima per lato, e la piega
+  massima di ogni giro nell'elenco.
+- **Il nuovo record di un amico**: quando un amico migliora il suo best su una pista, sui tuoi
+  telefoni arriva una sola notifica, 20 minuti dopo il suo ultimo miglioramento, con il tempo; dice
+  se ti ha superato. Su Android hanno un canale a parte, da silenziare senza toccare le altre.
+- TrackLap Lite: in Dispositivo, un pulsante per scaricare l'app completa.
+
+**Sotto il cofano**
+- I test del cronometro (giri, settori, piega) e del server girano su GitHub a ogni push.
+
 ## 0.10.0 (2026-11-09)
 
 TrackLap Lite, motorcycles and scooters, and shared sessions. / TrackLap Lite, moto e scooter, e le

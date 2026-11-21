@@ -60,7 +60,7 @@ The phones do all the timing: the server only stores and relays.
 | `PUT /v1/me/push` | `{platform: "ios"\|"android", token}`: this phone's token from Apple or Google, tied to the session (signing out there stops it); up to 10 phones |
 | `DELETE /v1/me/push` | `{token}`: that phone gets nothing more |
 | `GET /v1/boards?lat=&lon=&len=` | the leaderboard of the circuit whose start line is there (`len` = a lap in metres, to pick the layout); each lap has `name`, `vehicle`, `garage` and `car`, and yours `"mine":true` when signed in |
-| `POST /v1/laps` | signed in: `{source: "device"\|"phone", time, distance, sectors, date, track: {name, lat, lon}, car, kind}`; the name is the account's, `car` links the lap only if it is in your garage, and `kind` (`car`, `motorcycle`, `scooter`) comes back on the board |
+| `POST /v1/laps` | signed in: `{source: "device"\|"phone", time, distance, sectors, date, track: {name, lat, lon}, car, kind}`; the name is the account's, `car` links the lap only if it is in your garage, and `kind` (`car`, `motorcycle`, `scooter`) comes back on the board. The answer: `{track, rank, of, source, time, improved}`, `improved` when it is your best there |
 
 Signed-in calls carry `Authorization: Bearer <token>`.
 
@@ -88,8 +88,10 @@ shows it again, `DELETE /v1/garages/<code>` deletes it.
 
 ### Push notifications
 
-When a friend accepts your invitation, your phones get a notification with their name. The server
-signs it itself, for Apple (APNs, HTTP/2 with a JWT from a .p8 key) and for Google (FCM v1, with
+When a friend accepts your invitation, your phones get a notification with their name. A friend's
+new best lap on a track reaches you too, once: 20 minutes after their last improvement there, with
+the best of them, as "passed you" if you were ahead on that track and "a new record" if not. The
+server signs them itself, for Apple (APNs, HTTP/2 with a JWT from a .p8 key) and for Google (FCM v1, with
 an access token from a service account), in [`src/push.js`](src/push.js). The words are the apps':
 the iPhone looks up the Italian key in its own translations, Android writes it from the data. Phones
 Apple or Google no longer know are forgotten. Without these secrets on the Worker nothing is sent:
@@ -101,12 +103,13 @@ Apple or Google no longer know are forgotten. Without these secrets on the Worke
 
 The key's ID and the team's, `APNS_KEY_ID` and `APNS_TEAM_ID`, are not secret: they are in
 [`wrangler.toml`](wrangler.toml). The Android app's Firebase configuration is
-`android/app/google-services.json`.
+`android/app/src/full/google-services.json`.
 
 ### Tests and deployment
 
 `npm test` runs the objects and the worker against an in-memory stand-in for the Durable Object
-runtime (Node 22 or later, nothing to install).
+runtime (Node 22 or later, nothing to install). GitHub runs it at every push, with the timer's
+tests ([`tests.yml`](../.github/workflows/tests.yml)).
 
 Cloudflare deploys it from this folder through its Git integration (Workers & Pages → the `tracklap`
 Worker → Settings → Build, root directory `server`), with `npx wrangler deploy` and the migrations
@@ -146,7 +149,9 @@ I tempi li calcolano i telefoni: il server salva e inoltra e basta. Le chiamate 
 nelle tabelle sopra; le chiamate con account portano `Authorization: Bearer <token>`.
 
 **Notifiche**: quando un amico accetta il tuo invito, i tuoi telefoni ricevono una notifica con il
-suo nome. Il server la firma da solo, per Apple (APNs) e per Google (FCM), in
+suo nome. Ti arriva anche il nuovo record di un amico su una pista, una volta sola: 20 minuti dopo
+il suo ultimo miglioramento lì, con il migliore, come "ti ha superato" se su quella pista eri
+davanti e come "nuovo record" se no. Il server le firma da solo, per Apple (APNs) e per Google (FCM), in
 [`src/push.js`](src/push.js); le parole sono quelle delle app. Servono i segreti `APNS_KEY` (il
 testo della chiave .p8) e `FCM_SERVICE_ACCOUNT` (il JSON del service account di Firebase): senza,
 non parte niente. `APNS_KEY_ID` e `APNS_TEAM_ID` non sono segreti e stanno in `wrangler.toml`.
@@ -158,7 +163,8 @@ con le segnalazioni, `POST /v1/garages/<codice>/restore` lo rimette visibile e
 `DELETE /v1/garages/<codice>` lo cancella.
 
 `npm test` prova gli oggetti e il worker con una copia in memoria del runtime dei Durable Object
-(Node 22 o successivo, niente da installare). Cloudflare lo pubblica da questa cartella con
+(Node 22 o successivo, niente da installare); GitHub lo lancia a ogni push, insieme ai test del
+cronometro ([`tests.yml`](../.github/workflows/tests.yml)). Cloudflare lo pubblica da questa cartella con
 l'integrazione Git (Workers & Pages → il Worker `tracklap` → Settings → Build, cartella `server`) a
 ogni push su `main`; l'app usa `https://tracklap.tbsgaming.win`, dominio personalizzato del Worker
 (c'è anche `https://tracklap.theblackside243.workers.dev`).
