@@ -25,12 +25,16 @@ void poll();
 void take(const Fix& f, int16_t& lateral, int16_t& longitudinal);
 /// "up ok, forward 42%" for the serial "info".
 void describe(char* out, size_t n);
+/// Gravity as the chip reads it, in g along its own axes (z goes through the board), once the
+/// board has stood still for a while: false while it moves or is shaken. For the screen's way up.
+bool atRest(float& x, float& y, float& z);
 #else
 inline bool begin() { return false; }
 inline const char* model() { return ""; }
 inline void poll() {}
 inline void take(const Fix&, int16_t& lateral, int16_t& longitudinal) { lateral = longitudinal = kNone; }
 inline void describe(char* out, size_t n) { snprintf(out, n, "none"); }
+inline bool atRest(float&, float&, float&) { return false; }
 #endif
 
 }  // namespace Imu

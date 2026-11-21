@@ -28,7 +28,10 @@ struct DashState {
 /// the drag timer's state and results. Elsewhere these do nothing.
 namespace Display {
 #ifdef TRACKLAP_DISPLAY
-void begin();
+/// `upsideDown` for a board mounted the other way up (see Screen).
+void begin(bool upsideDown = false);
+/// The picture the other way up, drawn again from nothing.
+void flip(bool upsideDown);
 void show(const DashState& s);
 void event(const LapEvent& e);
 /// The place in the live group (position 0 = not in one) and the gap in ms to the driver just ahead,
@@ -40,7 +43,8 @@ void drag(bool on, uint8_t state, uint32_t elapsed);
 /// A drag result for 5 s: a time in ms, or a distance in cm; purple for a best.
 void dragResult(const char* label, uint32_t value, bool distance, bool best);
 #else
-inline void begin() {}
+inline void begin(bool = false) {}
+inline void flip(bool) {}
 inline void show(const DashState&) {}
 inline void event(const LapEvent&) {}
 inline void group(uint8_t, uint8_t, int32_t) {}

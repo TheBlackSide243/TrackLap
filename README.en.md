@@ -288,6 +288,12 @@ Bluetooth and will not do.
   screen with rounded corners, used sideways, and a QMI8658 accelerometer: the same dashboard,
   laid out for its screen, and the measured g-forces like the Touch. On its battery it switches on
   with its PWR button.
+- **The screen the right way up**: on the three Waveshare boards the **BOOT** button turns the
+  picture over, to mount the board with its cable on the other side; the choice is kept when it is
+  off. The Touch and the 1.69 then do it by themselves with the accelerometer: turn the board over
+  and a second later the picture turns. Which way is right they learn from the first position they
+  rest in standing up; when that is the wrong one, press BOOT once and from then on that one
+  counts. Lying flat or on the move, the picture stays as it is.
 - **LED**: on boards with an RGB LED it is red without GPS, yellow while waiting for a fix and green
   with a fix; it blinks until the app connects.
 
@@ -322,8 +328,8 @@ On the Waveshare boards the GPS takes the header's RX and TX pins (on the one wi
 and 5 go to the microSD slot).
 When the board uses those pins for something else (display, LED, the PSRAM of ESP32-WROVER modules
 on 16 and 17), change them from the app (Device → ESP32 → Change pins) or from the USB serial
-monitor at 115200 baud with `pins <rx> <tx>`; `pins default` goes back to the defaults, `info`
-shows the state.
+monitor at 115200 baud with `pins <rx> <tx>`; `pins default` goes back to the defaults, `flip`
+turns the screen over, `info` shows the state.
 
 **Install**: open https://esp32.tbsgaming.win in Chrome, Edge or Brave on a computer, plug the
 board in over USB and press Install: "Any ESP32 with Bluetooth" detects the chip by itself,

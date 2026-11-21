@@ -2,6 +2,35 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
+## Firmware 0.10.2 (not released yet)
+
+The screen the right way up, however the board is mounted. The apps stay at 0.10.1. / Lo schermo dal
+verso giusto, comunque sia montata la scheda. Le app restano alla 0.10.1.
+
+### English
+
+- **BOOT turns the picture over** on the three Waveshare boards with a screen, to mount the board
+  with its cable on the other side. The choice is kept when the board is off. `flip` over USB serial
+  does the same.
+- **The Touch-LCD-1.47 and the LCD-1.69 do it by themselves** with their accelerometer: turn the
+  board over and a second later the picture turns. Which way is right they learn from the first
+  position they rest in standing up; when that is the wrong one, press BOOT once and from then on
+  that one counts. Lying flat or on the move, the picture stays as it is.
+- The plain LCD-1.47 has no accelerometer: there the picture turns with BOOT only.
+- The boards without a screen work as before: there is no need to update them.
+
+### Italiano
+
+- **BOOT capovolge l'immagine** sulle tre Waveshare con lo schermo, per montare la scheda con il
+  cavo dall'altra parte. La scelta resta anche a scheda spenta. `flip` dalla seriale USB fa lo
+  stesso.
+- **La Touch-LCD-1.47 e la LCD-1.69 lo fanno da sole** con il loro accelerometro: capovolgi la
+  scheda e dopo un secondo l'immagine si gira. Qual è il verso giusto lo imparano dalla prima
+  posizione in cui stanno ferme in piedi; se è quella sbagliata, premi BOOT una volta e da lì in poi
+  vale quella. Sdraiata o in movimento l'immagine resta com'è.
+- La LCD-1.47 semplice non ha l'accelerometro: lì l'immagine si gira solo con BOOT.
+- Le schede senza schermo funzionano come prima: aggiornarle non è necessario.
+
 ## 0.10.1 (2026-11-21)
 
 The lean angle put right, with a dial and a chart; a friend's new record as a notification. / La
