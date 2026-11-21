@@ -2,7 +2,7 @@
 
 English first, Italian below each version. / Prima in inglese, sotto ogni versione in italiano.
 
-## Firmware 0.10.2 (not released yet)
+## Firmware 0.10.2 (2026-11-21)
 
 The screen the right way up, however the board is mounted. The apps stay at 0.10.1. / Lo schermo dal
 verso giusto, comunque sia montata la scheda. Le app restano alla 0.10.1.
