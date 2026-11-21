@@ -83,6 +83,11 @@ In Italian, English, Spanish, French, German and Portuguese, following the iPhon
 - **Online leaderboards**: with *Publish my best laps* on, the best lap of every session goes to the
   leaderboard of its track, recognised by the start line; the ESP32 (10 Hz) and the iPhone (1 Hz)
   have separate boards, and Demo laps never go in.
+- **Shared sessions**: in Sessions, *Sharing* shows your sessions to everyone, to friends only or
+  to nobody, apart from who sees the garage. They see the track, the day, the vehicle and every lap
+  time; never traces or positions.
+- **Notifications**: you get one when a friend accepts your invitation, and when a friend improves
+  their record on a track, once at the end of their session, saying so if they passed you.
 
 <table>
   <tr>
@@ -168,6 +173,35 @@ and leaderboard time remembers the car it was set with.
 
 <sub>Car photos from Wikimedia Commons, CC0: [list](screenshots/garage/CREDITS.md).</sub>
 
+## Motorcycles and scooters
+
+A vehicle in the garage is a car, a motorcycle or a scooter; without a garage you pick it in
+Device, under *What you ride or drive*. On two wheels TrackLap shows the **lean angle**:
+
+- In **Live** a dial with the lean now, the side it is on, and the furthest lean to the left and to
+  the right in the session.
+- In the **analysis** a chart of the lean along the lap with the reference lap, the lean at the
+  cursor, the furthest to each side and that of every lap.
+- A **setup** has spring preload, sag and gearing instead of camber, toe, anti-roll bars and wings.
+- Leaderboards and friends' laps say what kind of vehicle set the time.
+
+The lean is worked out from the GPS, from the speed and how fast the heading turns, also with the
+boards that have an accelerometer: that one leans with the bike and feels no lateral g in a corner.
+It is the theoretical angle, without the width of the tyres and the rider moving on the bike.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/en-moto-live.webp" alt="Live on a motorcycle, with the lean dial"></td>
+    <td width="33%"><img src="docs/readme/en-moto-lean.webp" alt="The chart of the lean along a lap"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Live on two wheels</sub></td>
+    <td align="center"><sub>The lean along the lap</sub></td>
+    <td></td>
+  </tr>
+</table>
+
 ## The hardware
 
 <p align="center">
@@ -196,6 +230,13 @@ lap, green when faster than the session's average, red when slower.
   [Feather](https://github.com/khcrysalis/Feather) and install TrackLap, or download
   `TrackLap-<version>-unsigned.ipa` from the [releases](https://github.com/TheBlackSide243/TrackLap/releases)
   and install it with Sideloadly or AltStore. To try it without hardware, pick **Demo** in Device.
+- **TrackLap Lite**: the free app of its own, with the timer, Drag, the tracks, the sessions and
+  Device, all on the phone and without an account. Friends, the online leaderboards, live groups
+  and the garage are in the full app. It is in the same Feather source and in the same releases
+  (`TrackLap-Lite-<version>-unsigned.ipa`), and installs next to TrackLap.
+- **Android**: `TrackLap-<version>.apk` and `TrackLap-Lite-<version>.apk` are in the
+  *TrackLap for Android* pre-releases among the [releases](https://github.com/TheBlackSide243/TrackLap/releases)
+  (Android 8 or later).
 - **ESP32**: open [esp32.tbsgaming.win](https://esp32.tbsgaming.win) in Chrome, Edge or Brave on a
   computer, plug the board in over USB and press Install. Then in the app: Device → ESP32.
 

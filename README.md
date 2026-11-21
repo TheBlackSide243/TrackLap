@@ -83,6 +83,11 @@ In italiano, inglese, spagnolo, francese, tedesco e portoghese, con la lingua de
 - **Classifiche online**: chi attiva *Pubblica i miei best* manda il giro migliore di ogni sessione
   alla classifica della sua pista, riconosciuta dalla linea del via; ESP32 (10 Hz) e iPhone (1 Hz)
   hanno classifiche separate, i giri della Demo non entrano mai.
+- **Sessioni condivise**: in Sessioni, *Condivisione* mostra le tue sessioni a tutti, solo agli
+  amici o a nessuno, a parte da chi vede il garage. Si vedono pista, giorno, veicolo e il tempo di
+  ogni giro; mai tracciati o posizioni.
+- **Notifiche**: ti arriva una notifica quando un amico accetta il tuo invito e quando migliora il
+  suo record su una pista, una sola a fine sessione, che dice se ti ha superato.
 
 <table>
   <tr>
@@ -169,6 +174,35 @@ classifica si ricorda con quale auto l'hai fatto.
 
 <sub>Foto delle auto da Wikimedia Commons, CC0: [elenco](screenshots/garage/CREDITS.md).</sub>
 
+## Moto e scooter
+
+Un veicolo del garage è un'auto, una moto o uno scooter; senza garage lo scegli in Dispositivo, in
+*Con cosa giri*. Su due ruote TrackLap mostra la **piega**:
+
+- In **Live** un indicatore con la piega di adesso, il lato, e la piega massima a sinistra e a
+  destra nella sessione.
+- Nell'**analisi** il grafico della piega lungo il giro insieme al giro di riferimento, la piega
+  nel punto del cursore, la massima per lato e quella di ogni giro.
+- L'**assetto** ha precarico, sag e rapporto al posto di campanatura, convergenza, barre e ala.
+- Classifiche e giri degli amici dicono con che tipo di veicolo è stato fatto il tempo.
+
+La piega è calcolata dal GPS, dalla velocità e da quanto in fretta gira la direzione, anche con le
+schede che hanno l'accelerometro: quello si inclina con la moto e in curva non sente g laterali. È
+l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/readme/it-moto-live.webp" alt="Live su una moto, con l'indicatore di piega"></td>
+    <td width="33%"><img src="docs/readme/it-moto-lean.webp" alt="Il grafico della piega lungo un giro"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Live su due ruote</sub></td>
+    <td align="center"><sub>La piega lungo il giro</sub></td>
+    <td></td>
+  </tr>
+</table>
+
 ## L'hardware
 
 <p align="center">
@@ -197,6 +231,13 @@ migliore, verde se è più veloce della media della sessione, rosso se è più l
   TrackLap, oppure scarica `TrackLap-<versione>-unsigned.ipa` dalle
   [release](https://github.com/TheBlackSide243/TrackLap/releases) e installalo con Sideloadly o
   AltStore. Per provarlo senza hardware scegli **Demo** in Dispositivo.
+- **TrackLap Lite**: l'app gratuita a parte, con cronometro, Drag, piste, sessioni e Dispositivo,
+  tutto sul telefono e senza account. Amici, classifiche online, gruppi live e garage sono
+  nell'app completa. È nella stessa sorgente di Feather e nelle stesse release
+  (`TrackLap-Lite-<versione>-unsigned.ipa`), e si installa accanto a TrackLap.
+- **Android**: `TrackLap-<versione>.apk` e `TrackLap-Lite-<versione>.apk` sono nelle pre-release
+  *TrackLap for Android* delle [release](https://github.com/TheBlackSide243/TrackLap/releases)
+  (Android 8 o successivo).
 - **ESP32**: apri [esp32.tbsgaming.win](https://esp32.tbsgaming.win) da Chrome, Edge o Brave sul
   computer, collega la scheda via USB e premi Installa. Poi nell'app: Dispositivo → ESP32.
 
