@@ -67,8 +67,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import win.tbsgaming.tracklap.AppTab
 import win.tbsgaming.tracklap.Edition
-import win.tbsgaming.tracklap.timing.leanAngle
-import kotlin.math.roundToInt
 import win.tbsgaming.tracklap.LocalModel
 import win.tbsgaming.tracklap.SourceKind
 import win.tbsgaming.tracklap.gps.BleManager
@@ -109,6 +107,7 @@ fun LiveScreen() {
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         LiveStatsRow()
+                        if (m.drivenKind.onTwoWheels) LeanCard()
                         MiniMapCard(150)
                         SessionButton()
                         if (Edition.online) MultiplayerCard()
@@ -119,6 +118,7 @@ fun LiveScreen() {
                 DeltaCard()
                 SectorRow()
                 LiveStatsRow()
+                if (m.drivenKind.onTwoWheels) LeanCard()
                 MiniMapCard(210)
                 SessionButton()
                 if (Edition.online) MultiplayerCard()
@@ -363,7 +363,6 @@ private fun LiveStatsRow() {
         StatTile(L("Ultimo"), Fmt.lap(e.lastLap?.time), Modifier.weight(1f))
         StatTile(L("Best"), Fmt.lap(e.bestLap?.time), Modifier.weight(1f), color = if (e.bestLap == null) Theme.text else Theme.purple)
         StatTile(L("Velocità"), Fmt.speed(e.speed), Modifier.weight(1f), unit = Fmt.speedUnit)
-        if (m.drivenKind.onTwoWheels) StatTile(L("Piega"), "${leanAngle(e.lateralG).roundToInt()}°", Modifier.weight(1f))
     }
 }
 

@@ -1,0 +1,80 @@
+# The tests: the server's (server/test, with Node) and the timer's (Tests/, in the iOS simulator:
+# laps, sectors and the lean angle on a made-up circuit).
+name: Tests
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Server tests
+        working-directory: server
+        run: npm test
+
+  timer:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_[0-9]*.app 2>/dev/null | grep -vi 'beta' | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Tools
+        run: brew install xcodegen librsvg
+
+      - name: App icon
+        run: rsvg-convert -w 1024 -h 1024 -b '#0F0F11' icon.svg -o Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+
+      - name: Xcode project
+        run: xcodegen generate
+
+      # Any iPhone on the newest runtime.
+      - name: Simulator
+        run: |
+          xcrun simctl list devices available -j > devices.json
+          UDID=$(python3 - <<'PY'
+          import json, re
+          best = None
+          for rt, devs in json.load(open("devices.json"))["devices"].items():
+              if "iOS" not in rt:
+                  continue
+              ver = tuple(int(x) for x in re.findall(r"\d+", rt.split("iOS")[-1]))
+              for d in devs:
+                  if d["name"].startswith("iPhone"):
+                      key = (ver, d["name"])
+                      if best is None or key > best[0]:
+                          best = (key, d["udid"])
+          print(best[1])
+          PY
+          )
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+
+      - name: Timer tests
+        run: |
+          set -o pipefail
+          xcodebuild -project TrackLap.xcodeproj -scheme TrackLap -configuration Debug -destination "id=$UDID" -derivedDataPath build CODE_SIGNING_ALLOWED=NO test 2>&1 | tee test.log | grep -E "error:|Test Case|Test Suite|passed|failed|TEST|BUILD" || true
+          grep -q "TEST SUCCEEDED" test.log || { grep -E "error|failed" test.log | head -80; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-log
+          path: test.log
+          retention-days: 7

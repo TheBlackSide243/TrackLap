@@ -7,4 +7,7 @@ package win.tbsgaming.tracklap
 object Edition {
     val isLite: Boolean get() = BuildConfig.LITE
     val online: Boolean get() = !isLite
+
+    /** Where TrackLap Lite sends you for the full app. */
+    const val FULL_APP_URL = "https://github.com/TheBlackSide243/TrackLap/releases/latest"
 }

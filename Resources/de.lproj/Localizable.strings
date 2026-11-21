@@ -755,3 +755,15 @@
 "Chiunque apra il tuo garage vede pista, data e tempi di ogni sessione." = "Wer deine Garage öffnet, sieht Strecke, Datum und Zeiten jeder Session.";
 "Mostra tutte (%lld)" = "Alle zeigen (%lld)";
 "I giri e gli assetti degli amici si aprono nell'app TrackLap completa." = "Runden und Setups von Freunden öffnen sich in der vollen TrackLap-App.";
+"Piega sx" = "Schräglage li.";
+"Piega dx" = "Schräglage re.";
+"La piega è calcolata dal GPS, da velocità e raggio della curva: è l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota." = "Die Schräglage wird aus dem GPS berechnet, aus Tempo und Kurvenradius: Es ist der theoretische Winkel, ohne Reifenbreite und Gewichtsverlagerung des Fahrers.";
+"Frenata e spinta sono misurate dall'accelerometro dell'ESP32." = "Bremsen und Schub misst der Beschleunigungssensor des ESP32.";
+"Scarica TrackLap" = "TrackLap laden";
+"Record degli amici" = "Rekorde von Freunden";
+"Ti hanno superato" = "Du wurdest überholt";
+"%@ ti ha superato a %@: %@." = "%@ hat dich in %@ überholt: %@.";
+"%@ ha un nuovo record a %@: %@." = "%@ hat einen neuen Rekord in %@: %@.";
+"Auto, moto e scooter" = "Autos, Motorräder und Roller";
+"Su due ruote vedi anche la piega, in pista e nell'analisi." = "Auf zwei Rädern siehst du auch die Schräglage, auf der Strecke und in der Analyse.";
+"0-100, quarto di miglio e frenata, con la partenza a un tocco." = "0-100, Viertelmeile und Bremsen, mit Start per Tipp.";

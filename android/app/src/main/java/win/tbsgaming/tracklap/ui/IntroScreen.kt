@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -97,6 +99,8 @@ fun IntroScreen(done: () -> Unit) {
                         Title(L("Tutto quello che serve"))
                         Feature(Icons.Filled.Map, Theme.accent, L("Oltre 60 circuiti"), L("E la ricerca di qualsiasi pista nel mondo, con il tracciato già pronto."))
                         Feature(Icons.Filled.ShowChart, Theme.purple, L("Analisi dei giri"), L("Confronta due giri curva per curva: velocità, delta e g."))
+                        Feature(Icons.Filled.TwoWheeler, Theme.blue, L("Auto, moto e scooter"), L("Su due ruote vedi anche la piega, in pista e nell'analisi."))
+                        Feature(Icons.Filled.Speed, Theme.bad, "Drag", L("0-100, quarto di miglio e frenata, con la partenza a un tocco."))
                         Feature(Icons.Filled.RecordVoiceOver, Theme.good, L("Tempi a voce"), L("A fine giro tempo e distacco, senza guardare il telefono."))
                         Feature(Icons.Filled.Memory, Theme.yellow, L("Il cruscotto sull'ESP32"), L("Con lo schermo della Waveshare i tempi li vedi anche senza iPhone."))
                     }

@@ -109,7 +109,9 @@ private struct TrackCard: View {
                 Text(track.name)
                     .font(.headline)
                     .foregroundStyle(Theme.text)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
                 if !track.place.isEmpty {
                     Text(track.place).font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
                 }

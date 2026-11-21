@@ -156,16 +156,18 @@ private struct FeaturesPage: View {
     private let rows: [(icon: String, color: Color, title: String, text: String)] = [
         ("map.fill", Theme.accent, L("Oltre 60 circuiti"), L("E la ricerca di qualsiasi pista nel mondo, con il tracciato già pronto.")),
         ("chart.xyaxis.line", Theme.purple, L("Analisi dei giri"), L("Confronta due giri curva per curva: velocità, delta e g.")),
+        ("motorcycle", Theme.blue, L("Auto, moto e scooter"), L("Su due ruote vedi anche la piega, in pista e nell'analisi.")),
+        ("gauge.with.needle.fill", Theme.bad, "Drag", L("0-100, quarto di miglio e frenata, con la partenza a un tocco.")),
         ("speaker.wave.2.fill", Theme.good, L("Tempi a voce"), L("A fine giro tempo e distacco, senza guardare il telefono.")),
         ("cpu", Theme.yellow, L("Il cruscotto sull'ESP32"), L("Con lo schermo della Waveshare i tempi li vedi anche senza iPhone.")),
     ]
 
     var body: some View {
         IntroPage(active: active, title: L("Tutto quello che serve"), text: [], titleFirst: true) {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
                     HStack(spacing: 14) {
-                        AppGlyph(symbol: r.icon, size: 46, color: r.color)
+                        AppGlyph(symbol: r.icon, size: 44, color: r.color)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(r.title).font(.headline).foregroundStyle(Theme.text)
                             Text(r.text).font(.subheadline).foregroundStyle(Theme.sub)

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.AlertDialog
@@ -53,6 +54,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -245,6 +248,11 @@ private fun SessionBody(s: Session, share: (Lap) -> Unit) {
     var mapMode by remember { mutableStateOf(MapMode.speed) }
     var cursor by remember { mutableStateOf<Double?>(null) }
     val isTrackRecord = record?.lap?.id == best.id
+    val twoWheels = s.vehicle.onTwoWheels
+    // On two wheels: the furthest lean of each lap, whichever side it was on.
+    val leans = remember(s.id, s.laps.size) {
+        if (twoWheels) s.laps.associate { l -> l.id to GForce.maxLean(l.trace).let { max(it.first, it.second) } } else emptyMap()
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Panel {
@@ -322,7 +330,7 @@ private fun SessionBody(s: Session, share: (Lap) -> Unit) {
                     else L("I numeri sono la velocità minima in ogni curva."),
                     fontSize = 12.sp, color = Theme.sub,
                 )
-                CursorReadout(lap, ref?.lap, cursor)
+                CursorReadout(lap, ref?.lap, cursor, twoWheels)
             }
         }
         Panel {
@@ -337,6 +345,7 @@ private fun SessionBody(s: Session, share: (Lap) -> Unit) {
             }
             LineChart(series, Modifier.fillMaxWidth().height(190.dp), xLabel = { Fmt.distance(it) }, cursor = cursor, onCursor = { cursor = it })
         }
+        if (twoWheels) LeanChart(lap, ref?.lap, cursor) { cursor = it }
         ref?.lap?.let { r ->
             Panel {
                 Text(L("Delta sul riferimento"), fontSize = 12.sp, fontWeight = FontWeight.Black, color = Theme.text)
@@ -366,11 +375,11 @@ private fun SessionBody(s: Session, share: (Lap) -> Unit) {
             }
         }
         SectionLabel(L("Accelerazioni"))
-        GGDiagram(lap, s.vehicle.onTwoWheels)
+        GGDiagram(lap, ref?.lap, twoWheels)
         SectionLabel(L("Giri"))
         Panel(padding = 4.dp) {
             for ((i, l) in s.laps.withIndex()) {
-                LapRow(l, best.time, l.id == lap.id, onShare = { share(l) }) { lapID = l.id; cursor = null }
+                LapRow(l, best.time, l.id == lap.id, leans[l.id], onShare = { share(l) }) { lapID = l.id; cursor = null }
                 if (i < s.laps.size - 1) Hairline()
             }
         }
@@ -433,7 +442,7 @@ private fun AnalysisMap(lap: Lap, ref: Lap?, mode: MapMode, cursor: Double?, mod
 }
 
 @Composable
-private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?) {
+private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?, twoWheels: Boolean) {
     if (cursor == null) {
         Text(L("Trascina sui grafici o sulla barra per muoverti nel giro"), fontSize = 12.sp, color = Theme.sub)
         return
@@ -449,49 +458,115 @@ private fun CursorReadout(lap: Lap, ref: Lap?, cursor: Double?) {
             val d = c.delta(cursor)
             StatTile("Delta", Fmt.delta(d), Modifier.weight(1f), color = if (d <= 0) Theme.good else Theme.bad)
         }
+        if (twoWheels) {
+            val lean = remember(lap.id) { GForce.lean(lap.trace) }
+            val i = lap.trace.indexOfFirst { it.d >= cursor }.let { if (it < 0) lap.trace.lastIndex else it }
+            if (i in lean.indices) StatTile(L("Piega"), leanText(lean[i]), Modifier.weight(1f), color = Theme.yellow)
+        }
+    }
+}
+
+/** The lean angle along the lap: right above the line, left below, with the reference lap. */
+@Composable
+private fun LeanChart(lap: Lap, ref: Lap?, cursor: Double?, onCursor: (Double?) -> Unit) {
+    val ys = remember(lap.id) { GForce.lean(lap.trace) }
+    val xs = lap.trace.map { it.d }
+    val series = arrayListOf(ChartSeries(thin(xs), thin(ys), Theme.accent, fill = true))
+    if (ref != null) {
+        val c = LapComparison(lap, ref)
+        val rl = remember(ref.id) { GForce.lean(ref.trace) }
+        series.add(0, ChartSeries(thin(ref.trace.map { it.d / c.scale }), thin(rl), Theme.purple, 2f))
+    }
+    val left = -(ys.minOrNull() ?: 0.0)
+    val right = ys.maxOrNull() ?: 0.0
+    val top = max(20.0, kotlin.math.ceil(series.flatMap { it.ys }.maxOfOrNull { abs(it) }?.div(10) ?: 0.0) * 10)
+    Panel {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(L("Piega"), fontSize = 12.sp, fontWeight = FontWeight.Black, color = Theme.text, modifier = Modifier.weight(1f))
+            Text("← ${max(0.0, left).roundToInt()}°   ${max(0.0, right).roundToInt()}° →", style = Theme.numStyle(15.sp, FontWeight.Black, Theme.purple))
+        }
+        Spacer(Modifier.height(8.dp))
+        LineChart(
+            series, Modifier.fillMaxWidth().height(160.dp), xLabel = { Fmt.distance(it) }, yLabel = { leanText(it) },
+            yMin = -top, yMax = top, zeroLine = true, cursor = cursor, onCursor = onCursor,
+        )
     }
 }
 
 /** The friction circle: every point of the lap, with the strongest of each kind. */
 @Composable
-private fun GGDiagram(lap: Lap, twoWheels: Boolean) {
-    val g = remember(lap.id) { GForce.along(lap.trace) }
+private fun GGDiagram(lap: Lap, ref: Lap?, twoWheels: Boolean) {
+    val g = remember(lap.id, twoWheels) { GForce.along(lap.trace, twoWheels) }
+    val refG = remember(ref?.id, twoWheels) { ref?.let { GForce.along(it.trace, twoWheels) } ?: emptyList() }
     val lateral = g.maxOfOrNull { abs(it.lateral) } ?: 0.0
     val braking = -(g.minOfOrNull { it.longitudinal } ?: 0.0)
     val accel = g.maxOfOrNull { it.longitudinal } ?: 0.0
     Panel {
+        if (twoWheels) {
+            // The furthest lean to each side takes the place of the lateral g.
+            val (left, right) = remember(lap.id) { GForce.maxLean(lap.trace) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatTile(L("Piega sx"), "${left.roundToInt()}°", Modifier.weight(1f), color = Theme.purple)
+                StatTile(L("Piega dx"), "${right.roundToInt()}°", Modifier.weight(1f), color = Theme.purple)
+            }
+            Spacer(Modifier.height(8.dp))
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (twoWheels) StatTile(L("Piega max"), "${leanAngle(lateral).roundToInt()}°", Modifier.weight(1f))
-            else StatTile(L("Laterale"), String.format(Locale.US, "%.2f", lateral), Modifier.weight(1f), unit = "g")
+            if (!twoWheels) StatTile(L("Laterale"), String.format(Locale.US, "%.2f", lateral), Modifier.weight(1f), unit = "g")
             StatTile(L("Frenata"), String.format(Locale.US, "%.2f", max(0.0, braking)), Modifier.weight(1f), unit = "g")
             StatTile(L("Spinta"), String.format(Locale.US, "%.2f", max(0.0, accel)), Modifier.weight(1f), unit = "g")
         }
         Spacer(Modifier.height(12.dp))
-        val scale = max(1.5, max(lateral, max(braking, accel)) * 1.1)
+        // A ring every half g, out to the strongest of this lap and of the reference.
+        val peak = max(1.0, (g + refG).maxOfOrNull { it.total } ?: 1.0)
+        val scale = kotlin.math.ceil(peak * 1.1 * 2) / 2
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxWidth(0.8f).aspectRatio(1f)) {
+            Canvas(Modifier.fillMaxWidth(0.82f).aspectRatio(1f)) {
                 val r = size.minDimension / 2
                 val c = Offset(size.width / 2, size.height / 2)
-                for (k in 1..3) drawCircle(Theme.line, r * k / 3, c, style = Stroke(1f))
-                drawLine(Theme.line, Offset(c.x - r, c.y), Offset(c.x + r, c.y), 1f)
-                drawLine(Theme.line, Offset(c.x, c.y - r), Offset(c.x, c.y + r), 1f)
+                val label = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Theme.sub.toArgb()
+                    textSize = 9.dp.toPx()
+                    isFakeBoldText = true
+                }
+                var ring = 0.5
+                while (ring <= scale + 0.001) {
+                    val rr = (ring / scale * r).toFloat()
+                    drawCircle(Theme.line, rr, c, style = Stroke(if (ring % 1.0 == 0.0) 1.2.dp.toPx() else 0.6.dp.toPx()))
+                    drawContext.canvas.nativeCanvas.drawText(String.format(Locale.US, "%.1f g", ring), c.x + rr * 0.71f + 2.dp.toPx(), c.y - rr * 0.71f - 2.dp.toPx(), label)
+                    ring += 0.5
+                }
+                drawLine(Theme.line, Offset(c.x - r, c.y), Offset(c.x + r, c.y), 1.dp.toPx())
+                drawLine(Theme.line, Offset(c.x, c.y - r), Offset(c.x, c.y + r), 1.dp.toPx())
+                // The reference lap underneath, in its purple.
+                for (p in refG) {
+                    if (p.total == 0.0) continue
+                    drawCircle(Theme.purple.copy(alpha = 0.3f), 1.5.dp.toPx(), Offset(c.x + (p.lateral / scale * r).toFloat(), c.y - (p.longitudinal / scale * r).toFloat()))
+                }
                 for (p in g) {
                     if (p.total == 0.0) continue
-                    val x = c.x + (p.lateral / scale * r).toFloat()
-                    val y = c.y - (p.longitudinal / scale * r).toFloat()
-                    drawCircle(Theme.accent.copy(alpha = 0.5f), 2.5f * density, Offset(x, y))
+                    drawCircle(Theme.accent.copy(alpha = 0.6f), 1.75.dp.toPx(), Offset(c.x + (p.lateral / scale * r).toFloat(), c.y - (p.longitudinal / scale * r).toFloat()))
                 }
             }
+            Text(L("Accelerazione").uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Black, color = Theme.sub, modifier = Modifier.align(Alignment.TopCenter))
+            Text(L("Frenata").uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Black, color = Theme.sub, modifier = Modifier.align(Alignment.BottomCenter))
+            Text(L("Sinistra").uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Black, color = Theme.sub, modifier = Modifier.align(Alignment.CenterStart))
+            Text(L("Destra").uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Black, color = Theme.sub, modifier = Modifier.align(Alignment.CenterEnd))
         }
         Spacer(Modifier.height(8.dp))
-        val note = if (GForce.measured(lap.trace)) L("Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.")
+        val measured = GForce.measured(lap.trace)
+        val note = if (twoWheels) {
+            // The lean is always worked out from the GPS: the accelerometer leans with the bike.
+            val lean = L("La piega è calcolata dal GPS, da velocità e raggio della curva: è l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota.")
+            if (measured) lean + " " + L("Frenata e spinta sono misurate dall'accelerometro dell'ESP32.") else lean
+        } else if (measured) L("Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.")
         else L("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative.")
         Text(note, fontSize = 12.sp, color = Theme.sub)
     }
 }
 
 @Composable
-private fun LapRow(lap: Lap, bestTime: Double, selected: Boolean, onShare: () -> Unit, onClick: () -> Unit) {
+private fun LapRow(lap: Lap, bestTime: Double, selected: Boolean, lean: Double?, onShare: () -> Unit, onClick: () -> Unit) {
     val isBest = lap.time == bestTime
     Row(
         Modifier.fillMaxWidth().background(if (selected) Theme.accent.copy(alpha = 0.08f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
@@ -508,8 +583,17 @@ private fun LapRow(lap: Lap, bestTime: Double, selected: Boolean, onShare: () ->
                 }
             }
         }
-        Text(if (isBest) L("BEST") else Fmt.delta(lap.time - bestTime), style = Theme.numStyle(14.sp, FontWeight.Black, if (isBest) Theme.purple else Theme.bad))
+        Column(horizontalAlignment = Alignment.End) {
+            Text(if (isBest) L("BEST") else Fmt.delta(lap.time - bestTime), style = Theme.numStyle(14.sp, FontWeight.Black, if (isBest) Theme.purple else Theme.bad))
+            // On two wheels: the furthest lean of the lap.
+            lean?.let {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Icon(Icons.Filled.TwoWheeler, null, tint = Theme.sub, modifier = Modifier.size(12.dp))
+                    Text("${it.roundToInt()}°", style = Theme.numStyle(11.sp, FontWeight.SemiBold, Theme.sub))
+                }
+            }
+        }
         if (selected) Icon(Icons.Filled.Check, null, tint = Theme.accent, modifier = Modifier.size(18.dp))
-        Icon(Icons.Filled.Share, L("Condividi questo giro"), tint = Theme.sub, modifier = Modifier.size(18.dp).clickable(onClick = onShare))
+        if (Edition.online) Icon(Icons.Filled.Share, L("Condividi questo giro"), tint = Theme.sub, modifier = Modifier.size(18.dp).clickable(onClick = onShare))
     }
 }

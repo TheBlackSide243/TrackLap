@@ -33,8 +33,8 @@ data class Sample(
     val g: GPoint? = null,
 )
 
-/** Degrees from upright a bike leans at this lateral g, on a flat corner. */
-fun leanAngle(lateralG: Double): Double = Math.toDegrees(kotlin.math.atan(kotlin.math.abs(lateralG)))
+/** Degrees from upright a bike leans at this lateral g on a flat corner, with the sign of the g. */
+fun leanAngle(lateralG: Double): Double = Math.toDegrees(kotlin.math.atan(lateralG))
 
 enum class SectorState { best, faster, slower }
 
@@ -80,9 +80,20 @@ class LapEngine {
     var position by mutableStateOf<Coord?>(null); private set
     var heading by mutableStateOf(0.0); private set
     var lapDistance by mutableStateOf(0.0); private set
-    /** Lateral g now, + turning right: from the board's accelerometer, else from the turn of the heading. Smoothed; it gives the lean angle on two wheels. */
+    /** Lateral g now, + turning right: from the board's accelerometer, else from the turn of the heading. Smoothed. */
     var lateralG by mutableStateOf(0.0); private set
-    private var lastHeading: Pair<Double, Double>? = null
+    /**
+     * Lateral g now from the turn of the heading alone, + turning right. A bike leans by this: an
+     * accelerometer that leans with it measures next to none in a corner.
+     */
+    var turnG by mutableStateOf(0.0); private set
+    /** The furthest lean of this session to each side, in degrees. */
+    var maxLeanLeft by mutableStateOf(0.0); private set
+    var maxLeanRight by mutableStateOf(0.0); private set
+    /** Degrees from upright now, + leaning right. */
+    val leanAngle: Double get() = leanAngle(turnG)
+    /** Headings of the last second or so: the turn rate is taken over about half a second, so the noise of one fix at 10 Hz does not show. */
+    private val headings = ArrayList<Pair<Double, Double>>()
 
     /** The fastest lap on this track from earlier sessions, if any. */
     @set:JvmName("assignRecord") var record by mutableStateOf<Lap?>(null); private set
@@ -189,6 +200,8 @@ class LapEngine {
         splits.clear()
         maxSpeed = 0.0
         lapDistance = 0.0
+        maxLeanLeft = 0.0
+        maxLeanRight = 0.0
         sectors = makeSectors(emptyList())
     }
 
@@ -197,16 +210,20 @@ class LapEngine {
         speed = s.speed
         position = s.coord
         heading = s.heading
-        var g: Double? = s.g?.lateral
-        val last = lastHeading
-        if (g == null && last != null && s.t - last.first > 0 && s.t - last.first < 3) {
-            var turn = s.heading - last.second
+        // Time going backwards or a long gap: another source, or the signal lost.
+        headings.lastOrNull()?.let { if (s.t <= it.first || s.t - it.first > 3) headings.clear() }
+        headings.removeAll { s.t - it.first > 1.5 }
+        // The newest fix at least 0.4 s old, else the oldest there is.
+        var turned: Double? = null
+        (headings.lastOrNull { s.t - it.first >= 0.4 } ?: headings.firstOrNull())?.let { from ->
+            var turn = s.heading - from.second
             if (turn > 180) turn -= 360
             if (turn < -180) turn += 360
-            g = if (s.speed > 3) s.speed * Math.toRadians(turn) / (s.t - last.first) / 9.81 else 0.0
+            turned = if (s.speed > 3) s.speed * Math.toRadians(turn) / (s.t - from.first) / 9.81 else 0.0
         }
-        lastHeading = s.t to s.heading
-        if (g != null) lateralG = lateralG * 0.6 + g.coerceIn(-2.5, 2.5) * 0.4
+        headings.add(s.t to s.heading)
+        turned?.let { turnG = turnG * 0.5 + it.coerceIn(-2.0, 2.0) * 0.5 }
+        (s.g?.lateral ?: turned)?.let { lateralG = lateralG * 0.6 + it.coerceIn(-2.5, 2.5) * 0.4 }
     }
 
     fun ingest(s: Sample) {
@@ -239,6 +256,10 @@ class LapEngine {
             checkSplits(p, Pt(s, xy), 1.0, dt, step)
             lapDistance += step
             appendPoint(s.t, s.coord, s.speed, s.g)
+        }
+        if (lapStartT != null) {
+            maxLeanLeft = maxOf(maxLeanLeft, -leanAngle)
+            maxLeanRight = maxOf(maxLeanRight, leanAngle)
         }
         updateDelta(s.t)
     }

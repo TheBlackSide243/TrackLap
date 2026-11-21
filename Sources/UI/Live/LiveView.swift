@@ -45,6 +45,7 @@ struct LiveView: View {
                 DeltaCard()
                 SectorRow()
                 LiveStatsRow()
+                if model.drivenKind.onTwoWheels { LeanCard() }
                 MiniMapCard().frame(height: 210)
                 SessionButton()
                 if Edition.online { MultiplayerCard().id("multiplayer") }
@@ -69,6 +70,7 @@ struct LiveView: View {
                     }
                     VStack(spacing: 14) {
                         LiveStatsRow()
+                        if model.drivenKind.onTwoWheels { LeanCard() }
                         MiniMapCard().frame(height: 150)
                         SessionButton()
                         if Edition.online { MultiplayerCard() }
@@ -374,9 +376,6 @@ private struct LiveStatsRow: View {
             StatTile(title: L("Best"), value: Fmt.lap(engine.bestLap?.time),
                      color: engine.bestLap == nil ? Theme.text : Theme.purple)
             StatTile(title: L("Velocità"), value: Fmt.speed(engine.speed), unit: Fmt.speedUnit)
-            if model.drivenKind.onTwoWheels {
-                StatTile(title: L("Piega"), value: "\(Int(LapEngine.lean(engine.lateralG).rounded()))°")
-            }
         }
     }
 }

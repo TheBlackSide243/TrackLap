@@ -19,6 +19,8 @@ struct SessionDetailView: View {
     @State private var gpxURL: URL?
     @State private var csvURL: URL?
     @State private var shownSetup: SessionSetup?
+    /// On two wheels: the furthest lean of each lap, whichever side it was on.
+    @State private var leans: [UUID: Double] = [:]
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -31,12 +33,13 @@ struct SessionDetailView: View {
             }
             .onChange(of: analysis != nil) { _, ready in
                 if ready, Showcase.screen == .share { sharing = session?.best }
-                // Screenshot mode: straight to the analysis, with the cursor a third of the way round.
-                guard ready, Showcase.screen == .analysis, let lap = analysis?.lap else { return }
+                // Screenshot mode: straight to the analysis (or, on two wheels, down to the lean),
+                // with the cursor a third of the way round.
+                guard ready, Showcase.screen == .analysis || Showcase.screen == .lean, let lap = analysis?.lap else { return }
                 Task {
                     try? await Task.sleep(for: .milliseconds(400))
                     cursor = lap.distance * 0.36
-                    proxy.scrollTo("analysis", anchor: .top)
+                    proxy.scrollTo(Showcase.screen == .lean ? "lean" : "analysis", anchor: .top)
                 }
             }
         }
@@ -106,6 +109,12 @@ struct SessionDetailView: View {
             friendLaps = !Edition.online ? [] : model.friends.laps(on: s.trackID).compactMap { f in model.friends.lap(f.id).map { FriendRef(info: f, lap: $0) } }
             othersLoaded = true
         }
+        if s.vehicle.onTwoWheels {
+            for lap in s.laps where leans[lap.id] == nil {
+                let m = GForce.maxLean(lap.trace)
+                leans[lap.id] = max(m.left, m.right)
+            }
+        }
         analyze()
         gpxURL = try? GPX.write(s)
         csvURL = try? CSV.write(s)
@@ -114,7 +123,7 @@ struct SessionDetailView: View {
     /// The heavy part, worked out once per choice of laps instead of on every move of the cursor.
     private func analyze() {
         guard let s = session, let lap = s.laps.first(where: { $0.id == selectedLapID }) ?? s.best else { return }
-        analysis = Analysis(lap: lap, ref: reference(for: lap, in: s))
+        analysis = Analysis(lap: lap, ref: reference(for: lap, in: s), twoWheels: s.vehicle.onTwoWheels)
     }
 
     /// What was picked, else the best of this session, else the fastest lap of another session.
@@ -186,6 +195,13 @@ struct SessionDetailView: View {
                 SpeedChart(analysis: a, cursor: $cursor)
             }
 
+            if a.twoWheels {
+                Panel {
+                    LeanChart(analysis: a, cursor: $cursor)
+                }
+                .id("lean")
+            }
+
             if let cmp = a.cmp {
                 Panel {
                     DeltaChart(analysis: a, cmp: cmp, cursor: $cursor)
@@ -200,7 +216,7 @@ struct SessionDetailView: View {
 
             SectionLabel(L("Accelerazioni"))
             Panel {
-                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace), twoWheels: s.vehicle.onTwoWheels)
+                GGDiagram(g: a.g, ref: a.refG, measured: GForce.measured(selected.trace), lean: a.twoWheels ? a.maxLean : nil)
             }
 
             SectionLabel(L("Giri"))
@@ -208,7 +224,7 @@ struct SessionDetailView: View {
                 ForEach(s.laps) { lap in
                     LapRow(lap: lap, bestTime: best?.time ?? lap.time, bestSectors: bestSectors,
                            isBest: lap.id == best?.id, selected: lap.id == selected.id,
-                           isReference: lap.id == a.cmp?.ref.id)
+                           isReference: lap.id == a.cmp?.ref.id, lean: leans[lap.id])
                         .onTapGesture {
                             withAnimation(.snappy) { selectedLapID = lap.id }
                         }
@@ -216,8 +232,10 @@ struct SessionDetailView: View {
                             Button { referenceID = lap.id } label: {
                                 Label("Usa come riferimento", systemImage: "scope")
                             }
-                            Button { sharing = lap } label: {
-                                Label("Condividi questo giro", systemImage: "person.2.fill")
+                            if Edition.online {
+                                Button { sharing = lap } label: {
+                                    Label("Condividi questo giro", systemImage: "person.2.fill")
+                                }
                             }
                         }
                 }
@@ -339,13 +357,21 @@ private struct Analysis {
     let apexes: [TracePoint]
     let speedSegments: [ColorSegment]
     let deltaSegments: [ColorSegment]
+    /// A motorcycle or a scooter: the lean angle in place of the lateral g.
+    let twoWheels: Bool
+    /// On two wheels: the lean at each point of the lap and of the reference, + leaning right.
+    let lean: [Double]
+    let refLean: [Double]
 
-    init(lap: Lap, ref: Lap?) {
+    init(lap: Lap, ref: Lap?, twoWheels: Bool = false) {
         self.lap = lap
+        self.twoWheels = twoWheels
         let cmp = ref.map { LapComparison(lap: lap, ref: $0) }
         self.cmp = cmp
-        g = GForce.along(lap.trace)
-        refG = ref.map { GForce.along($0.trace) } ?? []
+        g = GForce.along(lap.trace, twoWheels: twoWheels)
+        refG = ref.map { GForce.along($0.trace, twoWheels: twoWheels) } ?? []
+        lean = twoWheels ? GForce.lean(g, along: lap.trace) : []
+        refLean = twoWheels ? ref.map { GForce.lean(GForce.along($0.trace, twoWheels: true), along: $0.trace) } ?? [] : []
         apexes = Corners.apexes(lap.trace)
         speedSegments = ColorSegment.speed(lap.trace)
         deltaSegments = cmp.map(ColorSegment.delta) ?? []
@@ -353,6 +379,15 @@ private struct Analysis {
 
     func gForce(at d: Double) -> GPoint {
         g.isEmpty ? GPoint() : g[lap.trace.index(atDistance: d)]
+    }
+
+    func leanAngle(at d: Double) -> Double {
+        lean.isEmpty ? 0 : lean[lap.trace.index(atDistance: d)]
+    }
+
+    /// The furthest lean of the lap to each side.
+    var maxLean: (left: Double, right: Double) {
+        (max(0, -(lean.min() ?? 0)), max(0, lean.max() ?? 0))
     }
 }
 
@@ -449,7 +484,11 @@ private struct CursorReadout: View {
                         cell(L("Rif."), Fmt.speed(q.v), Theme.purple)
                         cell("Delta", Fmt.delta(d), d <= 0 ? Theme.good : Theme.bad)
                     }
-                    cell("G", String(format: "%.1f", g.total), Theme.yellow)
+                    if analysis.twoWheels {
+                        cell(L("Piega"), Lean.text(analysis.leanAngle(at: cursor)), Theme.yellow)
+                    } else {
+                        cell("G", String(format: "%.1f", g.total), Theme.yellow)
+                    }
                 }
             } else {
                 Label("Trascina sui grafici o sulla barra per muoverti nel giro", systemImage: "hand.draw")
@@ -786,8 +825,10 @@ private struct GGDiagram: View {
     let ref: [GPoint]
     /// From the board's accelerometer rather than the GPS.
     var measured = false
-    /// A motorcycle or a scooter: the lean angle in place of the lateral g.
-    var twoWheels = false
+    /// A motorcycle or a scooter: the furthest lean to each side, in place of the lateral g.
+    var lean: (left: Double, right: Double)? = nil
+
+    private var twoWheels: Bool { lean != nil }
 
     var body: some View {
         let lateral = g.map { abs($0.lateral) }.max() ?? 0
@@ -796,14 +837,19 @@ private struct GGDiagram: View {
         let peak = max(1.0, (g + ref).map(\.total).max() ?? 1)
         let range = (peak * 1.1 * 2).rounded(.up) / 2
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                if twoWheels {
-                    StatTile(title: L("Piega max"), value: "\(Int(LapEngine.lean(lateral).rounded()))°")
-                } else {
-                    StatTile(title: L("Laterale"), value: String(format: "%.2f", lateral), unit: "g")
+            if let lean {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible())], spacing: 10) {
+                    StatTile(title: L("Piega sx"), value: "\(Int(lean.left.rounded()))°", color: Theme.purple)
+                    StatTile(title: L("Piega dx"), value: "\(Int(lean.right.rounded()))°", color: Theme.purple)
+                    StatTile(title: L("Frenata"), value: String(format: "%.2f", max(0, braking)), unit: "g")
+                    StatTile(title: L("Spinta"), value: String(format: "%.2f", max(0, accel)), unit: "g")
                 }
-                StatTile(title: L("Frenata"), value: String(format: "%.2f", max(0, braking)), unit: "g")
-                StatTile(title: L("Spinta"), value: String(format: "%.2f", max(0, accel)), unit: "g")
+            } else {
+                HStack(spacing: 10) {
+                    StatTile(title: L("Laterale"), value: String(format: "%.2f", lateral), unit: "g")
+                    StatTile(title: L("Frenata"), value: String(format: "%.2f", max(0, braking)), unit: "g")
+                    StatTile(title: L("Spinta"), value: String(format: "%.2f", max(0, accel)), unit: "g")
+                }
             }
             Canvas { ctx, size in
                 let c = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -842,11 +888,21 @@ private struct GGDiagram: View {
             .overlay(alignment: .bottom) { axisLabel(L("Frenata")) }
             .overlay(alignment: .leading) { axisLabel(L("Sinistra")) }
             .overlay(alignment: .trailing) { axisLabel(L("Destra")) }
-            Text(measured ? L("Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.")
-                 : L("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative."))
+            Text(note)
                 .font(.caption)
                 .foregroundStyle(Theme.sub)
         }
+    }
+
+    /// Where the numbers come from. On two wheels the lean is always worked out from the GPS: the
+    /// accelerometer leans with the bike.
+    private var note: String {
+        if twoWheels {
+            let lean = L("La piega è calcolata dal GPS, da velocità e raggio della curva: è l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota.")
+            return measured ? lean + " " + L("Frenata e spinta sono misurate dall'accelerometro dell'ESP32.") : lean
+        }
+        return measured ? L("Misurate dall'accelerometro dell'ESP32, a ogni fix del GPS.")
+            : L("Calcolate dal GPS: con l'ESP32 a 10 Hz sono affidabili, con il GPS dell'iPhone solo indicative.")
     }
 
     private func axisLabel(_ text: String) -> some View {
@@ -858,6 +914,92 @@ private struct GGDiagram: View {
     }
 }
 
+/// A lean angle with the side it is on: "← 38°", "38° →".
+private enum Lean {
+    static func text(_ degrees: Double) -> String {
+        let n = Int(abs(degrees).rounded())
+        if n == 0 { return "0°" }
+        return degrees < 0 ? "← \(n)°" : "\(n)° →"
+    }
+}
+
+/// The lean angle along the lap: right above the line, left below, with the reference lap.
+private struct LeanChart: View {
+    let analysis: Analysis
+    @Binding var cursor: Double?
+
+    var body: some View {
+        let lap = analysis.lap
+        let mine = points(lap.trace, analysis.lean, scale: 1)
+        let ref = analysis.cmp.map { points($0.ref.trace, analysis.refLean, scale: $0.scale) } ?? []
+        let peak = (mine + ref).map { abs($0.lean) }.max() ?? 0
+        let top = max(20, (peak / 10).rounded(.up) * 10)
+        let furthest = analysis.maxLean
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 14) {
+                Text("Piega").font(.caption.weight(.heavy)).foregroundStyle(Theme.text)
+                Spacer(minLength: 0)
+                Text(verbatim: "← \(Int(furthest.left.rounded()))°   \(Int(furthest.right.rounded()))° →")
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.purple)
+            }
+            Chart {
+                RuleMark(y: .value("Zero", 0.0)).foregroundStyle(Theme.sub.opacity(0.6))
+                ForEach(Array(ref.enumerated()), id: \.offset) { item in
+                    LineMark(x: .value("Distanza", item.element.d), y: .value("Piega", item.element.lean),
+                             series: .value("Giro", "Riferimento"))
+                        .foregroundStyle(Theme.purple.opacity(0.85))
+                        .lineStyle(StrokeStyle(lineWidth: 2))
+                }
+                ForEach(Array(mine.enumerated()), id: \.offset) { item in
+                    AreaMark(x: .value("Distanza", item.element.d),
+                             yStart: .value("Zero", 0.0),
+                             yEnd: .value("Piega", item.element.lean))
+                        .foregroundStyle(Theme.accent.opacity(0.16))
+                    LineMark(x: .value("Distanza", item.element.d), y: .value("Piega", item.element.lean),
+                             series: .value("Giro", "Selezionato"))
+                        .foregroundStyle(Theme.accent)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                }
+                if let cursor {
+                    RuleMark(x: .value("Cursore", cursor))
+                        .foregroundStyle(Theme.text.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+                }
+            }
+            .chartXScale(domain: 0...max(1, lap.distance))
+            .chartYScale(domain: -top...top)
+            .chartXSelection(value: $cursor)
+            .chartXAxis {
+                AxisMarks { value in
+                    AxisGridLine().foregroundStyle(Theme.line.opacity(0.6))
+                    AxisValueLabel {
+                        if let v = value.as(Double.self) { Text(Fmt.distance(v)).foregroundStyle(Theme.sub) }
+                    }
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: [-top, -top / 2, 0, top / 2, top]) { value in
+                    AxisGridLine().foregroundStyle(Theme.line.opacity(0.6))
+                    AxisValueLabel {
+                        if let v = value.as(Double.self) { Text(verbatim: Lean.text(v)).foregroundStyle(Theme.sub) }
+                    }
+                }
+            }
+            .frame(height: 170)
+        }
+    }
+
+    /// Every third point, the reference stretched onto this lap's distance as in the delta.
+    private func points(_ trace: [TracePoint], _ lean: [Double], scale: Double) -> [(d: Double, lean: Double)] {
+        guard lean.count == trace.count else { return [] }
+        return trace.indices.compactMap { i in
+            i % 3 == 0 ? (d: trace[i].d / scale, lean: lean[i]) : nil
+        }
+    }
+}
+
 private struct LapRow: View {
     let lap: Lap
     let bestTime: Double
@@ -865,6 +1007,8 @@ private struct LapRow: View {
     let isBest: Bool
     let selected: Bool
     var isReference = false
+    /// On two wheels: the furthest lean of the lap.
+    var lean: Double? = nil
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -879,10 +1023,19 @@ private struct LapRow: View {
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(isBest ? Theme.purple : Theme.text)
-                Text(isBest ? L("BEST") : Fmt.delta(lap.time - bestTime))
-                    .font(.caption.weight(.bold))
-                    .monospacedDigit()
-                    .foregroundStyle(isBest ? Theme.purple : Theme.bad)
+                HStack(spacing: 8) {
+                    Text(isBest ? L("BEST") : Fmt.delta(lap.time - bestTime))
+                        .foregroundStyle(isBest ? Theme.purple : Theme.bad)
+                    if let lean {
+                        HStack(spacing: 3) {
+                            Image(systemName: "angle")
+                            Text(verbatim: "\(Int(lean.rounded()))°")
+                        }
+                        .foregroundStyle(Theme.sub)
+                    }
+                }
+                .font(.caption.weight(.bold))
+                .monospacedDigit()
             }
             Spacer(minLength: 0)
             HStack(spacing: 8) {

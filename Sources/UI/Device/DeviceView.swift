@@ -430,8 +430,10 @@ private struct FriendsPanel: View {
     }
 }
 
-/// TrackLap Lite: what the full app adds, all of it through the server.
+/// TrackLap Lite: what the full app adds, all of it through the server, and where to get it.
 private struct FullAppPanel: View {
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         Panel {
             VStack(alignment: .leading, spacing: 10) {
@@ -450,6 +452,11 @@ private struct FullAppPanel: View {
                     .font(.caption)
                     .foregroundStyle(Theme.sub)
                     .fixedSize(horizontal: false, vertical: true)
+                Button { openURL(Edition.fullAppURL) } label: {
+                    Label("Scarica TrackLap", systemImage: "arrow.down.circle.fill")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.top, 4)
             }
         }
     }

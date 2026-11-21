@@ -13,4 +13,7 @@ enum Edition {
 
     /// Accounts, friends, leaderboards, groups, the garage and sharing.
     static var online: Bool { !isLite }
+
+    /// Where TrackLap Lite sends you for the full app.
+    static let fullAppURL = URL(string: "https://github.com/TheBlackSide243/TrackLap/releases/latest")!
 }

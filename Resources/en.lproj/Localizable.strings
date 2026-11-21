@@ -755,3 +755,15 @@
 "Chiunque apra il tuo garage vede pista, data e tempi di ogni sessione." = "Anyone who opens your garage sees the track, date and times of every session.";
 "Mostra tutte (%lld)" = "Show all (%lld)";
 "I giri e gli assetti degli amici si aprono nell'app TrackLap completa." = "Friends' laps and setups open in the full TrackLap app.";
+"Piega sx" = "Lean left";
+"Piega dx" = "Lean right";
+"La piega è calcolata dal GPS, da velocità e raggio della curva: è l'angolo teorico, senza la larghezza delle gomme e lo spostamento del pilota." = "The lean is worked out from the GPS, from the speed and the radius of the corner: it is the theoretical angle, without the width of the tyres and the rider moving on the bike.";
+"Frenata e spinta sono misurate dall'accelerometro dell'ESP32." = "Braking and thrust are measured by the ESP32's accelerometer.";
+"Scarica TrackLap" = "Get TrackLap";
+"Record degli amici" = "Friends' records";
+"Ti hanno superato" = "You were passed";
+"%@ ti ha superato a %@: %@." = "%@ passed you at %@: %@.";
+"%@ ha un nuovo record a %@: %@." = "%@ has a new record at %@: %@.";
+"Auto, moto e scooter" = "Cars, motorcycles and scooters";
+"Su due ruote vedi anche la piega, in pista e nell'analisi." = "On two wheels you also see the lean angle, on track and in the analysis.";
+"0-100, quarto di miglio e frenata, con la partenza a un tocco." = "0-100, quarter mile and braking, with a one-tap start.";

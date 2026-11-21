@@ -3,9 +3,10 @@ import Foundation
 /// Screenshot mode, for the README and the store pages. Launched with `-showcase <screen>`, the app
 /// fills itself with demo sessions on the selected track (the screenshot workflow puts real circuits
 /// in tracks.json first, and the photos of the demo garage in Documents/garage) and opens that
-/// screen; `-introPage <n>` picks the page of the intro. Without the argument nothing here runs.
+/// screen; `-introPage <n>` picks the page of the intro, and `-vehicle motorcycle` (or scooter) rides
+/// it on two wheels, without the demo garage. Without the argument nothing here runs.
 enum Showcase: String {
-    case live, tracks, editor, sessions, session, analysis, device, intro
+    case live, tracks, editor, sessions, session, analysis, lean, device, intro
     case challenge, group, friends, share
     case drag, dragRun
     case garage, car, setup
@@ -14,6 +15,13 @@ enum Showcase: String {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-showcase"), i + 1 < args.count else { return nil }
         return Showcase(rawValue: args[i + 1])
+    }()
+
+    /// What the demo is driven with when the command line says so.
+    static let vehicle: VehicleKind? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-vehicle"), i + 1 < args.count else { return nil }
+        return VehicleKind(rawValue: args[i + 1])
     }()
 
     /// The pretend friends: their laps to chase, and the cars of the pretend live group.
@@ -26,7 +34,13 @@ extension AppModel {
     func runShowcase() {
         guard let screen = Showcase.screen, !showcaseStarted else { return }
         showcaseStarted = true
-        fillDemoGarage()
+        if let vehicle = Showcase.vehicle {
+            setActiveCar(nil)
+            setVehicleKind(vehicle)
+        } else {
+            setVehicleKind(.car)
+            fillDemoGarage()
+        }
         if [.garage, .car, .setup].contains(screen) {
             account.showcase(name: "Luca", garage: "K7P2QX9M")
             garage.setAudience(.everyone)
@@ -63,7 +77,7 @@ extension AppModel {
             start()
             tab = .live
         case .tracks, .editor: tab = .tracks
-        case .sessions, .session, .analysis, .friends, .share: tab = .sessions
+        case .sessions, .session, .analysis, .lean, .friends, .share: tab = .sessions
         case .device: tab = .device
         case .drag:
             tab = .drag
@@ -138,6 +152,7 @@ extension AppModel {
                                   source: SourceKind.demo.title, sectorCount: track.sectorCount)
             session.carID = activeCar?.id
             session.carName = activeCar?.displayName
+            session.kind = drivenKind
             session.setup = activeSetup?.snapshot
             for lap in demoLaps(on: track, pace: pace, laps: 6.6, from: t0) { session.laps.append(lap) }
             if !session.laps.isEmpty { sessions.save(session) }

@@ -1,7 +1,8 @@
 # Screenshots for the README (and later the store pages): builds the app for the simulator, puts
 # three real circuits in its tracks (screenshots/tracks.json) and photographs each screen in Italian
 # and English with the app's screenshot mode (-showcase <screen>, Sources/App/Showcase.swift), the
-# four pages of the intro, the screens with friends, the drag ones and the garage ones included.
+# four pages of the intro, the screens with friends, the drag ones, the garage ones and the ones on
+# a motorcycle (-vehicle motorcycle) included.
 name: Screenshots
 
 on:
@@ -101,6 +102,9 @@ jobs:
             shot "$l" editor 30
             # A minute on track: a few laps for the delta, the friend's lap and the group's gaps.
             for s in live challenge group; do shot "$l" "$s" 60; done
+            # On two wheels: the lean dial in Live, and the lean chart of a lap.
+            shot "$l" live 60 -vehicle motorcycle
+            shot "$l" lean 14 -vehicle motorcycle
             for p in 0 1 2 3; do shot "$l" intro 6 -introPage "$p"; done
           done
           ls -la shots
